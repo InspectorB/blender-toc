@@ -438,6 +438,41 @@ if(WITH_FREESTYLE)
 	add_definitions(-DWITH_FREESTYLE)
 endif()
 
+if(WITH_USAGE)
+	add_definitions(-DWITH_USAGE)
+
+	list(APPEND INC_SYS
+		${THRIFT_INCLUDE_DIRS}
+		${BOOST_INCLUDE_DIR}
+	)
+
+	list(APPEND SRC
+		intern/usage.cpp
+
+		intern/usage/data_constants.cpp
+		intern/usage/data_constants.h
+		intern/usage/data_types.cpp
+		intern/usage/data_types.h
+		intern/usage/message_constants.cpp
+		intern/usage/message_constants.h
+		intern/usage/message_types.cpp
+		intern/usage/message_types.h
+		intern/usage/metadata_constants.cpp
+		intern/usage/metadata_constants.h
+		intern/usage/metadata_types.cpp
+		intern/usage/metadata_types.h
+		intern/usage/service_constants.cpp
+		intern/usage/service_constants.h
+		intern/usage/service_types.cpp
+		intern/usage/service_types.h
+		#intern/usage/TocService_server.skeleton.cpp
+		intern/usage/TocService.cpp
+		intern/usage/TocService.h
+
+		BKE_usage.h
+	)
+endif()
+
 ## Warnings as errors, this is too strict!
 #if(MSVC)
 #	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /WX")

@@ -67,6 +67,7 @@ static PyStructSequence_Field app_builtopts_info_fields[] = {
 	{(char *)"opencolorio", NULL},
 	{(char *)"player", NULL},
 	{(char *)"openmp", NULL},
+	{(char *)"usage", NULL},
 	{NULL}
 };
 
@@ -290,6 +291,12 @@ static PyObject *make_builtopts_info(void)
 #endif
 
 #ifdef _OPENMP
+	SetObjIncref(Py_True);
+#else
+	SetObjIncref(Py_False);
+#endif
+
+#ifdef WITH_USAGE
 	SetObjIncref(Py_True);
 #else
 	SetObjIncref(Py_False);

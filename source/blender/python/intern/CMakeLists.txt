@@ -258,5 +258,12 @@ if(WITH_PLAYER)
 	add_definitions(-DWITH_PLAYER)
 endif()
 
+if(WITH_USAGE)
+	add_definitions(-DWITH_USAGE)
+	list(APPEND INC_SYS
+		${THRIFT_INCLUDE_DIRS}
+		${BOOST_INCLUDE_DIR}
+	)
+endif()
 
 blender_add_lib(bf_python "${SRC}" "${INC}" "${INC_SYS}")

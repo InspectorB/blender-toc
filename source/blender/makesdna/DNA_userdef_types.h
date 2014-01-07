@@ -511,6 +511,10 @@ typedef struct UserDef {
 	float pixelsize;			/* private, set by GHOST, to multiply DPI with */
 
 	struct WalkNavigation walk_navigation;
+
+	char usage_service_host[64];
+	char usage_service_token[40];
+	int usage_service_port;
 } UserDef;
 
 extern UserDef U; /* from blenkernel blender.c */
@@ -557,6 +561,7 @@ typedef enum eUserPref_Flag {
 	USER_NONEGFRAMES		= (1 << 24),
 	USER_TXT_TABSTOSPACES_DISABLE	= (1 << 25),
 	USER_TOOLTIPS_PYTHON    = (1 << 26),
+	USER_USAGE_ENABLED		= (1 << 27),
 } eUserPref_Flag;
 
 /* flag */

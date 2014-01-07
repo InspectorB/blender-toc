@@ -260,6 +260,10 @@ if(WITH_BULLET)
 	add_definitions(-DWITH_BULLET)
 endif()
 
+if(WITH_USAGE)
+	add_definitions(-DWITH_USAGE)
+endif()
+
 # Build makesrna executable
 blender_include_dirs(
 	.

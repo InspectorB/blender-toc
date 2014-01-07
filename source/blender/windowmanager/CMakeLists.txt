@@ -138,4 +138,12 @@ if(WITH_COMPOSITOR)
 	add_definitions(-DWITH_COMPOSITOR)
 endif()
 
+if(WITH_USAGE)
+	add_definitions(-DWITH_USAGE)
+	list(APPEND INC_SYS
+		${THRIFT_INCLUDE_DIRS}
+		${BOOST_INCLUDE_DIR}
+	)
+endif()
+
 blender_add_lib_nolist(bf_windowmanager "${SRC}" "${INC}" "${INC_SYS}")

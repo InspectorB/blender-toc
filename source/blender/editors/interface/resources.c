@@ -2345,6 +2345,15 @@ void init_userdef_do_versions(void)
 			U.gpencil_new_layer_col[3] = 0.9f;
 		}
 	}
+
+	if (U.versionfile < 270) {
+		if (U.usage_service_host[0] == 0) {
+			BLI_strncpy(U.usage_service_host, "inspectorb.com", 64);
+		}
+		if (U.usage_service_port == 0) {
+			U.usage_service_port = 9090;
+		}
+	}
 	
 	if (U.pixelsize == 0.0f)
 		U.pixelsize = 1.0f;

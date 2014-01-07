@@ -37,6 +37,7 @@
 
 #include "BKE_sound.h"
 #include "BKE_addon.h"
+#include "BKE_usage.h"
 
 #include "RNA_access.h"
 #include "RNA_define.h"
@@ -477,6 +478,13 @@ static EnumPropertyItem *rna_userdef_compute_device_itemf(bContext *UNUSED(C), P
 	*r_free = true;
 
 	return item;
+}
+#endif
+
+#ifdef WITH_USAGE
+static void rna_userdef_usage_update(Main *UNUSED(bmain), Scene *UNUSED(scene), PointerRNA *UNUSED(ptr))
+{
+	BKE_usage_update_settings();
 }
 #endif
 
@@ -3886,6 +3894,31 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	RNA_def_property_enum_items(prop, compute_device_items);
 	RNA_def_property_enum_funcs(prop, "rna_userdef_compute_device_get", NULL, "rna_userdef_compute_device_itemf");
 	RNA_def_property_ui_text(prop, "Compute Device", "Device to use for computation");
+#endif
+
+#ifdef WITH_USAGE
+	prop = RNA_def_property(srna, "usage_service_enabled", PROP_BOOLEAN, PROP_NONE);
+	RNA_def_property_boolean_sdna(prop, NULL, "flag", USER_USAGE_ENABLED);
+	RNA_def_property_ui_text(prop, "Usage Service Enabled", "Enable the collection of usage data");
+	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
+	
+	prop = RNA_def_property(srna, "usage_service_host", PROP_STRING, PROP_NONE);
+	RNA_def_property_string_sdna(prop, NULL, "usage_service_host");
+	RNA_def_property_string_maxlength(prop, 64);
+	RNA_def_property_ui_text(prop, "Usage Service Host", "Hostname or IP for the usage data collection service");
+	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
+	
+	prop = RNA_def_property(srna, "usage_service_port", PROP_INT, PROP_NONE);
+	RNA_def_property_int_sdna(prop, NULL, "usage_service_port");
+	RNA_def_property_range(prop, 0, 32727);
+	RNA_def_property_ui_text(prop, "Usage Service Port", "Port for the usage data collection service");
+	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
+	
+	prop = RNA_def_property(srna, "usage_service_token", PROP_STRING, PROP_NONE);
+	RNA_def_property_string_sdna(prop, NULL, "usage_service_token");
+	RNA_def_property_string_maxlength(prop, 37);
+	RNA_def_property_ui_text(prop, "Usage Service Token", "Personal token for the usage data collection service");
+	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
 #endif
 }
 

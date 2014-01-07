@@ -300,6 +300,9 @@ mark_as_advanced(WITH_ASSERT_ABORT)
 
 option(WITH_BOOST					"Enable features depending on boost" ON)
 
+# Usage tracking
+option(WITH_USAGE					"Enable tracking of usage" ON)
+
 if(CMAKE_COMPILER_IS_GNUCC)
 	option(WITH_GCC_MUDFLAP			"Enable mudflap" OFF)
 	mark_as_advanced(WITH_GCC_MUDFLAP)
@@ -883,6 +886,13 @@ if(UNIX AND NOT APPLE)
 		else()
 			message(STATUS "OSL not found")
 		endif()
+	endif()
+
+	if(WITH_USAGE)
+		set(THRIFT ${LIBDIR}/thrift)
+		set(THRIFT_INCLUDE_DIRS ${THRIFT}/include)
+		set(THRIFT_LIBPATH ${THRIFT}/lib)
+		set(THRIFT_LIBRARIES thrift)
 	endif()
 
 	# OpenSuse needs lutil, ArchLinux not, for now keep, can avoid by using --as-needed
@@ -1835,6 +1845,13 @@ elseif(APPLE)
 		endif()
 	endif()
 
+	if(WITH_USAGE)
+		set(THRIFT ${LIBDIR}/thrift)
+		set(THRIFT_INCLUDE_DIRS ${THRIFT}/include)
+		set(THRIFT_LIBPATH ${THRIFT}/lib)
+		set(THRIFT_LIBRARIES thrift)
+	endif()
+
 	set(EXETYPE MACOSX_BUNDLE)
 
 	set(CMAKE_C_FLAGS_DEBUG "-fno-strict-aliasing -g")
@@ -2318,6 +2335,7 @@ if(FIRST_RUN)
 	info_cfg_option(WITH_CYCLES)
 	info_cfg_option(WITH_FREESTYLE)
 	info_cfg_option(WITH_OPENCOLORIO)
+	info_cfg_option(WITH_USAGE)
 
 	info_cfg_text("Compiler Options:")
 	info_cfg_option(WITH_BUILDINFO)

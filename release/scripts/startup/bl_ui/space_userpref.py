@@ -499,6 +499,17 @@ class USERPREF_PT_system(Panel):
                 row.prop(system, "use_translate_tooltips", text="Tooltips", toggle=True)
                 row.prop(system, "use_translate_new_dataname", text="New Data", toggle=True)
 
+        if bpy.app.build_options.usage:
+            column.separator()
+            row = column.row()
+            row.label("Inspector Blender:")
+            row.prop(system, "usage_service_enabled", text="Enable")
+            sub = column.column()
+            sub.active = system.usage_service_enabled
+            sub.prop(system, "usage_service_host", text="IP Address")
+            sub.prop(system, "usage_service_port", text="Port")
+            sub.prop(system, "usage_service_token", text="Private Token")
+
 
 class USERPREF_MT_interface_theme_presets(Menu):
     bl_label = "Presets"

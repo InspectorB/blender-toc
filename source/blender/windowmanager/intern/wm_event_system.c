@@ -55,6 +55,7 @@
 #include "BKE_report.h"
 #include "BKE_scene.h"
 #include "BKE_screen.h"
+#include "BKE_usage.h"
 
 #include "BKE_sound.h"
 
@@ -100,6 +101,10 @@ void wm_event_add(wmWindow *win, const wmEvent *event_to_add)
 	*event = *event_to_add;
 
 	update_tablet_data(win, event);
+
+#ifdef WITH_USAGE
+	BKE_usage_queue_event(NULL, event_to_add);
+#endif
 
 	BLI_addtail(&win->queue, event);
 }
@@ -648,6 +653,10 @@ static int wm_operator_register_check(wmWindowManager *wm, wmOperatorType *ot)
 static void wm_operator_finished(bContext *C, wmOperator *op, int repeat)
 {
 	wmWindowManager *wm = CTX_wm_manager(C);
+
+#ifdef WITH_USAGE
+	BKE_usage_queue_operator(C, op);
+#endif 
 
 	op->customdata = NULL;
 

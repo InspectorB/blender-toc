@@ -73,6 +73,7 @@
 #include "BKE_sequencer.h" /* free seq clipboard */
 #include "BKE_material.h" /* clear_matcopybuf */
 #include "BKE_tracking.h" /* free tracking clipboard */
+#include "BKE_usage.h"
 
 #include "RE_engine.h"
 #include "RE_pipeline.h"        /* RE_ free stuff */
@@ -471,7 +472,10 @@ void WM_exit_ext(bContext *C, const bool do_python)
 	ANIM_keyingset_infos_exit();
 	
 //	free_txt_data();
-	
+
+#ifdef WITH_USAGE
+	BKE_usage_shutdown();
+#endif
 
 #ifdef WITH_PYTHON
 	/* option not to close python so we can use 'atexit' */
