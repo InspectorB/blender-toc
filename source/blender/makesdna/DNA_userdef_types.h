@@ -513,7 +513,7 @@ typedef struct UserDef {
 	struct WalkNavigation walk_navigation;
 
 	char usage_service_host[64];
-	char usage_service_token[40];
+	char usage_service_token[44];
 	int usage_service_port;
 } UserDef;
 

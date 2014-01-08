@@ -97,8 +97,8 @@ extern "C" {
 
 /* C interface */
 void BKE_usage_update_settings(void);
-void BKE_usage_queue_operator(bContext *C, wmOperator *op);
-void BKE_usage_queue_event(bContext *C, const struct wmEvent *ev);
+void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op);
+void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
 void BKE_usage_shutdown();
 	
 #endif /* __cplusplus */
