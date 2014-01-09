@@ -188,10 +188,10 @@ namespace usage {
 			}
 			catch (TApplicationException e) {
 				switch (e.getType()) {
-					case e.INTERNAL_ERROR:
+					case TApplicationException::INTERNAL_ERROR:
 						printf("INTERNAL_ERROR: %s\n", e.what());
 						break;
-					case e.PROTOCOL_ERROR:
+					case TApplicationException::PROTOCOL_ERROR:
 						printf("PROTOCOL_ERROR: %s\n", e.what());
 						break;
 					default:
