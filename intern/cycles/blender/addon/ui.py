@@ -64,6 +64,7 @@ def draw_samples_info(layout, cscene):
         ao = cscene.ao_samples
         ml = cscene.mesh_light_samples
         sss = cscene.subsurface_samples
+        vol = cscene.volume_samples
 
         if cscene.use_square_samples:
             aa = aa * aa
@@ -73,6 +74,7 @@ def draw_samples_info(layout, cscene):
             ao = ao * ao
             ml = ml * ml
             sss = sss * sss
+            vol = vol * vol
 
     # Draw interface
     # Do not draw for progressive, when Square Samples are disabled
@@ -87,8 +89,8 @@ def draw_samples_info(layout, cscene):
             col.label("%s AA, %s Diffuse, %s Glossy, %s Transmission" %
                       (aa, d * aa, g * aa, t * aa))
             col.separator()
-            col.label("%s AO, %s Mesh Light, %s Subsurface" %
-                      (ao * aa, ml * aa, sss * aa))
+            col.label("%s AO, %s Mesh Light, %s Subsurface, %s Volume" %
+                      (ao * aa, ml * aa, sss * aa, vol * aa))
 
 
 class CyclesRender_PT_sampling(CyclesButtonsPanel, Panel):
@@ -139,6 +141,7 @@ class CyclesRender_PT_sampling(CyclesButtonsPanel, Panel):
             sub.prop(cscene, "ao_samples", text="AO")
             sub.prop(cscene, "mesh_light_samples", text="Mesh Light")
             sub.prop(cscene, "subsurface_samples", text="Subsurface")
+            sub.prop(cscene, "volume_samples", text="Volume")
 
         if cscene.feature_set == 'EXPERIMENTAL' and (device_type == 'NONE' or cscene.device == 'CPU'):
             layout.row().prop(cscene, "sampling_pattern", text="Pattern")
@@ -208,6 +211,7 @@ class CyclesRender_PT_light_paths(CyclesButtonsPanel, Panel):
         sub.prop(cscene, "diffuse_bounces", text="Diffuse")
         sub.prop(cscene, "glossy_bounces", text="Glossy")
         sub.prop(cscene, "transmission_bounces", text="Transmission")
+        sub.prop(cscene, "volume_bounces", text="Volume")
 
 
 class CyclesRender_PT_motion_blur(CyclesButtonsPanel, Panel):

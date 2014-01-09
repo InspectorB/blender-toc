@@ -292,14 +292,14 @@ static VChar *find_vfont_char(VFontData *vfd, unsigned int character)
 {
 	return BLI_ghash_lookup(vfd->characters, SET_UINT_IN_POINTER(character));
 }
-		
-static void build_underline(Curve *cu, ListBase *nubase, float x1, float y1, float x2, float y2, int charidx, short mat_nr)
+
+static void build_underline(Curve *cu, ListBase *nubase, const rctf *rect,
+                            float yofs, float rot, int charidx, short mat_nr)
 {
 	Nurb *nu2;
 	BPoint *bp;
 	
 	nu2 = (Nurb *) MEM_callocN(sizeof(Nurb), "underline_nurb");
-	if (nu2 == NULL) return;
 	nu2->resolu = cu->resolu;
 	nu2->bezt = NULL;
 	nu2->knotsu = nu2->knotsv = NULL;
@@ -313,19 +313,44 @@ static void build_underline(Curve *cu, ListBase *nubase, float x1, float y1, flo
 	nu2->flagu = CU_NURB_CYCLIC;
 
 	bp = (BPoint *)MEM_callocN(4 * sizeof(BPoint), "underline_bp");
-	if (bp == NULL) {
-		MEM_freeN(nu2);
-		return;
-	}
 
-	copy_v4_fl4(bp[0].vec, x1, y1, 0.0f, 1.0f);
-	copy_v4_fl4(bp[1].vec, x2, y1, 0.0f, 1.0f);
-	copy_v4_fl4(bp[2].vec, x2, y2, 0.0f, 1.0f);
-	copy_v4_fl4(bp[3].vec, x1, y2, 0.0f, 1.0f);
+	copy_v4_fl4(bp[0].vec, rect->xmin, (rect->ymin + yofs), 0.0f, 1.0f);
+	copy_v4_fl4(bp[1].vec, rect->xmax, (rect->ymin + yofs), 0.0f, 1.0f);
+	copy_v4_fl4(bp[2].vec, rect->xmax, (rect->ymax + yofs), 0.0f, 1.0f);
+	copy_v4_fl4(bp[3].vec, rect->xmin, (rect->ymax + yofs), 0.0f, 1.0f);
 
 	nu2->bp = bp;
 	BLI_addtail(nubase, nu2);
 
+	if (rot != 0.0f) {
+		float si, co;
+		int i;
+
+		si = sinf(rot);
+		co = cosf(rot);
+
+		for (i = nu2->pntsu; i > 0; i--) {
+			float *fp;
+			float x, y;
+
+			fp = bp->vec;
+
+			x = fp[0] - rect->xmin;
+			y = fp[1] - rect->ymin;
+
+			fp[0] = (+co * x + si * y) + rect->xmin;
+			fp[1] = (-si * x + co * y) + rect->ymin;
+
+			bp++;
+		}
+
+		bp = nu2->bp;
+	}
+
+	mul_v2_fl(bp[0].vec, cu->fsize);
+	mul_v2_fl(bp[1].vec, cu->fsize);
+	mul_v2_fl(bp[2].vec, cu->fsize);
+	mul_v2_fl(bp[3].vec, cu->fsize);
 }
 
 static void buildchar(Main *bmain, Curve *cu, ListBase *nubase, unsigned int character, CharInfo *info,
@@ -502,6 +527,7 @@ bool BKE_vfont_to_curve_ex(Main *bmain, Scene *scene, Object *ob, int mode,
 {
 	Curve *cu = ob->data;
 	EditFont *ef = cu->editfont;
+	EditFontSelBox *selboxes = NULL;
 	VFont *vfont, *oldvfont;
 	VFontData *vfd = NULL;
 	CharInfo *info = NULL, *custrinfo;
@@ -562,6 +588,18 @@ bool BKE_vfont_to_curve_ex(Main *bmain, Scene *scene, Object *ob, int mode,
 	if (cu->tb == NULL)
 		cu->tb = MEM_callocN(MAXTEXTBOX * sizeof(TextBox), "TextBox compat");
 
+	if (ef) {
+		if (ef->selboxes)
+			MEM_freeN(ef->selboxes);
+
+		if (BKE_vfont_select_get(ob, &selstart, &selend))
+			ef->selboxes = MEM_callocN((selend - selstart + 1) * sizeof(EditFontSelBox), "font selboxes");
+		else
+			ef->selboxes = NULL;
+
+		selboxes = ef->selboxes;
+	}
+
 	/* calc offset and rotation of each char */
 	ct = chartransdata = MEM_callocN((slen + 1) * sizeof(struct CharTrans), "buildtext");
 
@@ -582,11 +620,6 @@ bool BKE_vfont_to_curve_ex(Main *bmain, Scene *scene, Object *ob, int mode,
 	oldvfont = NULL;
 
 	for (i = 0; i < slen; i++) custrinfo[i].flag &= ~(CU_CHINFO_WRAP | CU_CHINFO_SMALLCAPS_CHECK);
-
-	if (cu->selboxes) MEM_freeN(cu->selboxes);
-	cu->selboxes = NULL;
-	if (BKE_vfont_select_get(ob, &selstart, &selend))
-		cu->selboxes = MEM_callocN((selend - selstart + 1) * sizeof(SelBox), "font selboxes");
 
 	tb = &(cu->tb[0]);
 	curbox = 0;
@@ -729,7 +762,7 @@ makebreak:
 			xof = cu->xof + tabfac;
 		}
 		else {
-			SelBox *sb = NULL;
+			EditFontSelBox *sb = NULL;
 			float wsfac;
 
 			ct->xof = xof;
@@ -737,8 +770,8 @@ makebreak:
 			ct->linenr = lnr;
 			ct->charnr = cnr++;
 
-			if (cu->selboxes && (i >= selstart) && (i <= selend)) {
-				sb = &(cu->selboxes[i - selstart]);
+			if (selboxes && (i >= selstart) && (i <= selend)) {
+				sb = &selboxes[i - selstart];
 				sb->y = yof * cu->fsize - linedist * cu->fsize * 0.1f;
 				sb->h = linedist * cu->fsize;
 				sb->w = xof * cu->fsize;
@@ -929,9 +962,9 @@ makebreak:
 				ct->xof = vec[0] + si * yof;
 				ct->yof = vec[1] + co * yof;
 
-				if (cu->selboxes && (i >= selstart) && (i <= selend)) {
-					SelBox *sb;
-					sb = &(cu->selboxes[i - selstart]);
+				if (selboxes && (i >= selstart) && (i <= selend)) {
+					EditFontSelBox *sb;
+					sb = &selboxes[i - selstart];
 					sb->rot = -ct->rot;
 				}
 				
@@ -940,12 +973,12 @@ makebreak:
 		}
 	}
 
-	if (cu->selboxes) {
+	if (selboxes) {
 		ct = chartransdata;
 		for (i = 0; i <= selend; i++, ct++) {
 			if (i >= selstart) {
-				cu->selboxes[i - selstart].x = ct->xof * cu->fsize;
-				cu->selboxes[i - selstart].y = ct->yof * cu->fsize;
+				selboxes[i - selstart].x = ct->xof * cu->fsize;
+				selboxes[i - selstart].y = ct->yof * cu->fsize;
 			}
 		}
 	}
@@ -1041,8 +1074,9 @@ makebreak:
 			if (cha != '\n' && cha != '\r')
 				buildchar(bmain, cu, r_nubase, cha, info, ct->xof, ct->yof, ct->rot, i);
 
-			if ((info->flag & CU_CHINFO_UNDERLINE) && (cu->textoncurve == NULL) && (cha != '\n') && (cha != '\r')) {
+			if ((info->flag & CU_CHINFO_UNDERLINE) && (cha != '\n') && (cha != '\r')) {
 				float ulwidth, uloverlap = 0.0f;
+				rctf rect;
 
 				if ((i < (slen - 1)) && (mem[i + 1] != '\n') && (mem[i + 1] != '\r') &&
 				    ((mem[i + 1] != ' ') || (custrinfo[i + 1].flag & CU_CHINFO_UNDERLINE)) &&
@@ -1055,12 +1089,17 @@ makebreak:
 				che = find_vfont_char(vfd, cha);
 
 				twidth = char_width(cu, che, info);
-				ulwidth = cu->fsize * ((twidth * (1.0f + (info->kern / 40.0f))) + uloverlap);
+				ulwidth = (twidth * (1.0f + (info->kern / 40.0f))) + uloverlap;
+
+				rect.xmin = ct->xof;
+				rect.xmax = rect.xmin + ulwidth;
+
+				rect.ymin = ct->yof;
+				rect.ymax = rect.ymin - cu->ulheight;
+
 				build_underline(cu, r_nubase,
-				                ct->xof * cu->fsize, ct->yof * cu->fsize + (cu->ulpos - 0.05f) * cu->fsize,
-				                ct->xof * cu->fsize + ulwidth,
-				                ct->yof * cu->fsize + (cu->ulpos - 0.05f) * cu->fsize - cu->ulheight * cu->fsize,
-				                i, info->mat_nr);
+				                &rect, cu->ulpos - 0.05f,
+				                ct->rot, i, info->mat_nr);
 			}
 			ct++;
 		}

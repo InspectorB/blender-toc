@@ -89,14 +89,20 @@ typedef struct EdgeHalf {
 } EdgeHalf;
 
 /* Profile specification.
- * For now, only have round profiles and straight profiles, so only need midpoint.
+ * Many interesting profiles are in family of superellipses:
+ *     (abs(x/a))^r + abs(y/b))^r = 1
+ * r==2 => ellipse; r==1 => line; r < 1 => concave; r > 1 => bulging out.
+ * Special cases: let r==0 mean straight-inward, and r==4 mean straight outward
  * The start and end points of the profile are stored separately.
- * TODO: generalize to superellipse profiles.
  */
 typedef struct Profile {
-	bool flat;
+	float super_r;       /* superellipse r parameter */
 	float midco[3];      /* mid control point for profile */
 } Profile;
+#define PRO_SQUARE_R 4.0f
+#define PRO_CIRCLE_R 2.0f
+#define PRO_LINE_R 1.0f
+#define PRO_SQUARE_IN_R 0.0f
 
 /* An element in a cyclic boundary of a Vertex Mesh (VMesh) */
 typedef struct BoundVert {
@@ -150,6 +156,7 @@ typedef struct BevelParams {
 	float offset;           /* blender units to offset each side of a beveled edge */
 	int offset_type;        /* how offset is measured; enum defined in bmesh_operators.h */
 	int seg;                /* number of segments in beveled edge profile */
+	float pro_super_r;      /* superellipse parameter for edge profile */
 	bool vertex_only;       /* bevel vertices only */
 	bool use_weights;       /* bevel amount affected by weights on edges or verts */
 	bool preserve_widths;	/* should bevel prefer widths over angles, if forced to choose? */
@@ -182,7 +189,7 @@ static BoundVert *add_new_bound_vert(MemArena *mem_arena, VMesh *vm, const float
 		tail->next = ans;
 		vm->boundstart->prev = ans;
 	}
-	ans->profile.flat = true;
+	ans->profile.super_r = PRO_LINE_R;
 	vm->count++;
 	return ans;
 }
@@ -806,7 +813,7 @@ static void offset_in_plane(EdgeHalf *e, const float plane_no[3], int left, floa
 		cross_v3_v3v3(fdir, no, dir);
 	normalize_v3(fdir);
 	copy_v3_v3(r, v->co);
-	madd_v3_v3fl(r, fdir, left? e->offset_l : e->offset_r);
+	madd_v3_v3fl(r, fdir, left ? e->offset_l : e->offset_r);
 }
 
 /* Calculate the point on e where line (co_a, co_b) comes closest to and return it in projco */
@@ -825,13 +832,13 @@ static void project_to_edge(BMEdge *e, const float co_a[3], const float co_b[3],
 /* If there is a bndv->ebev edge, find the mid control point if necessary.
  * It is the closest point on the beveled edge to the line segment between
  * bndv and bndv->next.  */
-static void set_profile_params(BoundVert *bndv)
+static void set_profile_params(BevelParams *bp, BoundVert *bndv)
 {
 	EdgeHalf *e;
 
 	e = bndv->ebev;
 	if (e) {
-		bndv->profile.flat = false;
+		bndv->profile.super_r = bp->pro_super_r;
 		project_to_edge(e->e, bndv->nv.co, bndv->next->nv.co,
 		                bndv->profile.midco);
 	}
@@ -939,7 +946,7 @@ static int make_unit_square_map(const float va[3], const float vmid[3], const fl
  * and Blender matrices have cols at m[i][*].
  */
 static void make_unit_cube_map(const float va[3], const float vb[3], const float vc[3],
-                              const float vd[3], float r_mat[4][4])
+                               const float vd[3], float r_mat[4][4])
 {
 	copy_v3_v3(r_mat[0], va);
 	sub_v3_v3(r_mat[0], vb);
@@ -1001,23 +1008,46 @@ static void get_point_on_round_edge(EdgeHalf *e, int k,
 /* Find the point on given profile at parameter u which goes from 0 to 2 as
  * the profile is moved from va to vb. */
 static void get_profile_point(const Profile *pro, const float va[3], const float vb[3], float u, float r_co[3])
- {
-	float p[3], angle;
+{
+	float p[3], vo[3], angle, r, w;
 	float m[4][4];
 
 	if (u <= 0.0f)
 		copy_v3_v3(r_co, va);
 	else if (u >= 2.0f)
 		copy_v3_v3(r_co, vb);
-	else if (pro->flat || !make_unit_square_map(va, pro->midco, vb, m)) {
-		interp_v3_v3v3(r_co, va, vb, u / 2.0f);
-	}
 	else {
-		angle = u * (float)M_PI / 4.0f;  /* angle from y axis */
-		p[0] = sinf(angle);
-		p[1] = cosf(angle);
-		p[2] = 0.0f;
-		mul_v3_m4v3(r_co, m, p);
+		r = pro->super_r;
+		if (r == 1.0f || !make_unit_square_map(va, pro->midco, vb, m)) {
+			interp_v3_v3v3(r_co, va, vb, u / 2.0f);
+		}
+		else if (r == PRO_SQUARE_IN_R) {
+			/* square inward concave */
+			zero_v3(p);
+			mul_v3_m4v3(vo, m, p);
+			if (u <= 1.0f)
+				interp_v3_v3v3(r_co, va, vo, u);
+			else
+				interp_v3_v3v3(r_co, vo, vb, u - 1.0f);
+		}
+		else if (r >= PRO_SQUARE_R) {
+			/* square outward convex */
+			if (u <= 1.0f)
+				interp_v3_v3v3(r_co, va, pro->midco, u);
+			else
+				interp_v3_v3v3(r_co, pro->midco, vb, u - 1.0f);
+		}
+		else {
+			angle = u * (float)M_PI / 4.0f;  /* angle from y axis */
+			p[0] = sinf(angle);
+			p[1] = cosf(angle);
+			p[2] = 0.0f;
+			if (r != PRO_CIRCLE_R) {
+				w = powf(powf(p[0], r) + pow(p[1], r), -1.0f / r);
+				mul_v2_fl(p, w);
+			}
+			mul_v3_m4v3(r_co, m, p);
+		}
 	}
 }
 
@@ -1065,11 +1095,43 @@ static void snap_to_edge_profile(EdgeHalf *e, const float va[3], const float vb[
 }
 #endif
 
-/* Snapping a direction co to a unit radius sphere is just normalizing co.
- * TODO: generalize to superellipsoid */
-static void snap_to_sphere(float co[3])
+/* Snap a direction co to a superellipsoid with parameter super_r */
+static void snap_to_superellipsoid(float co[3], const float super_r)
 {
-	normalize_v3(co);
+	float a, b, c, x, y, z, r, rinv;
+
+	r = super_r;
+	if (r == PRO_CIRCLE_R) {
+		normalize_v3(co);
+		return;
+	}
+
+	x = a = max_ff(0.0f, co[0]);
+	y = b = max_ff(0.0f, co[1]);
+	z = c = max_ff(0.0f, co[2]);
+	if (r <= 0.0f)
+		r = 0.1f;
+	rinv = 1.0f / r;
+	if (a == 0.0f) {
+		if (b == 0.0f) {
+			x = 0.0f;
+			y = 0.0f;
+			z = powf(c, rinv);
+		}
+		else {
+			x = 0.0f;
+			y = powf(1.0f / (1.0f + powf(c / b, r)), rinv);
+			z = c * y / b;
+		}
+	}
+	else {
+		x = powf(1.0f / (1.0f + powf(b / a, r) + powf(c / a, r)), rinv);
+		y = b * x / a;
+		z = c * x / a;
+	}
+	co[0] = x;
+	co[1] = y;
+	co[2] = z;
 }
 
 static void snap_to_profile(BoundVert *bndv, EdgeHalf *e, float co[3])
@@ -1087,14 +1149,14 @@ static void snap_to_profile(BoundVert *bndv, EdgeHalf *e, float co[3])
 	closest_to_plane_v3(vb0, plane, vb);
 	closest_to_plane_v3(vmid0, plane, bndv->profile.midco);
 	if (make_unit_square_map(va0, vmid0, vb0, m)) {
-		/* Transform co and project it onto sphere */
+		/* Transform co and project it onto superellipse */
 		if (!invert_m4_m4(minv, m)) {
 			/* shouldn't happen */
 			BLI_assert(!"failed inverse during profile snap");
 			return;
 		}
 		mul_v3_m4v3(p, minv, co);
-		snap_to_sphere(p);
+		snap_to_superellipsoid(p, bndv->profile.super_r);
 		mul_v3_m4v3(snap, m, p);
 		copy_v3_v3(co, snap);
 	}
@@ -1207,7 +1269,7 @@ static void build_boundary(BevelParams *bp, BevVert *bv, bool construct)
 		else {
 			adjust_bound_vert(e->next->leftv, co);
 		}
-		set_profile_params(vm->boundstart);
+		set_profile_params(bp, vm->boundstart);
 		return;
 	}
 
@@ -1311,7 +1373,7 @@ static void build_boundary(BevelParams *bp, BevVert *bv, bool construct)
 
 	v = vm->boundstart;
 	do {
-		set_profile_params(v);
+		set_profile_params(bp, v);
 	} while ((v = v->next) != vm->boundstart);
 
 	if (bv->selcount == 1 && bv->edgecount == 3) {
@@ -1723,7 +1785,7 @@ static void bevel_build_rings(BMesh *bm, BevVert *bv)
 		do {
 			i = v->index;
 			f = boundvert_rep_face(v);
-			f2 = boundvert_rep_face(v->next);
+			// f2 = boundvert_rep_face(v->next);  // UNUSED
 			if (!v->any_seam) {
 				for (ring = 1; ring < ns2; ring++) {
 					BMVert *v_uv = mesh_vert(vm, i, ring, ns2)->v;
@@ -1749,7 +1811,7 @@ static void bevel_build_rings(BMesh *bm, BevVert *bv)
 			i = v->index;
 			BLI_assert(v->ebev);
 			BLI_array_append(vv, mesh_vert(vm, i, ns2, ns2)->v);
-			BLI_array_append(vf, bv->any_seam ? f: boundvert_rep_face(v));
+			BLI_array_append(vf, bv->any_seam ? f : boundvert_rep_face(v));
 		} while ((v = v->next) != vm->boundstart);
 		f = boundvert_rep_face(vm->boundstart);
 		bev_create_ngon(bm, vv, BLI_array_count(vv), vf, f, true);
@@ -1911,8 +1973,9 @@ static void vmesh_center(VMesh *vm, float r_cent[3])
 	}
 }
 
-static void avg4(float co[3], const NewVert *v0, const NewVert *v1,
-		              const NewVert *v2, const NewVert *v3)
+static void avg4(float co[3],
+                 const NewVert *v0, const NewVert *v1,
+                 const NewVert *v2, const NewVert *v3)
 {
 	add_v3_v3v3(co, v0->co, v1->co);
 	add_v3_v3(co, v2->co);
@@ -1944,7 +2007,7 @@ static float sabin_gamma(int n)
 		k4 = k2 * k2;
 		k6 = k4 * k2;
 		y = pow(1.73205080756888 * sqrt(64.0 * k6 - 144.0 * k4 + 135.0 * k2 - 27.0) + 9.0 * k,
-		 1.0/3.0);
+		        1.0 / 3.0);
 		x = 0.480749856769136 * y - (0.231120424783545 * (12.0 * k2 - 9.0)) / y;
 		ans = (k * x + 2.0 * k2 - 1.0) / (x * x * (k * x + 1.0));
 	}
@@ -1985,8 +2048,9 @@ static void fill_profile_fracs(BoundVert *bndv, float *frac, int ns)
 		copy_v3_v3(co, nextco);
 	}
 	if (total > BEVEL_EPSILON) {
-		for (k = 1; k <= ns; k++)
-		frac[k] /= total;
+		for (k = 1; k <= ns; k++) {
+			frac[k] /= total;
+		}
 	}
 }
 
@@ -2029,14 +2093,14 @@ static VMesh *interp_vmesh(MemArena *mem_arena, VMesh *vm0, int nseg)
 
 	prev_frac = BLI_array_alloca(prev_frac, (ns0 + 1));
 	frac = BLI_array_alloca(frac, (ns0 + 1));
-	new_frac = BLI_array_alloca(frac, (nseg + 1));
+	new_frac = BLI_array_alloca(new_frac, (nseg + 1));
 
 	fill_vmesh_fracs(vm0, prev_frac, n - 1);
 	bndv = vm0->boundstart;
 	for (i = 0; i < n; i++) {
 		fill_vmesh_fracs(vm0, frac, i);
 		fill_profile_fracs(bndv, new_frac, nseg);
-		for (j = 0; j <= nseg2 -1 + odd; j++) {
+		for (j = 0; j <= nseg2 - 1 + odd; j++) {
 			for (k = 0; k <= nseg2; k++) {
 				f = new_frac[k];
 				k0 = interp_range(frac, ns0, f, &restk);
@@ -2106,7 +2170,7 @@ static VMesh *cubic_subdiv(MemArena *mem_arena, VMesh *vm0)
 
 			add_v3_v3v3(acc, co1, co2);
 			madd_v3_v3fl(acc, co, -2.0f);
-			madd_v3_v3fl(co, acc, -1.0f/6.0f);
+			madd_v3_v3fl(co, acc, -1.0f / 6.0f);
 			
 			copy_v3_v3(mesh_vert_canon(vm1, i, 0, 2 * k)->co, co);
 		}
@@ -2121,7 +2185,7 @@ static VMesh *cubic_subdiv(MemArena *mem_arena, VMesh *vm0)
 
 			add_v3_v3v3(acc, co1, co2);
 			madd_v3_v3fl(acc, co, -2.0f);
-			madd_v3_v3fl(co, acc, -1.0f/6.0f);
+			madd_v3_v3fl(co, acc, -1.0f / 6.0f);
 			
 			copy_v3_v3(mesh_vert_canon(vm1, i, 0, k)->co, co);
 		}
@@ -2133,7 +2197,7 @@ static VMesh *cubic_subdiv(MemArena *mem_arena, VMesh *vm0)
 	for (i = 0; i < n; i++) {
 		for (k = 0; k < ns0; k++) {
 			copy_v3_v3(mesh_vert(vm0, i, 0, k)->co,
-				   mesh_vert(vm1, i, 0, 2 * k)->co);
+			           mesh_vert(vm1, i, 0, 2 * k)->co);
 		}
 	}
 
@@ -2147,10 +2211,11 @@ static VMesh *cubic_subdiv(MemArena *mem_arena, VMesh *vm0)
 		for (j = 0; j < ns20; j++) {
 			for (k = 0; k < ns20; k++) {
 				/* face up and right from (j, k) */
-				avg4(co, mesh_vert(vm0, i, j, k),
-					 mesh_vert(vm0, i, j, k + 1),
-					 mesh_vert(vm0, i, j + 1, k),
-					 mesh_vert(vm0, i, j + 1, k + 1));
+				avg4(co,
+				     mesh_vert(vm0, i, j, k),
+				     mesh_vert(vm0, i, j, k + 1),
+				     mesh_vert(vm0, i, j + 1, k),
+				     mesh_vert(vm0, i, j + 1, k + 1));
 				copy_v3_v3(mesh_vert(vm1, i, 2 * j + 1, 2 * k + 1)->co, co);
 			}
 		}
@@ -2224,7 +2289,7 @@ static VMesh *cubic_subdiv(MemArena *mem_arena, VMesh *vm0)
 	}
 	copy_v3_v3(co, co1);
 	mul_v3_fl(co, 1.0f / (float)n);
-	madd_v3_v3fl(co, co2, beta / (2.0f *(float)n));
+	madd_v3_v3fl(co, co2, beta / (2.0f * (float)n));
 	madd_v3_v3fl(co, mesh_vert(vm0, 0, ns20, ns20)->co, gamma);
 	for (i = 0; i < n; i++)
 		copy_v3_v3(mesh_vert(vm1, i, ns0, ns0)->co, co);
@@ -2247,18 +2312,53 @@ static VMesh *cubic_subdiv(MemArena *mem_arena, VMesh *vm0)
 	return vm1;
 }
 
+/* Special case for cube corner, when r is PRO_SQUARE_R,
+ * meaning straight sides */
+static VMesh *make_cube_corner_straight(MemArena *mem_arena, int nseg)
+{
+	VMesh *vm;
+	float co[3];
+	int i, j, k, ns2;
+
+    ns2 = nseg / 2;
+	vm = new_adj_subdiv_vmesh(mem_arena, 3, nseg, NULL);
+	vm->count = 0;  // reset, so following loop will end up with correct count
+	for (i = 0; i < 3; i++) {
+		zero_v3(co);
+		co[i] = 1.0f;
+		add_new_bound_vert(mem_arena, vm, co);
+	}
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j <= ns2; j++) {
+			for (k = 0; k <= ns2; k++) {
+				if (!is_canon(vm, i, j, k))
+					continue;
+				co[i] = 1.0f;
+				co[(i + 1) % 3] = (float) k * 2.0 / (float) nseg;
+				co[(i + 2) % 3] = (float) j * 2.0 / (float) nseg;
+				copy_v3_v3(mesh_vert(vm, i, j, k)->co, co);
+			}
+		}
+	}
+	vmesh_copy_equiv_verts(vm);
+	return vm;
+}
+
 /* Make a VMesh with nseg segments that covers the unit radius sphere octant
  * with center at (0,0,0).
  * This has BoundVerts at (1,0,0), (0,1,0) and (0,0,1), with quarter circle arcs
  * on the faces for the orthogonal planes through the origin.
  */
-static VMesh *make_cube_corner_adj_vmesh(MemArena *mem_arena, int nseg)
+static VMesh *make_cube_corner_adj_vmesh(MemArena *mem_arena, int nseg, float r)
 {
 	VMesh *vm0, *vm1;
 	BoundVert *bndv;
 	int i, j, k, ns2;
 	float co[3], coa[3], cob[3], coc[3];
 	float w;
+
+	if (r == PRO_SQUARE_R)
+		return make_cube_corner_straight(mem_arena, nseg);
 
 	/* initial mesh has 3 sides, 2 segments */
 	vm0 = new_adj_subdiv_vmesh(mem_arena, 3, 2, NULL);
@@ -2276,6 +2376,7 @@ static VMesh *make_cube_corner_adj_vmesh(MemArena *mem_arena, int nseg)
 		coc[i] = 1.0f;
 		coc[(i + 1) % 3] = 1.0f;
 		coc[(i + 2) % 3] = 0.0f;
+		bndv->profile.super_r = r;
 		copy_v3_v3(bndv->profile.midco, coc);
 		copy_v3_v3(mesh_vert(vm0, i, 0, 0)->co, coa);
 		get_profile_point(&bndv->profile, coa, cob, 1.0f, co);
@@ -2289,7 +2390,10 @@ static VMesh *make_cube_corner_adj_vmesh(MemArena *mem_arena, int nseg)
 	co[1] = w;
 	co[2] = w;
 	if (nseg > 2) {
-		mul_v3_fl(co, 1.4f);
+		if (r > 1.5f)
+			mul_v3_fl(co, 1.4f);
+		else if (r < 0.75f)
+			mul_v3_fl(co, 0.6f);
 	}
 	copy_v3_v3(mesh_vert(vm0, 0, 1, 1)->co, co);
 
@@ -2307,7 +2411,7 @@ static VMesh *make_cube_corner_adj_vmesh(MemArena *mem_arena, int nseg)
 	for (i = 0; i < 3; i++) {
 		for (j = 0; j <= ns2; j++) {
 			for (k = 0; k <= nseg; k++) {
-				snap_to_sphere(mesh_vert(vm1, i, j, k)->co);
+				snap_to_superellipsoid(mesh_vert(vm1, i, j, k)->co, r);
 			}
 		}
 	}
@@ -2315,7 +2419,7 @@ static VMesh *make_cube_corner_adj_vmesh(MemArena *mem_arena, int nseg)
 }
 
 /* Is this a good candidate for using tri_corner_adj_vmesh? */
-static bool tri_corner_test(BevVert *bv)
+static bool tri_corner_test(BevelParams *bp, BevVert *bv)
 {
 	float ang, totang, angdiff;
 	EdgeHalf *e;
@@ -2332,8 +2436,11 @@ static bool tri_corner_test(BevVert *bv)
 		totang += ang;
 	}
 	angdiff = fabsf(totang - 3.0f * (float)M_PI_2);
-	if (angdiff > (float)M_PI_4)
+	if ((bp->pro_super_r == PRO_SQUARE_R && angdiff > (float)M_PI/16.0f) ||
+	    (angdiff > (float)M_PI_4))
+	{
 		return false;
+	}
 	return true;
 }
 
@@ -2355,7 +2462,7 @@ static VMesh *tri_corner_adj_vmesh(BevelParams *bp, BevVert *bv)
 	make_unit_cube_map(co0, co1, co2, bv->v->co, mat);
 	ns = bp->seg;
 	ns2 = ns / 2;
-	vm = make_cube_corner_adj_vmesh(bp->mem_arena, bp->seg);
+	vm = make_cube_corner_adj_vmesh(bp->mem_arena, bp->seg, bp->pro_super_r);
 	for (i = 0; i < 3; i++) {
 		for (j = 0; j <= ns2; j++) {
 			for (k = 0; k <= ns; k++) {
@@ -2377,7 +2484,7 @@ static VMesh *adj_vmesh(BevelParams *bp, BevVert *bv)
 	float co[3], coa[3], cob[3], dir[3];
 	BoundVert *bndv;
 	MemArena *mem_arena = bp->mem_arena;
-	float fac, fullness;
+	float r, fac, fullness;
 
 	/* First construct an initial control mesh, with nseg==2 */
 	n = bv->vmesh->count;
@@ -2404,11 +2511,21 @@ static VMesh *adj_vmesh(BevelParams *bp, BevVert *bv)
 	mul_v3_fl(co, 1.0f / (float)n);
 	sub_v3_v3v3(cob, co, coa);
 	add_v3_v3(cob, co);
-	if (bp->vertex_only)
-		fac = 0.25f;
-	else
-		fac = 0.5f;
-	fullness = 1.0f - fac / 2.0f;
+	r = bp->pro_super_r;
+	if (r == 1.0)
+		fullness = 0.0f;
+	else if (r > 1.0) {
+		if (bp->vertex_only)
+			fac = 0.25f;
+		else if (r == PRO_SQUARE_R)
+			fac = -2.0;
+		else
+			fac = 0.5f;
+		fullness = 1.0f - fac / r;
+	}
+	else {
+		fullness = r - 1.0f;
+	}
 	sub_v3_v3v3(dir, coa, co);
 	if (len_squared_v3(dir) > BEVEL_EPSILON_SQ)
 		madd_v3_v3fl(co, dir, fullness);
@@ -2478,14 +2595,14 @@ static void bevel_build_rings_subdiv(BevelParams *bp, BMesh *bm, BevVert *bv)
 
 	if (epipe)
 		vm1 = pipe_adj_vmesh(bp, bv, epipe);
-	else if (tri_corner_test(bv))
+	else if (tri_corner_test(bp, bv))
 		vm1 = tri_corner_adj_vmesh(bp, bv);
 	else
 		vm1 = adj_vmesh(bp, bv);
 
 	/* copy final vmesh into bv->vmesh, make BMVerts and BMFaces */
 	vm = bv->vmesh;
-	for (i = 0; i < n; i ++) {
+	for (i = 0; i < n; i++) {
 		for (j = 0; j <= ns2; j++) {
 			for (k = 0; k <= ns; k++) {
 				if (j == 0 && (k == 0 || k == ns))
@@ -2806,7 +2923,7 @@ static float edge_face_angle(EdgeHalf *e)
 /*
  * Construction around the vertex
  */
-static BevVert * bevel_vert_construct(BMesh *bm, BevelParams *bp, BMVert *v)
+static BevVert *bevel_vert_construct(BMesh *bm, BevelParams *bp, BMVert *v)
 {
 	BMEdge *bme;
 	BevVert *bv;
@@ -3293,7 +3410,7 @@ static float bevel_limit_offset(BMesh *bm, BevelParams *bp)
  * \warning all tagged edges _must_ be manifold.
  */
 void BM_mesh_bevel(BMesh *bm, const float offset, const int offset_type,
-                   const float segments,
+                   const float segments, const float profile,
                    const bool vertex_only, const bool use_weights, const bool limit_offset,
                    const struct MDeformVert *dvert, const int vertex_group)
 {
@@ -3306,12 +3423,16 @@ void BM_mesh_bevel(BMesh *bm, const float offset, const int offset_type,
 	bp.offset = offset;
 	bp.offset_type = offset_type;
 	bp.seg    = segments;
+	bp.pro_super_r = 4.0f * profile;  /* convert to superellipse exponent */
 	bp.vertex_only = vertex_only;
 	bp.use_weights = use_weights;
 	bp.preserve_widths = false;
 	bp.limit_offset = limit_offset;
 	bp.dvert = dvert;
 	bp.vertex_group = vertex_group;
+
+	if (bp.pro_super_r < 0.15f)
+		bp.pro_super_r = 0.15f;  /* TODO: implement 0 case properly */
 
 	if (bp.offset > 0) {
 		/* primary alloc */

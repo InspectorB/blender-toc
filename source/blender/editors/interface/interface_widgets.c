@@ -844,7 +844,8 @@ static int ui_but_draw_menu_icon(const uiBut *but)
 
 /* icons have been standardized... and this call draws in untransformed coordinates */
 
-static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, const rcti *rect)
+static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, const rcti *rect,
+                             const bool show_menu_icon)
 {
 	float xs = 0.0f, ys = 0.0f;
 	float aspect, height;
@@ -908,7 +909,7 @@ static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, cons
 			UI_icon_draw_aspect(xs, ys, icon, aspect, alpha);
 	}
 
-	if (ui_but_draw_menu_icon(but)) {
+	if (show_menu_icon) {
 		xs = rect->xmax - UI_DPI_ICON_SIZE - aspect;
 		ys = (rect->ymin + rect->ymax - height) / 2.0f;
 		
@@ -967,8 +968,32 @@ static void ui_text_clip_left(uiFontStyle *fstyle, uiBut *but, const rcti *rect)
 	}
 }
 
+/* Helper.
+ * This func assumes things like kerning handling have already been handled!
+ * Return the length of modified (right-clipped + ellipsis) string.
+ */
+static void ui_text_clip_right_ex(uiFontStyle *fstyle, uiBut *but, const size_t max_len, const float okwidth,
+                                  const char *sep, const int sep_len, const float sep_strwidth)
+{
+	float tmp;
+	int l_end;
+
+	/* If the trailing ellipsis takes more than 20% of all available width, just cut the string
+	 * (as using the ellipsis would remove even more useful chars, and we cannot show much already!).
+	 */
+	if (sep_strwidth / okwidth > 0.2f) {
+		l_end = BLF_width_to_strlen(fstyle->uifont_id, but->drawstr, max_len, okwidth, &tmp);
+		but->drawstr[l_end] = '\0';
+	}
+	else {
+		l_end = BLF_width_to_strlen(fstyle->uifont_id, but->drawstr, max_len, okwidth - sep_strwidth, &tmp);
+		memcpy(but->drawstr + l_end, sep, sep_len + 1);  /* +1 for trailing '\0'. */
+	}
+}
+
 /**
- * Cut off the middle of the text to fit into the width of \a rect
+ * Cut off the middle of the text to fit into the width of \a rect.
+ * Note in case this middle clipping would just remove a few chars, it rather clips right, which is more readable.
  */
 static void ui_text_clip_middle(uiFontStyle *fstyle, uiBut *but, const rcti *rect)
 {
@@ -976,6 +1001,7 @@ static void ui_text_clip_middle(uiFontStyle *fstyle, uiBut *but, const rcti *rec
 	const int border = ELEM(but->type, LABEL, MENU) ? 0 : (int)(UI_TEXT_CLIP_MARGIN + 0.5f);
 	const int okwidth = max_ii(BLI_rcti_size_x(rect) - border, 0);
 	float strwidth;
+	const size_t max_len = sizeof(but->drawstr);
 
 	/* need to set this first */
 	uiStyleFontSet(fstyle);
@@ -984,24 +1010,21 @@ static void ui_text_clip_middle(uiFontStyle *fstyle, uiBut *but, const rcti *rec
 		BLF_enable(fstyle->uifont_id, BLF_KERNING_DEFAULT);
 
 	but->ofs = 0;
-	strwidth = BLF_width(fstyle->uifont_id, but->drawstr, sizeof(but->drawstr));
+	strwidth = BLF_width(fstyle->uifont_id, but->drawstr, max_len);
 
 	if (strwidth > okwidth) {
-		const char sep[] = "...";
+		const char sep[] = "…";
 		const int sep_len = sizeof(sep) - 1;
-
-		const size_t max_len = sizeof(but->drawstr);
 		size_t l_end;
 
 		const float sep_strwidth = BLF_width(fstyle->uifont_id, sep, sep_len + 1);
 		const float parts_strwidth = ((float)okwidth - sep_strwidth) / 2.0f;
 
-		if (min_ff(parts_strwidth, strwidth - okwidth) < (float)(UI_DPI_ICON_SIZE) / but->block->aspect * 1.5) {
+		if (min_ff(parts_strwidth, strwidth - okwidth) < (float)(UI_DPI_ICON_SIZE) / but->block->aspect * 2.0f) {
 			/* If we really have no place, or we would clip a very small piece of string in the middle,
 			 * only show start of string.
 			 */
-			l_end = BLF_width_to_strlen(fstyle->uifont_id, but->drawstr, max_len, okwidth, &strwidth);
-			but->drawstr[l_end] = '\0';
+			ui_text_clip_right_ex(fstyle, but, max_len, (float)okwidth, sep, sep_len, sep_strwidth);
 		}
 		else {
 			size_t r_offset, r_len;
@@ -1014,16 +1037,16 @@ static void ui_text_clip_middle(uiFontStyle *fstyle, uiBut *but, const rcti *rec
 				/* Corner case, the str already takes all available mem, and the ellipsis chars would actually
 				 * add more chars...
 				 * Better to just trim one or two letters to the right in this case...
+				 * Note: with a single-char ellipsis, this should never happen! But better be safe here...
 				 */
-				l_end = BLF_width_to_strlen(fstyle->uifont_id, but->drawstr, max_len, okwidth, &strwidth);
-				but->drawstr[l_end] = '\0';
+				ui_text_clip_right_ex(fstyle, but, max_len, (float)okwidth, sep, sep_len, sep_strwidth);
 			}
 			else {
 				memmove(but->drawstr + l_end + sep_len, but->drawstr + r_offset, r_len);
 				memcpy(but->drawstr + l_end, sep, sep_len);
-				strwidth = BLF_width(fstyle->uifont_id, but->drawstr, max_len);
 			}
 		}
+		strwidth = BLF_width(fstyle->uifont_id, but->drawstr, max_len);
 	}
 
 	but->strwidth = strwidth;
@@ -1327,15 +1350,23 @@ static void widget_draw_text_icon(uiFontStyle *fstyle, uiWidgetColors *wcol, uiB
 	if (but->type == MENU && (but->flag & UI_BUT_NODE_LINK)) {
 		rcti temp = *rect;
 		temp.xmin = rect->xmax - BLI_rcti_size_y(rect) - 1;
-		widget_draw_icon(but, ICON_LAYER_USED, alpha, &temp);
+		widget_draw_icon(but, ICON_LAYER_USED, alpha, &temp, false);
 	}
 
 	/* If there's an icon too (made with uiDefIconTextBut) then draw the icon
 	 * and offset the text label to accommodate it */
 
 	if (but->flag & UI_HAS_ICON) {
-		widget_draw_icon(but, but->icon + but->iconadd, alpha, rect);
-		rect->xmin += ICON_SIZE_FROM_BUTRECT(rect);
+		const bool show_menu_icon = ui_but_draw_menu_icon(but);
+		const float icon_size = ICON_SIZE_FROM_BUTRECT(rect);
+
+		widget_draw_icon(but, but->icon + but->iconadd, alpha, rect, show_menu_icon);
+
+		rect->xmin += icon_size;
+		/* without this menu keybindings will overlap the arrow icon [#38083] */
+		if (show_menu_icon) {
+			rect->xmax -= icon_size / 2.0f;
+		}
 	}
 
 	if (but->editstr || (but->drawflag & UI_BUT_TEXT_LEFT)) {
@@ -1350,7 +1381,7 @@ static void widget_draw_text_icon(uiFontStyle *fstyle, uiWidgetColors *wcol, uiB
 		rcti temp = *rect;
 
 		temp.xmin = temp.xmax - (BLI_rcti_size_y(rect) * 1.08f);
-		widget_draw_icon(but, ICON_X, alpha, &temp);
+		widget_draw_icon(but, ICON_X, alpha, &temp, false);
 		rect->xmax -= ICON_SIZE_FROM_BUTRECT(rect);
 	}
 
@@ -2210,8 +2241,8 @@ bool ui_hsvcube_use_display_colorspace(uiBut *but)
 
 void ui_hsvcube_pos_from_vals(uiBut *but, const rcti *rect, float *hsv, float *xp, float *yp)
 {
-	float x, y;
-	
+	float x = 0.0f, y = 0.0f;
+
 	switch ((int)but->a1) {
 		case UI_GRAD_SV:
 			x = hsv[2]; y = hsv[1]; break;
@@ -2825,12 +2856,12 @@ static void widget_menunodebut(uiWidgetColors *wcol, rcti *rect, int UNUSED(stat
 	rad = 0.2f * U.widget_unit;
 	round_box_edges(&wtb, roundboxalign, rect, rad);
 
-	wcol->inner[0] += 15;
-	wcol->inner[1] += 15;
-	wcol->inner[2] += 15;
-	wcol->outline[0] += 15;
-	wcol->outline[1] += 15;
-	wcol->outline[2] += 15;
+	wcol->inner[0] = min_ii(wcol->inner[0] + 15, 255);
+	wcol->inner[1] = min_ii(wcol->inner[1] + 15, 255);
+	wcol->inner[2] = min_ii(wcol->inner[2] + 15, 255);
+	wcol->outline[0] = min_ii(wcol->outline[0] + 15, 255);
+	wcol->outline[1] = min_ii(wcol->outline[1] + 15, 255);
+	wcol->outline[2] = min_ii(wcol->outline[2] + 15, 255);
 	
 	/* decoration */
 	widgetbase_draw(&wtb, wcol);
