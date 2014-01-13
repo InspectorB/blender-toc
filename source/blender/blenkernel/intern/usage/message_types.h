@@ -31,8 +31,8 @@ typedef struct _Message__isset {
 class Message {
  public:
 
-  static const char* ascii_fingerprint; // = "93E5CB1117316436F2D4F9E5B431A82E";
-  static const uint8_t binary_fingerprint[16]; // = {0x93,0xE5,0xCB,0x11,0x17,0x31,0x64,0x36,0xF2,0xD4,0xF9,0xE5,0xB4,0x31,0xA8,0x2E};
+  static const char* ascii_fingerprint; // = "96F45E504D1CCE0BEBA70403D06D1086";
+  static const uint8_t binary_fingerprint[16]; // = {0x96,0xF4,0x5E,0x50,0x4D,0x1C,0xCE,0x0B,0xEB,0xA7,0x04,0x03,0xD0,0x6D,0x10,0x86};
 
   Message() : user(0), timestamp(0), token() {
   }
@@ -108,6 +108,85 @@ class Message {
 };
 
 void swap(Message &a, Message &b);
+
+typedef struct _Screenshot__isset {
+  _Screenshot__isset() : token(false), hash(false), screenshot(false), timestamp(false) {}
+  bool token;
+  bool hash;
+  bool screenshot;
+  bool timestamp;
+} _Screenshot__isset;
+
+class Screenshot {
+ public:
+
+  static const char* ascii_fingerprint; // = "EA56942314ECD5D27DC4278DCD614C8D";
+  static const uint8_t binary_fingerprint[16]; // = {0xEA,0x56,0x94,0x23,0x14,0xEC,0xD5,0xD2,0x7D,0xC4,0x27,0x8D,0xCD,0x61,0x4C,0x8D};
+
+  Screenshot() : token(), hash(), screenshot(), timestamp(0) {
+  }
+
+  virtual ~Screenshot() throw() {}
+
+  std::string token;
+  std::string hash;
+  std::string screenshot;
+  int64_t timestamp;
+
+  _Screenshot__isset __isset;
+
+  void __set_token(const std::string& val) {
+    token = val;
+    __isset.token = true;
+  }
+
+  void __set_hash(const std::string& val) {
+    hash = val;
+    __isset.hash = true;
+  }
+
+  void __set_screenshot(const std::string& val) {
+    screenshot = val;
+    __isset.screenshot = true;
+  }
+
+  void __set_timestamp(const int64_t val) {
+    timestamp = val;
+    __isset.timestamp = true;
+  }
+
+  bool operator == (const Screenshot & rhs) const
+  {
+    if (__isset.token != rhs.__isset.token)
+      return false;
+    else if (__isset.token && !(token == rhs.token))
+      return false;
+    if (__isset.hash != rhs.__isset.hash)
+      return false;
+    else if (__isset.hash && !(hash == rhs.hash))
+      return false;
+    if (__isset.screenshot != rhs.__isset.screenshot)
+      return false;
+    else if (__isset.screenshot && !(screenshot == rhs.screenshot))
+      return false;
+    if (__isset.timestamp != rhs.__isset.timestamp)
+      return false;
+    else if (__isset.timestamp && !(timestamp == rhs.timestamp))
+      return false;
+    return true;
+  }
+  bool operator != (const Screenshot &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Screenshot & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Screenshot &a, Screenshot &b);
 
 } // namespace
 

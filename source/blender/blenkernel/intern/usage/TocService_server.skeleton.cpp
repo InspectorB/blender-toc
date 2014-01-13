@@ -27,6 +27,11 @@ class TocServiceHandler : virtual public TocServiceIf {
     printf("sendMessage\n");
   }
 
+  void sendScreenshot(const  ::wire::Screenshot& screenshot) {
+    // Your implementation goes here
+    printf("sendScreenshot\n");
+  }
+
   void ping() {
     // Your implementation goes here
     printf("ping\n");

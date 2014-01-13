@@ -59,13 +59,26 @@ extern "C" {
 #include "WM_types.h"
 
 #include "BLI_string_utf8.h"
+#include "BLI_string.h"
+#include "BLI_path_util.h"
+#include "BLI_fileops.h"
 }
+
+#include <string>
+#include <fstream>
+#include <streambuf>
+
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "BKE_usage.h"
 
 #include "usage/service_types.h"
 #include "usage/data_types.h"
 #include "usage/metadata_types.h"
+#include "usage/message_types.h"
 
 using namespace wire::data;
 using namespace wire::metadata;
@@ -86,8 +99,10 @@ namespace usage {
 		shutdown = false;
 		updateSettings();
 		sendingMessage = NULL;
+		sendingScreenshot = NULL;
 		client = NULL;
-		queue = BLI_thread_queue_init();
+		messageQueue = BLI_thread_queue_init();
+		screenshotQueue = BLI_thread_queue_init();
 		BLI_init_threads(&threads, &usage_do_thread, 1);
 		BLI_insert_thread(&threads, NULL);
 	}
@@ -102,8 +117,9 @@ namespace usage {
 	{
 		shutdown = true;
 		BLI_end_threads(&threads);
-		BLI_thread_queue_free(queue);
-		teardown();
+		BLI_thread_queue_free(messageQueue);
+		BLI_thread_queue_free(screenshotQueue);
+		teardownConnection();
 	}
 	
 	Usage& Usage::getInstance()
@@ -134,7 +150,7 @@ namespace usage {
 		protocol = newProtocol;
 	}
 	
-	void Usage::teardown()
+	void Usage::teardownConnection()
 	{
 		if (transport.get() && transport->isOpen())
 			transport->close();
@@ -158,26 +174,39 @@ namespace usage {
 		if (enabled) {
 			// Check to see if settings have changed
 			if (updateSettingsP) {
-				teardown();
+				teardownConnection();
 				createConnection();
 				updateSettingsP = false;
 			}
 				
 			// Try and handle last message, or try and send the new message
 			try {
-				if (sendingMessage == NULL) {
-					sendingMessage = (Message*)BLI_thread_queue_pop_timeout(queue, 10);
-					if (sendingMessage == NULL)
-						return;
-				}
-								
-				// ping for now
-				//client->ping();
-				client->sendMessage(*sendingMessage);
+				unsigned char sent = 0;
 				
-				// message has been sent, delete it
-				delete sendingMessage;
-				sendingMessage = NULL;
+				if (sendingMessage == NULL)
+					sendingMessage = (Message*)BLI_thread_queue_pop(messageQueue);
+				if (sendingScreenshot == NULL)
+					sendingScreenshot = (Screenshot*)BLI_thread_queue_pop(screenshotQueue);
+				
+				std::string token = U.usage_service_token;
+				
+				if (sendingMessage) {
+					sendingMessage->__set_token(token); // set token here so it can be updated
+					client->sendMessage(*sendingMessage);
+					delete sendingMessage; // message has been sent, delete it
+					sendingMessage = NULL;
+					sent++;
+				}
+				
+				if (sendingScreenshot) {
+					sendingScreenshot->__set_token(token); // set token here so it can be updated
+					client->sendScreenshot(*sendingScreenshot);
+					delete sendingScreenshot;
+					sendingScreenshot = NULL;
+					sent++;
+				}
+				
+				if (!sent) usleep(100000);
 			}
 			catch (UnknownToken e) {
 				enabled = false;
@@ -206,6 +235,17 @@ namespace usage {
 			}
 		}
 	}
+	
+	void Usage::read_entire_file(const char *filepath, std::string &str)
+	{
+		std::ifstream in(filepath);
+		
+		in.seekg(0, std::ios::end);
+		str.reserve(in.tellg());
+		in.seekg(0, std::ios::beg);
+		
+		str.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+	}
 
 	// returns timestamp in milliseconds
 	long Usage::getTimestamp()
@@ -229,8 +269,6 @@ namespace usage {
 	{
 		Message *msg = new Message();
 		msg->__set_timestamp(getTimestamp());
-		std::string token = U.usage_service_token;
-		msg->__set_token(token);
 		return msg;
 	}
 	
@@ -248,7 +286,35 @@ namespace usage {
 		char *cstring = NULL;
 		
 		std::vector<RNAProperty> thriftOpProperties;
-				
+		
+		// take screenshot
+		PointerRNA scProps;
+		boost::uuids::uuid uuid = uuidGenerator();
+		const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
+		char filename[41];
+		char filepath[128];
+		BLI_snprintf(filename, sizeof(filename), "%s.jpg", uuidStr.c_str());
+		BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
+		WM_operator_properties_create(&scProps, "SCREEN_OT_usage_screenshot");
+		RNA_string_set(&scProps, "filepath", filepath);
+		RNA_boolean_set(&scProps, "full", TRUE);
+		WM_operator_name_call_log(C, "SCREEN_OT_usage_screenshot", WM_OP_EXEC_DEFAULT, &scProps, FALSE);
+		WM_operator_properties_free(&scProps);
+		
+		// load jpeg file into screenshot struct
+		std::string content;
+		read_entire_file(filepath, content);
+		BLI_delete(filepath, FALSE, FALSE);
+		Screenshot *sshot = new Screenshot();
+		sshot->__set_hash(uuidStr);
+		std::string token = U.usage_service_token;
+		sshot->__set_token(token);
+		sshot->__set_screenshot(content);
+		sshot->__set_timestamp(msg->timestamp);
+		BLI_thread_queue_push(screenshotQueue, sshot);
+		thriftOp.__set_screenshotHash(uuidStr);
+		
+		// create op
 		thriftOp.__set_operatorId(std::string(op->idname));
 		cstring = WM_operator_pystring(C, op, true, true);
 		thriftOp.__set_pythonRepresentation(std::string(cstring ? cstring : ""));
@@ -419,7 +485,7 @@ namespace usage {
 		data.__set_wmOp(thriftOp);
 		msg->__set_data(data);
 
-		BLI_thread_queue_push(queue, msg);
+		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
 	void Usage::queueEvent(bContext *C, const wmEvent *event)
@@ -471,7 +537,7 @@ namespace usage {
 		data.__set_wmEv(ev);
 		msg->__set_data(data);
 		
-		BLI_thread_queue_push(queue, msg);
+		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
 } /* namespace */

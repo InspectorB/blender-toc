@@ -210,6 +210,208 @@ uint32_t TocService_sendMessage_presult::read(::apache::thrift::protocol::TProto
   return xfer;
 }
 
+uint32_t TocService_sendScreenshot_args::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->screenshot.read(iprot);
+          this->__isset.screenshot = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t TocService_sendScreenshot_args::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("TocService_sendScreenshot_args");
+
+  xfer += oprot->writeFieldBegin("screenshot", ::apache::thrift::protocol::T_STRUCT, 1);
+  xfer += this->screenshot.write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+uint32_t TocService_sendScreenshot_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("TocService_sendScreenshot_pargs");
+
+  xfer += oprot->writeFieldBegin("screenshot", ::apache::thrift::protocol::T_STRUCT, 1);
+  xfer += (*(this->screenshot)).write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+uint32_t TocService_sendScreenshot_result::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->unavailable.read(iprot);
+          this->__isset.unavailable = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->unknownToken.read(iprot);
+          this->__isset.unknownToken = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->incorrectlyFormattedMessage.read(iprot);
+          this->__isset.incorrectlyFormattedMessage = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t TocService_sendScreenshot_result::write(::apache::thrift::protocol::TProtocol* oprot) const {
+
+  uint32_t xfer = 0;
+
+  xfer += oprot->writeStructBegin("TocService_sendScreenshot_result");
+
+  if (this->__isset.unavailable) {
+    xfer += oprot->writeFieldBegin("unavailable", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->unavailable.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  } else if (this->__isset.unknownToken) {
+    xfer += oprot->writeFieldBegin("unknownToken", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->unknownToken.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  } else if (this->__isset.incorrectlyFormattedMessage) {
+    xfer += oprot->writeFieldBegin("incorrectlyFormattedMessage", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->incorrectlyFormattedMessage.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+uint32_t TocService_sendScreenshot_presult::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->unavailable.read(iprot);
+          this->__isset.unavailable = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->unknownToken.read(iprot);
+          this->__isset.unknownToken = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->incorrectlyFormattedMessage.read(iprot);
+          this->__isset.incorrectlyFormattedMessage = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
 uint32_t TocService_ping_args::read(::apache::thrift::protocol::TProtocol* iprot) {
 
   uint32_t xfer = 0;
@@ -413,6 +615,68 @@ void TocServiceClient::recv_sendMessage()
   return;
 }
 
+void TocServiceClient::sendScreenshot(const  ::wire::Screenshot& screenshot)
+{
+  send_sendScreenshot(screenshot);
+  recv_sendScreenshot();
+}
+
+void TocServiceClient::send_sendScreenshot(const  ::wire::Screenshot& screenshot)
+{
+  int32_t cseqid = 0;
+  oprot_->writeMessageBegin("sendScreenshot", ::apache::thrift::protocol::T_CALL, cseqid);
+
+  TocService_sendScreenshot_pargs args;
+  args.screenshot = &screenshot;
+  args.write(oprot_);
+
+  oprot_->writeMessageEnd();
+  oprot_->getTransport()->writeEnd();
+  oprot_->getTransport()->flush();
+}
+
+void TocServiceClient::recv_sendScreenshot()
+{
+
+  int32_t rseqid = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TMessageType mtype;
+
+  iprot_->readMessageBegin(fname, mtype, rseqid);
+  if (mtype == ::apache::thrift::protocol::T_EXCEPTION) {
+    ::apache::thrift::TApplicationException x;
+    x.read(iprot_);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+    throw x;
+  }
+  if (mtype != ::apache::thrift::protocol::T_REPLY) {
+    iprot_->skip(::apache::thrift::protocol::T_STRUCT);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+  }
+  if (fname.compare("sendScreenshot") != 0) {
+    iprot_->skip(::apache::thrift::protocol::T_STRUCT);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+  }
+  TocService_sendScreenshot_presult result;
+  result.read(iprot_);
+  iprot_->readMessageEnd();
+  iprot_->getTransport()->readEnd();
+
+  if (result.__isset.unavailable) {
+    throw result.unavailable;
+  }
+  if (result.__isset.unknownToken) {
+    throw result.unknownToken;
+  }
+  if (result.__isset.incorrectlyFormattedMessage) {
+    throw result.incorrectlyFormattedMessage;
+  }
+  return;
+}
+
 void TocServiceClient::ping()
 {
   send_ping();
@@ -546,6 +810,68 @@ void TocServiceProcessor::process_sendMessage(int32_t seqid, ::apache::thrift::p
 
   if (this->eventHandler_.get() != NULL) {
     this->eventHandler_->postWrite(ctx, "TocService.sendMessage", bytes);
+  }
+}
+
+void TocServiceProcessor::process_sendScreenshot(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext)
+{
+  void* ctx = NULL;
+  if (this->eventHandler_.get() != NULL) {
+    ctx = this->eventHandler_->getContext("TocService.sendScreenshot", callContext);
+  }
+  ::apache::thrift::TProcessorContextFreer freer(this->eventHandler_.get(), ctx, "TocService.sendScreenshot");
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->preRead(ctx, "TocService.sendScreenshot");
+  }
+
+  TocService_sendScreenshot_args args;
+  args.read(iprot);
+  iprot->readMessageEnd();
+  uint32_t bytes = iprot->getTransport()->readEnd();
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->postRead(ctx, "TocService.sendScreenshot", bytes);
+  }
+
+  TocService_sendScreenshot_result result;
+  try {
+    iface_->sendScreenshot(args.screenshot);
+  } catch (Unavailable &unavailable) {
+    result.unavailable = unavailable;
+    result.__isset.unavailable = true;
+  } catch (UnknownToken &unknownToken) {
+    result.unknownToken = unknownToken;
+    result.__isset.unknownToken = true;
+  } catch (IncorrectlyFormattedMessage &incorrectlyFormattedMessage) {
+    result.incorrectlyFormattedMessage = incorrectlyFormattedMessage;
+    result.__isset.incorrectlyFormattedMessage = true;
+  } catch (const std::exception& e) {
+    if (this->eventHandler_.get() != NULL) {
+      this->eventHandler_->handlerError(ctx, "TocService.sendScreenshot");
+    }
+
+    ::apache::thrift::TApplicationException x(e.what());
+    oprot->writeMessageBegin("sendScreenshot", ::apache::thrift::protocol::T_EXCEPTION, seqid);
+    x.write(oprot);
+    oprot->writeMessageEnd();
+    oprot->getTransport()->writeEnd();
+    oprot->getTransport()->flush();
+    return;
+  }
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->preWrite(ctx, "TocService.sendScreenshot");
+  }
+
+  oprot->writeMessageBegin("sendScreenshot", ::apache::thrift::protocol::T_REPLY, seqid);
+  result.write(oprot);
+  oprot->writeMessageEnd();
+  bytes = oprot->getTransport()->writeEnd();
+  oprot->getTransport()->flush();
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->postWrite(ctx, "TocService.sendScreenshot", bytes);
   }
 }
 

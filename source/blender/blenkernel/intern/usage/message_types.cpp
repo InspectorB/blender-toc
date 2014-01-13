@@ -10,8 +10,8 @@
 
 namespace wire {
 
-const char* Message::ascii_fingerprint = "93E5CB1117316436F2D4F9E5B431A82E";
-const uint8_t Message::binary_fingerprint[16] = {0x93,0xE5,0xCB,0x11,0x17,0x31,0x64,0x36,0xF2,0xD4,0xF9,0xE5,0xB4,0x31,0xA8,0x2E};
+const char* Message::ascii_fingerprint = "96F45E504D1CCE0BEBA70403D06D1086";
+const uint8_t Message::binary_fingerprint[16] = {0x96,0xF4,0x5E,0x50,0x4D,0x1C,0xCE,0x0B,0xEB,0xA7,0x04,0x03,0xD0,0x6D,0x10,0x86};
 
 uint32_t Message::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -126,6 +126,111 @@ void swap(Message &a, Message &b) {
   swap(a.user, b.user);
   swap(a.timestamp, b.timestamp);
   swap(a.token, b.token);
+  swap(a.__isset, b.__isset);
+}
+
+const char* Screenshot::ascii_fingerprint = "EA56942314ECD5D27DC4278DCD614C8D";
+const uint8_t Screenshot::binary_fingerprint[16] = {0xEA,0x56,0x94,0x23,0x14,0xEC,0xD5,0xD2,0x7D,0xC4,0x27,0x8D,0xCD,0x61,0x4C,0x8D};
+
+uint32_t Screenshot::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->token);
+          this->__isset.token = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->hash);
+          this->__isset.hash = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readBinary(this->screenshot);
+          this->__isset.screenshot = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_I64) {
+          xfer += iprot->readI64(this->timestamp);
+          this->__isset.timestamp = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t Screenshot::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("Screenshot");
+
+  if (this->__isset.token) {
+    xfer += oprot->writeFieldBegin("token", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->token);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.hash) {
+    xfer += oprot->writeFieldBegin("hash", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->hash);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.screenshot) {
+    xfer += oprot->writeFieldBegin("screenshot", ::apache::thrift::protocol::T_STRING, 3);
+    xfer += oprot->writeBinary(this->screenshot);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.timestamp) {
+    xfer += oprot->writeFieldBegin("timestamp", ::apache::thrift::protocol::T_I64, 4);
+    xfer += oprot->writeI64(this->timestamp);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(Screenshot &a, Screenshot &b) {
+  using ::std::swap;
+  swap(a.token, b.token);
+  swap(a.hash, b.hash);
+  swap(a.screenshot, b.screenshot);
+  swap(a.timestamp, b.timestamp);
   swap(a.__isset, b.__isset);
 }
 

@@ -51,4 +51,12 @@ if(WITH_INTERNATIONAL)
 	add_definitions(-DWITH_INTERNATIONAL)
 endif()
 
+if(WITH_USAGE)
+	add_definitions(-DWITH_USAGE)
+	list(APPEND INC_SYS
+		${THRIFT_INCLUDE_DIRS}
+		${BOOST_INCLUDE_DIR}
+	)
+endif()
+
 blender_add_lib(bf_editor_screen "${SRC}" "${INC}" "${INC_SYS}")

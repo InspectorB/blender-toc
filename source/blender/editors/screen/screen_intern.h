@@ -67,6 +67,9 @@ extern const char *screen_context_dir[]; /* doc access */
 /* screendump.c */
 void	SCREEN_OT_screenshot(struct wmOperatorType *ot);
 void	SCREEN_OT_screencast(struct wmOperatorType *ot);
+#ifdef WITH_USAGE
+void	SCREEN_OT_usage_screenshot(struct wmOperatorType *ot);
+#endif
 
 /* screen_ops.c */
 void	region_blend_start(struct bContext *C, struct ScrArea *sa, struct ARegion *ar);

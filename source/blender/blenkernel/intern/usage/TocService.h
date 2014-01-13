@@ -16,6 +16,7 @@ class TocServiceIf {
  public:
   virtual ~TocServiceIf() {}
   virtual void sendMessage(const  ::wire::Message& message) = 0;
+  virtual void sendScreenshot(const  ::wire::Screenshot& screenshot) = 0;
   virtual void ping() = 0;
 };
 
@@ -49,6 +50,9 @@ class TocServiceNull : virtual public TocServiceIf {
   void sendMessage(const  ::wire::Message& /* message */) {
     return;
   }
+  void sendScreenshot(const  ::wire::Screenshot& /* screenshot */) {
+    return;
+  }
   void ping() {
     return;
   }
@@ -62,8 +66,8 @@ typedef struct _TocService_sendMessage_args__isset {
 class TocService_sendMessage_args {
  public:
 
-  static const char* ascii_fingerprint; // = "16613BFB6E9E417562ABC4F18CC9BC95";
-  static const uint8_t binary_fingerprint[16]; // = {0x16,0x61,0x3B,0xFB,0x6E,0x9E,0x41,0x75,0x62,0xAB,0xC4,0xF1,0x8C,0xC9,0xBC,0x95};
+  static const char* ascii_fingerprint; // = "B9333324A411E414619BBEB4CF9169E2";
+  static const uint8_t binary_fingerprint[16]; // = {0xB9,0x33,0x33,0x24,0xA4,0x11,0xE4,0x14,0x61,0x9B,0xBE,0xB4,0xCF,0x91,0x69,0xE2};
 
   TocService_sendMessage_args() {
   }
@@ -100,8 +104,8 @@ class TocService_sendMessage_args {
 class TocService_sendMessage_pargs {
  public:
 
-  static const char* ascii_fingerprint; // = "16613BFB6E9E417562ABC4F18CC9BC95";
-  static const uint8_t binary_fingerprint[16]; // = {0x16,0x61,0x3B,0xFB,0x6E,0x9E,0x41,0x75,0x62,0xAB,0xC4,0xF1,0x8C,0xC9,0xBC,0x95};
+  static const char* ascii_fingerprint; // = "B9333324A411E414619BBEB4CF9169E2";
+  static const uint8_t binary_fingerprint[16]; // = {0xB9,0x33,0x33,0x24,0xA4,0x11,0xE4,0x14,0x61,0x9B,0xBE,0xB4,0xCF,0x91,0x69,0xE2};
 
 
   virtual ~TocService_sendMessage_pargs() throw() {}
@@ -193,6 +197,150 @@ class TocService_sendMessage_presult {
   IncorrectlyFormattedMessage incorrectlyFormattedMessage;
 
   _TocService_sendMessage_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _TocService_sendScreenshot_args__isset {
+  _TocService_sendScreenshot_args__isset() : screenshot(false) {}
+  bool screenshot;
+} _TocService_sendScreenshot_args__isset;
+
+class TocService_sendScreenshot_args {
+ public:
+
+  static const char* ascii_fingerprint; // = "BD66C123724808F67C2F43EC6E18B75C";
+  static const uint8_t binary_fingerprint[16]; // = {0xBD,0x66,0xC1,0x23,0x72,0x48,0x08,0xF6,0x7C,0x2F,0x43,0xEC,0x6E,0x18,0xB7,0x5C};
+
+  TocService_sendScreenshot_args() {
+  }
+
+  virtual ~TocService_sendScreenshot_args() throw() {}
+
+   ::wire::Screenshot screenshot;
+
+  _TocService_sendScreenshot_args__isset __isset;
+
+  void __set_screenshot(const  ::wire::Screenshot& val) {
+    screenshot = val;
+    __isset.screenshot = true;
+  }
+
+  bool operator == (const TocService_sendScreenshot_args & rhs) const
+  {
+    if (!(screenshot == rhs.screenshot))
+      return false;
+    return true;
+  }
+  bool operator != (const TocService_sendScreenshot_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TocService_sendScreenshot_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class TocService_sendScreenshot_pargs {
+ public:
+
+  static const char* ascii_fingerprint; // = "BD66C123724808F67C2F43EC6E18B75C";
+  static const uint8_t binary_fingerprint[16]; // = {0xBD,0x66,0xC1,0x23,0x72,0x48,0x08,0xF6,0x7C,0x2F,0x43,0xEC,0x6E,0x18,0xB7,0x5C};
+
+
+  virtual ~TocService_sendScreenshot_pargs() throw() {}
+
+  const  ::wire::Screenshot* screenshot;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TocService_sendScreenshot_result__isset {
+  _TocService_sendScreenshot_result__isset() : unavailable(false), unknownToken(false), incorrectlyFormattedMessage(false) {}
+  bool unavailable;
+  bool unknownToken;
+  bool incorrectlyFormattedMessage;
+} _TocService_sendScreenshot_result__isset;
+
+class TocService_sendScreenshot_result {
+ public:
+
+  static const char* ascii_fingerprint; // = "2E72786EE0F17DA00FC5BDED362FE255";
+  static const uint8_t binary_fingerprint[16]; // = {0x2E,0x72,0x78,0x6E,0xE0,0xF1,0x7D,0xA0,0x0F,0xC5,0xBD,0xED,0x36,0x2F,0xE2,0x55};
+
+  TocService_sendScreenshot_result() {
+  }
+
+  virtual ~TocService_sendScreenshot_result() throw() {}
+
+  Unavailable unavailable;
+  UnknownToken unknownToken;
+  IncorrectlyFormattedMessage incorrectlyFormattedMessage;
+
+  _TocService_sendScreenshot_result__isset __isset;
+
+  void __set_unavailable(const Unavailable& val) {
+    unavailable = val;
+    __isset.unavailable = true;
+  }
+
+  void __set_unknownToken(const UnknownToken& val) {
+    unknownToken = val;
+    __isset.unknownToken = true;
+  }
+
+  void __set_incorrectlyFormattedMessage(const IncorrectlyFormattedMessage& val) {
+    incorrectlyFormattedMessage = val;
+    __isset.incorrectlyFormattedMessage = true;
+  }
+
+  bool operator == (const TocService_sendScreenshot_result & rhs) const
+  {
+    if (!(unavailable == rhs.unavailable))
+      return false;
+    if (!(unknownToken == rhs.unknownToken))
+      return false;
+    if (!(incorrectlyFormattedMessage == rhs.incorrectlyFormattedMessage))
+      return false;
+    return true;
+  }
+  bool operator != (const TocService_sendScreenshot_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TocService_sendScreenshot_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _TocService_sendScreenshot_presult__isset {
+  _TocService_sendScreenshot_presult__isset() : unavailable(false), unknownToken(false), incorrectlyFormattedMessage(false) {}
+  bool unavailable;
+  bool unknownToken;
+  bool incorrectlyFormattedMessage;
+} _TocService_sendScreenshot_presult__isset;
+
+class TocService_sendScreenshot_presult {
+ public:
+
+  static const char* ascii_fingerprint; // = "2E72786EE0F17DA00FC5BDED362FE255";
+  static const uint8_t binary_fingerprint[16]; // = {0x2E,0x72,0x78,0x6E,0xE0,0xF1,0x7D,0xA0,0x0F,0xC5,0xBD,0xED,0x36,0x2F,0xE2,0x55};
+
+
+  virtual ~TocService_sendScreenshot_presult() throw() {}
+
+  Unavailable unavailable;
+  UnknownToken unknownToken;
+  IncorrectlyFormattedMessage incorrectlyFormattedMessage;
+
+  _TocService_sendScreenshot_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -328,6 +476,9 @@ class TocServiceClient : virtual public TocServiceIf {
   void sendMessage(const  ::wire::Message& message);
   void send_sendMessage(const  ::wire::Message& message);
   void recv_sendMessage();
+  void sendScreenshot(const  ::wire::Screenshot& screenshot);
+  void send_sendScreenshot(const  ::wire::Screenshot& screenshot);
+  void recv_sendScreenshot();
   void ping();
   void send_ping();
   void recv_ping();
@@ -347,11 +498,13 @@ class TocServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   typedef std::map<std::string, ProcessFunction> ProcessMap;
   ProcessMap processMap_;
   void process_sendMessage(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sendScreenshot(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_ping(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   TocServiceProcessor(boost::shared_ptr<TocServiceIf> iface) :
     iface_(iface) {
     processMap_["sendMessage"] = &TocServiceProcessor::process_sendMessage;
+    processMap_["sendScreenshot"] = &TocServiceProcessor::process_sendScreenshot;
     processMap_["ping"] = &TocServiceProcessor::process_ping;
   }
 
@@ -388,6 +541,15 @@ class TocServiceMultiface : virtual public TocServiceIf {
       ifaces_[i]->sendMessage(message);
     }
     ifaces_[i]->sendMessage(message);
+  }
+
+  void sendScreenshot(const  ::wire::Screenshot& screenshot) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sendScreenshot(screenshot);
+    }
+    ifaces_[i]->sendScreenshot(screenshot);
   }
 
   void ping() {

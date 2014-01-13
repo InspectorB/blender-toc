@@ -57,16 +57,19 @@ namespace usage {
 		
 	private:
 		ListBase threads;
-		ThreadQueue *queue;
+		ThreadQueue *messageQueue, *screenshotQueue;
 		bool shutdown;
 		bool enabled;
 		bool updateSettingsP;
 		Message *sendingMessage;
+		Screenshot *sendingScreenshot;
 		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
 		boost::shared_ptr<TProtocol> protocol;
 		TocServiceClient *client;
+		
+		boost::uuids::random_generator uuidGenerator;
 		
 		Usage();
 		~Usage();
@@ -74,7 +77,8 @@ namespace usage {
 		void operator=(Usage const&);
 		
 		void createConnection();
-		void teardown();
+		void teardownConnection();
+		void read_entire_file(const char *filepath, std::string &str);
 		long getTimestamp();
 		Message *getNewMessage();
 		
