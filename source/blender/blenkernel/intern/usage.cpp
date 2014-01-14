@@ -203,14 +203,17 @@ namespace usage {
 				unsigned char sent = 0;
 				
 				if (sendingMessage == NULL)
-					sendingMessage = (Message*)BLI_thread_queue_pop(messageQueue);
+					sendingMessage = (Message*)BLI_thread_queue_pop_timeout(messageQueue, 10);
 				if (sendingScreenshot == NULL)
-					sendingScreenshot = (ScreenshotQueueItem*)BLI_thread_queue_pop(screenshotQueue);
+					sendingScreenshot = (ScreenshotQueueItem*)BLI_thread_queue_pop_timeout(screenshotQueue, 10);
 				
 				std::string token = U.usage_service_token;
 				
 				if (sendingMessage) {
 					sendingMessage->__set_token(token); // set token here so it can be updated
+					if (sendingMessage->data.__isset.wmOp) {
+						printf("wmOp is set\n");
+					}
 					client->sendMessage(*sendingMessage);
 					delete sendingMessage; // message has been sent, delete it
 					sendingMessage = NULL;
@@ -319,6 +322,7 @@ namespace usage {
 	void Usage::queueOperator(bContext *C, wmOperator *op)
 	{
 		// TODO: perhaps filter out timer operations
+		printf("we're in the c++ queue operator!\n");
 		
 		Message *msg = getNewMessage();
 		WmOp thriftOp;
@@ -331,22 +335,23 @@ namespace usage {
 		
 		std::vector<RNAProperty> thriftOpProperties;
 		
-		// prepare uuid
-		boost::uuids::uuid uuid = uuidGenerator();
-		const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
+		if (!(op->type->flag & OPTYPE_NOSCREENSHOT)) {
+			// prepare uuid
+			boost::uuids::uuid uuid = uuidGenerator();
+			const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
 
-		ImBuf *ibuf;
-		ScreenshotQueueItem *sqi;
-		
-		
-		// take screenshot
-		ibuf = take_screenshot(C, 0);
-		sqi = new ScreenshotQueueItem;
-		sqi->buf = ibuf;
-		sqi->hash = uuidStr;
-		sqi->timestamp = msg->timestamp;
-		BLI_thread_queue_push(screenshotQueue, sqi);
-		thriftOp.__set_screenshotHash(uuidStr);
+			ImBuf *ibuf;
+			ScreenshotQueueItem *sqi;
+					
+			// take screenshot
+			ibuf = take_screenshot(C, 0);
+			sqi = new ScreenshotQueueItem;
+			sqi->buf = ibuf;
+			sqi->hash = uuidStr;
+			sqi->timestamp = msg->timestamp;
+			BLI_thread_queue_push(screenshotQueue, sqi);
+			thriftOp.__set_screenshotHash(uuidStr);
+		}
 		
 		// create op
 		thriftOp.__set_operatorId(std::string(op->idname));
@@ -519,6 +524,7 @@ namespace usage {
 		data.__set_wmOp(thriftOp);
 		msg->__set_data(data);
 
+		printf("we're queueing the wmop\n");
 		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
@@ -581,9 +587,12 @@ namespace usage {
 		unsigned int *dumprect = NULL;
 		int dumpsx, dumpsy;
 		
+		// copied from screenshot
 		wmWindow *win = CTX_wm_window(C);
 		int x = 0, y = 0;
-				
+		
+		WM_redraw_windows(C);
+		
 		dumpsx = WM_window_pixels_x(win);
 		dumpsy = WM_window_pixels_y(win);
 		
@@ -644,6 +653,9 @@ extern "C" {
 	
 	void BKE_usage_queue_operator(bContext *C, wmOperator *op)
 	{
+		// don't register internal operators
+		if (op->type && (op->type->flag & OPTYPE_INTERNAL))
+			return;
 		usage::Usage::getInstance().queueOperator(C, op);
 	}
 	

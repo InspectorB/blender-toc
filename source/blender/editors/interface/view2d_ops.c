@@ -349,6 +349,9 @@ static void VIEW2D_OT_scroll_right(wmOperatorType *ot)
 	/* api callbacks */
 	ot->exec = view_scrollright_exec;
 	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
+	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_int(ot->srna, "deltax", 0, INT_MIN, INT_MAX, "Delta X", "", INT_MIN, INT_MAX);
 	RNA_def_int(ot->srna, "deltay", 0, INT_MIN, INT_MAX, "Delta Y", "", INT_MIN, INT_MAX);
@@ -392,6 +395,9 @@ static void VIEW2D_OT_scroll_left(wmOperatorType *ot)
 	
 	/* api callbacks */
 	ot->exec = view_scrollleft_exec;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_int(ot->srna, "deltax", 0, INT_MIN, INT_MAX, "Delta X", "", INT_MIN, INT_MAX);
@@ -440,6 +446,9 @@ static void VIEW2D_OT_scroll_down(wmOperatorType *ot)
 	
 	/* api callbacks */
 	ot->exec = view_scrolldown_exec;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_int(ot->srna, "deltax", 0, INT_MIN, INT_MAX, "Delta X", "", INT_MIN, INT_MAX);
@@ -490,6 +499,9 @@ static void VIEW2D_OT_scroll_up(wmOperatorType *ot)
 	
 	/* api callbacks */
 	ot->exec = view_scrollup_exec;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_int(ot->srna, "deltax", 0, INT_MIN, INT_MAX, "Delta X", "", INT_MIN, INT_MAX);
@@ -733,6 +745,9 @@ static void VIEW2D_OT_zoom_in(wmOperatorType *ot)
 	ot->exec = view_zoomin_exec;  // XXX, needs view_zoomdrag_init called first.
 	ot->poll = view_zoom_poll;
 	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
+	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_float(ot->srna, "zoomfacx", 0, -FLT_MAX, FLT_MAX, "Zoom Factor X", "", -FLT_MAX, FLT_MAX);
 	RNA_def_float(ot->srna, "zoomfacy", 0, -FLT_MAX, FLT_MAX, "Zoom Factor Y", "", -FLT_MAX, FLT_MAX);
@@ -801,6 +816,9 @@ static void VIEW2D_OT_zoom_out(wmOperatorType *ot)
 	ot->invoke = view_zoomout_invoke;
 //	ot->exec = view_zoomout_exec; // XXX, needs view_zoomdrag_init called first.
 	ot->poll = view_zoom_poll;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_float(ot->srna, "zoomfacx", 0, -FLT_MAX, FLT_MAX, "Zoom Factor X", "", -FLT_MAX, FLT_MAX);
@@ -1115,7 +1133,7 @@ static void VIEW2D_OT_zoom(wmOperatorType *ot)
 	ot->poll = view_zoom_poll;
 	
 	/* operator is repeatable */
-	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER;
+	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER | OPTYPE_NOSCREENSHOT;
 	
 	/* rna - must keep these in sync with the other operators */
 	RNA_def_float(ot->srna, "deltax", 0, -FLT_MAX, FLT_MAX, "Delta X", "", -FLT_MAX, FLT_MAX);
@@ -1212,6 +1230,9 @@ static void VIEW2D_OT_zoom_border(wmOperatorType *ot)
 	ot->cancel = WM_border_select_cancel;
 	
 	ot->poll = view_zoom_poll;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 	
 	/* rna */
 	WM_operator_properties_gesture_border(ot, false);
@@ -1799,7 +1820,7 @@ static void VIEW2D_OT_scroller_activate(wmOperatorType *ot)
 	ot->idname = "VIEW2D_OT_scroller_activate";
 
 	/* flags */
-	ot->flag = OPTYPE_BLOCKING;
+	ot->flag = OPTYPE_BLOCKING | OPTYPE_INTERNAL;
 	
 	/* api callbacks */
 	ot->invoke = scroller_activate_invoke;
@@ -1869,6 +1890,9 @@ static void VIEW2D_OT_reset(wmOperatorType *ot)
 	/* api callbacks */
 	ot->exec = reset_exec;
 	ot->poll = view2d_poll;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 }
  
 /* ********************************************************* */
