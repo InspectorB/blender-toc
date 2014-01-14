@@ -298,71 +298,28 @@ void SCREEN_OT_screenshot(wmOperatorType *ot)
 
 #ifdef WITH_USAGE
 
-static int screenshot_usage_exec(bContext *C, wmOperator *op)
-{
-	ScreenshotData *scd = op->customdata;
-	
-	if (scd == NULL) {
-		/* when running exec directly */
-		screenshot_data_create(C, op);
-		scd = op->customdata;
-	}
-	
-	if (scd) {
-		if (scd->dumprect) {
-			ImBuf *ibuf, *ibufHalf;
-			char path[FILE_MAX];
-			
-			RNA_string_get(op->ptr, "filepath", path);
-			BLI_path_abs(path, G.main->name);
-			
-			/* operator ensures the extension */
-			ibuf = IMB_allocImBuf(scd->dumpsx, scd->dumpsy, 24, 0);
-			ibuf->rect = scd->dumprect;
-			
-			/* crop to show only single editor */
-			if (!RNA_boolean_get(op->ptr, "full"))
-				screenshot_crop(ibuf, scd->crop);
-			
-			// half the size!
-			ibufHalf = IMB_onehalf(ibuf);
-			
-			scd->im_format.imtype = R_IMF_IMTYPE_JP2;
-			scd->im_format.depth = R_IMF_CHAN_DEPTH_8;
-			scd->im_format.jp2_codec = R_IMF_JP2_CODEC_JP2;
-			scd->im_format.quality = 50;
-			BKE_imbuf_write(ibufHalf, path, &scd->im_format);
-			
-			IMB_freeImBuf(ibuf);
-			IMB_freeImBuf(ibufHalf);
-		}
-	}
-	
-	screenshot_data_free(op);
-	return OPERATOR_FINISHED;
-}
 
-void SCREEN_OT_usage_screenshot(wmOperatorType *ot)
-{
-	ot->name = "Usage log screenshot";
-	ot->idname = "SCREEN_OT_usage_screenshot";
-	ot->description = "Capture a picture of the interface for usage logging";
-	
-	ot->invoke = NULL;
-	ot->check = NULL;
-	ot->exec = screenshot_usage_exec;
-	ot->cancel = NULL;
-	ot->ui = NULL;
-	ot->poll = screenshot_poll;
-	
-	ot->flag = OPTYPE_INTERNAL;
-	
-	RNA_def_boolean(ot->srna, "full", 1, "Full Screen",
-	                "Capture the whole window (otherwise only capture the active area)");
-	RNA_def_string_file_name(ot->srna, "filepath", "", FILE_MAX, "File Path",
-							 "Name of the temporary file");
-}
 
+//void SCREEN_OT_usage_screenshot(wmOperatorType *ot)
+//{
+//	ot->name = "Usage log screenshot";
+//	ot->idname = "SCREEN_OT_usage_screenshot";
+//	ot->description = "Capture a picture of the interface for usage logging";
+//	
+//	ot->invoke = NULL;
+//	ot->check = NULL;
+//	ot->exec = screenshot_usage_exec;
+//	ot->cancel = NULL;
+//	ot->ui = NULL;
+//	ot->poll = screenshot_poll;
+//	
+//	ot->flag = OPTYPE_INTERNAL;
+//	
+//	RNA_def_boolean(ot->srna, "full", 1, "Full Screen",
+//	                "Capture the whole window (otherwise only capture the active area)");
+//	RNA_def_string_file_name(ot->srna, "filepath", "", FILE_MAX, "File Path",
+//							 "Name of the temporary file");
+//}
 
 #endif // WITH_USAGE
 

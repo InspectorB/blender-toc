@@ -51,17 +51,29 @@ extern "C" {
 #include "MEM_guardedalloc.h"
 	
 #include "DNA_userdef_types.h"
-
+#include "DNA_scene_types.h"
+#include "DNA_screen_types.h"
+	
 #include "RNA_types.h"
 #include "RNA_access.h"
 	
 #include "WM_api.h"
 #include "WM_types.h"
 
+#include "BKE_context.h"
+#include "BKE_image.h"
+	
 #include "BLI_string_utf8.h"
 #include "BLI_string.h"
 #include "BLI_path_util.h"
 #include "BLI_fileops.h"
+#include "BLI_rect.h"
+	
+#include "BIF_gl.h"
+#include "BIF_glutil.h"
+	
+#include "IMB_imbuf.h"
+#include "IMB_imbuf_types.h"
 }
 
 #include <string>
@@ -101,6 +113,13 @@ namespace usage {
 		sendingMessage = NULL;
 		sendingScreenshot = NULL;
 		client = NULL;
+		
+		im_format.planes = R_IMF_PLANES_RGBA;
+		im_format.imtype = R_IMF_IMTYPE_JP2;
+		im_format.depth = R_IMF_CHAN_DEPTH_8;
+		im_format.jp2_codec = R_IMF_JP2_CODEC_JP2;
+		im_format.quality = 50;
+		
 		messageQueue = BLI_thread_queue_init();
 		screenshotQueue = BLI_thread_queue_init();
 		BLI_init_threads(&threads, &usage_do_thread, 1);
@@ -186,7 +205,7 @@ namespace usage {
 				if (sendingMessage == NULL)
 					sendingMessage = (Message*)BLI_thread_queue_pop(messageQueue);
 				if (sendingScreenshot == NULL)
-					sendingScreenshot = (Screenshot*)BLI_thread_queue_pop(screenshotQueue);
+					sendingScreenshot = (ScreenshotQueueItem*)BLI_thread_queue_pop(screenshotQueue);
 				
 				std::string token = U.usage_service_token;
 				
@@ -199,10 +218,35 @@ namespace usage {
 				}
 				
 				if (sendingScreenshot) {
-					sendingScreenshot->__set_token(token); // set token here so it can be updated
-					client->sendScreenshot(*sendingScreenshot);
+					ImBuf *ibufHalf;
+					
+					char filename[41];
+					char filepath[128];
+					BLI_snprintf(filename, sizeof(filename), "%s.jpg", sendingScreenshot->hash.c_str());
+					BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
+
+					// half the image and write to disk
+					ibufHalf = IMB_onehalf(sendingScreenshot->buf);
+					BKE_imbuf_write(ibufHalf, filepath, &im_format);
+				
+					// load jpeg file into screenshot struct
+					std::string content;
+					read_entire_file(filepath, content);
+					BLI_delete(filepath, FALSE, FALSE);
+
+					std::string token = U.usage_service_token;
+					Screenshot *sshot = new Screenshot();
+					sshot->__set_hash(sendingScreenshot->hash);
+					sshot->__set_token(token);
+					sshot->__set_screenshot(content);
+					sshot->__set_timestamp(sendingScreenshot->timestamp);
+					
+					client->sendScreenshot(*sshot);
+					delete sshot;
+					IMB_freeImBuf(sendingScreenshot->buf);
 					delete sendingScreenshot;
 					sendingScreenshot = NULL;
+					IMB_freeImBuf(ibufHalf);
 					sent++;
 				}
 				
@@ -287,31 +331,21 @@ namespace usage {
 		
 		std::vector<RNAProperty> thriftOpProperties;
 		
-		// take screenshot
-		PointerRNA scProps;
+		// prepare uuid
 		boost::uuids::uuid uuid = uuidGenerator();
 		const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
-		char filename[41];
-		char filepath[128];
-		BLI_snprintf(filename, sizeof(filename), "%s.jpg", uuidStr.c_str());
-		BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
-		WM_operator_properties_create(&scProps, "SCREEN_OT_usage_screenshot");
-		RNA_string_set(&scProps, "filepath", filepath);
-		RNA_boolean_set(&scProps, "full", TRUE);
-		WM_operator_name_call_log(C, "SCREEN_OT_usage_screenshot", WM_OP_EXEC_DEFAULT, &scProps, FALSE);
-		WM_operator_properties_free(&scProps);
+
+		ImBuf *ibuf;
+		ScreenshotQueueItem *sqi;
 		
-		// load jpeg file into screenshot struct
-		std::string content;
-		read_entire_file(filepath, content);
-		BLI_delete(filepath, FALSE, FALSE);
-		Screenshot *sshot = new Screenshot();
-		sshot->__set_hash(uuidStr);
-		std::string token = U.usage_service_token;
-		sshot->__set_token(token);
-		sshot->__set_screenshot(content);
-		sshot->__set_timestamp(msg->timestamp);
-		BLI_thread_queue_push(screenshotQueue, sshot);
+		
+		// take screenshot
+		ibuf = take_screenshot(C, 0);
+		sqi = new ScreenshotQueueItem;
+		sqi->buf = ibuf;
+		sqi->hash = uuidStr;
+		sqi->timestamp = msg->timestamp;
+		BLI_thread_queue_push(screenshotQueue, sqi);
 		thriftOp.__set_screenshotHash(uuidStr);
 		
 		// create op
@@ -538,6 +572,69 @@ namespace usage {
 		msg->__set_data(data);
 		
 		BLI_thread_queue_push(messageQueue, msg);
+	}
+	
+	ImBuf* Usage::take_screenshot(bContext *C, const bool crop)
+	{
+		ScrArea *sa;
+		rcti cropRect;
+		unsigned int *dumprect = NULL;
+		int dumpsx, dumpsy;
+		
+		wmWindow *win = CTX_wm_window(C);
+		int x = 0, y = 0;
+				
+		dumpsx = WM_window_pixels_x(win);
+		dumpsy = WM_window_pixels_y(win);
+		
+		if (dumpsx && dumpsy) {
+			unsigned char *dumprectC;
+			dumprect = (unsigned int*)MEM_mallocN(sizeof(int) * (dumpsx) * (dumpsy), "dumprect");
+			dumprectC = (unsigned char*)dumprect;
+			glReadBuffer(GL_FRONT);
+			// copied from screenshot_read_pixels
+			glReadPixels(x, y, dumpsx, dumpsy, GL_RGBA, GL_UNSIGNED_BYTE, dumprectC);
+			glFinish();
+			int i;
+			for (i = 0, dumprectC += 3; i < dumpsx * dumpsy; i++, dumprectC += 4)
+				*dumprectC = 255;
+			glReadBuffer(GL_BACK);
+		}
+		
+		sa = CTX_wm_area(C);
+		if (sa) cropRect = sa->totrct;
+		
+		
+		if (dumprect) {
+			ImBuf *ibuf; //, *ibufHalf;
+			
+			/* operator ensures the extension */
+			ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
+			ibuf->rect = dumprect;
+			
+			/* crop to show only single editor */
+			// copied from screenshot_crop
+			if (crop) {
+				unsigned int *to = ibuf->rect;
+				unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
+				int crop_x = BLI_rcti_size_x(&cropRect);
+				int crop_y = BLI_rcti_size_y(&cropRect);
+				int y;
+				
+				if (crop_x > 0 && crop_y > 0) {
+					for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
+						memmove(to, from, sizeof(unsigned int) * crop_x);
+					
+					ibuf->x = crop_x;
+					ibuf->y = crop_y;
+				}
+			}
+			if (dumprect) MEM_freeN(dumprect);
+			
+			return ibuf;
+		}
+		
+		return NULL;
 	}
 	
 } /* namespace */

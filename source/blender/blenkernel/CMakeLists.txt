@@ -445,6 +445,10 @@ if(WITH_USAGE)
 		${THRIFT_INCLUDE_DIRS}
 		${BOOST_INCLUDE_DIR}
 	)
+	
+	list(APPEND INC
+		../editors/include
+	)
 
 	list(APPEND SRC
 		intern/usage.cpp

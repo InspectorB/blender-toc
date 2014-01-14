@@ -51,6 +51,14 @@ using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
+// Used to put image screenshots in the queue with the right hash
+// scaling and conversion is then done in the sending thread
+typedef struct ScreenshotQueueItem {
+	ImBuf *buf;
+	std::string hash;
+	long timestamp;
+} ScreenshotQueueItem;
+
 namespace usage {
 
 	class Usage {
@@ -62,7 +70,7 @@ namespace usage {
 		bool enabled;
 		bool updateSettingsP;
 		Message *sendingMessage;
-		Screenshot *sendingScreenshot;
+		ScreenshotQueueItem *sendingScreenshot;
 		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
@@ -70,6 +78,7 @@ namespace usage {
 		TocServiceClient *client;
 		
 		boost::uuids::random_generator uuidGenerator;
+		ImageFormatData im_format;
 		
 		Usage();
 		~Usage();
@@ -83,6 +92,8 @@ namespace usage {
 		Message *getNewMessage();
 		
 		void handleQueue();
+		
+		static ImBuf* take_screenshot(bContext *C, const bool crop);
 		
 	public:
 		static Usage& getInstance();

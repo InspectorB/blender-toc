@@ -3889,9 +3889,6 @@ void ED_operatortypes_screen(void)
 	WM_operatortype_append(SCREEN_OT_back_to_previous);
 	WM_operatortype_append(SCREEN_OT_spacedata_cleanup);
 	WM_operatortype_append(SCREEN_OT_screenshot);
-#ifdef WITH_USAGE
-	WM_operatortype_append(SCREEN_OT_usage_screenshot);
-#endif
 	WM_operatortype_append(SCREEN_OT_screencast);
 	WM_operatortype_append(SCREEN_OT_userpref_show);
 	WM_operatortype_append(SCREEN_OT_region_blend);
