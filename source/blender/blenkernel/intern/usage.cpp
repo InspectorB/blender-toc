@@ -53,6 +53,7 @@ extern "C" {
 #include "DNA_userdef_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_screen_types.h"
+#include "DNA_object_types.h"
 	
 #include "RNA_types.h"
 #include "RNA_access.h"
@@ -68,6 +69,7 @@ extern "C" {
 #include "BLI_path_util.h"
 #include "BLI_fileops.h"
 #include "BLI_rect.h"
+#include "BLI_listbase.h"
 	
 #include "BIF_gl.h"
 #include "BIF_glutil.h"
@@ -92,6 +94,7 @@ extern "C" {
 #include "usage/metadata_types.h"
 #include "usage/message_types.h"
 
+using namespace wire;
 using namespace wire::data;
 using namespace wire::metadata;
 
@@ -316,10 +319,77 @@ namespace usage {
 		return msg;
 	}
 	
+	std::string Usage::p2s(void *p)
+	{
+		char addressBuffer[32];
+		sprintf(addressBuffer, "%p", p);
+		std::string address = addressBuffer;
+		return address;
+	}
+	
+	Context *Usage::getNewContext(const bContext *C)
+	{
+		wmWindow *win = CTX_wm_window(C);
+		bScreen *bs = CTX_wm_screen(C);
+		ScrArea *sa = CTX_wm_area(C);
+		ARegion *ar = CTX_wm_region(C);
+		
+		Context *ctx = new Context();
+		
+		// set window related information
+		if (win) {
+			std::string name = win->screenname;
+			ctx->__set_windowName(name);
+			ctx->__set_windowAddress(p2s(win));
+		}
+		
+		if (bs) {
+			std::string name = bs->id.name;
+			ctx->__set_screenName(name);
+			ctx->__set_screenAddress(p2s(bs));
+		}
+		
+		if (sa) {
+			ctx->__set_spaceType(sa->spacetype);
+			ctx->__set_spaceAddress(p2s(sa));
+		}
+		
+		if (ar) {
+			ctx->__set_regionType(ar->regiontype);
+			ctx->__set_regionAddress(p2s(ar));
+		}
+
+		// set object related information
+		Base *active = CTX_data_active_base(C);
+		std::vector<wire::data::Object> objs;
+		
+		CTX_DATA_BEGIN (C, Base *, base, visible_bases)
+		{
+			if (base->object) {
+				wire::data::Object obj;
+				obj.__set_selected(base->flag & SELECT);
+				obj.__set_active(base == active);
+				std::string name = base->object->id.name;
+				obj.__set_name(name);
+				obj.__set_type(base->object->type);
+				obj.__set_baseAddress(p2s(base));
+				obj.__set_objectAddress(p2s(base->object));
+				obj.__set_parentType(base->object->partype);
+				obj.__set_parentAddress(p2s(base->object->parent));
+				objs.push_back(obj);
+			}
+		}
+		CTX_DATA_END;
+
+		ctx->__set_visibleObjects(objs);
+		
+		return ctx;
+	}
+	
 	void Usage::queueOperator(bContext *C, wmOperator *op)
 	{
 		// TODO: perhaps filter out timer operations
-
+		
 		Message *msg = getNewMessage();
 		WmOp thriftOp;
 		
@@ -331,7 +401,41 @@ namespace usage {
 		
 		std::vector<RNAProperty> thriftOpProperties;
 		
-		if (!(op->type->flag & OPTYPE_NOSCREENSHOT)) {
+		{ // Have a go at inspecting the context
+			//const wmWindowManager *wm = CTX_wm_manager(C); // not interested in toplevel
+//			const wmWindow *win = CTX_wm_window(C);
+//			const bScreen *bs = CTX_wm_screen(C);
+//			const ScrArea *sa = CTX_wm_area(C);
+//			const ARegion *ar = CTX_wm_region(C);
+//			
+//			printf("\n -- WM --\n");
+//			//wm  ? printf("wm:  %s\n", wm->id.name)	 : printf("!wm\n");
+//			win ? printf("win: %-64s (%p)\n", win->screenname, win)	: printf("!win\n");
+//			bs  ? printf("bs:  %-64s (%p)\n", bs->id.name, bs)		: printf("!bs\n");
+//			sa  ? printf("sa:  %-64i (%p)\n", sa->spacetype, sa)	: printf("!sa\n");
+//			ar  ? printf("ar:  %-64i (%p)\n", ar->regiontype, ar)	: printf("!ar\n");
+			
+//			printf("\n -- bases --\n");
+//			Base *active = CTX_data_active_base(C);
+//			CTX_DATA_BEGIN (C, Base *, base, visible_bases)
+//			{
+//				if (base->object) {
+//					printf("%s %-64s \t (t:%-3i, b:%p, o:%p, pt:%-3i, po:%p)\n",
+//						   base->flag & SELECT ? (base == active ? "[*]" : "[ ]") : "   ",
+//						   base->object->id.name,
+//						   base->object->type,
+//						   base,
+//						   base->object,
+//						   base->object->partype,
+//						   base->object->parent);
+//				}
+//				else printf("! base, but no object\n");
+//			}
+//			CTX_DATA_END;
+		}
+		
+		// check if there's a window, otherwise opening a file crashes
+		if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
 			// prepare uuid
 			boost::uuids::uuid uuid = uuidGenerator();
 			const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
@@ -510,7 +614,13 @@ namespace usage {
 		RNA_PROP_END;
 		
 		thriftOp.__set_properties(thriftOpProperties);
-
+		
+		// set the context
+		Context *ctx = getNewContext(C);
+		thriftOp.__set_context(*ctx);
+		delete ctx;
+		
+		// set enveloping message
 		Metadata metadata;
 		NoMetadata noMetadata;
 		metadata.__set_noMetadata(noMetadata);

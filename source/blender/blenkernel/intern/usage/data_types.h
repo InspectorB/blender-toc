@@ -416,19 +416,277 @@ class RNAProperty {
 
 void swap(RNAProperty &a, RNAProperty &b);
 
+typedef struct _Object__isset {
+  _Object__isset() : selected(false), active(false), name(false), type(false), baseAddress(false), objectAddress(false), parentType(false), parentAddress(false) {}
+  bool selected;
+  bool active;
+  bool name;
+  bool type;
+  bool baseAddress;
+  bool objectAddress;
+  bool parentType;
+  bool parentAddress;
+} _Object__isset;
+
+class Object {
+ public:
+
+  static const char* ascii_fingerprint; // = "53C1A71B52080E404A9A108B17CCAC80";
+  static const uint8_t binary_fingerprint[16]; // = {0x53,0xC1,0xA7,0x1B,0x52,0x08,0x0E,0x40,0x4A,0x9A,0x10,0x8B,0x17,0xCC,0xAC,0x80};
+
+  Object() : selected(0), active(0), name(), type(0), baseAddress(), objectAddress(), parentType(0), parentAddress() {
+  }
+
+  virtual ~Object() throw() {}
+
+  bool selected;
+  bool active;
+  std::string name;
+  int16_t type;
+  std::string baseAddress;
+  std::string objectAddress;
+  int16_t parentType;
+  std::string parentAddress;
+
+  _Object__isset __isset;
+
+  void __set_selected(const bool val) {
+    selected = val;
+    __isset.selected = true;
+  }
+
+  void __set_active(const bool val) {
+    active = val;
+    __isset.active = true;
+  }
+
+  void __set_name(const std::string& val) {
+    name = val;
+    __isset.name = true;
+  }
+
+  void __set_type(const int16_t val) {
+    type = val;
+    __isset.type = true;
+  }
+
+  void __set_baseAddress(const std::string& val) {
+    baseAddress = val;
+    __isset.baseAddress = true;
+  }
+
+  void __set_objectAddress(const std::string& val) {
+    objectAddress = val;
+    __isset.objectAddress = true;
+  }
+
+  void __set_parentType(const int16_t val) {
+    parentType = val;
+    __isset.parentType = true;
+  }
+
+  void __set_parentAddress(const std::string& val) {
+    parentAddress = val;
+    __isset.parentAddress = true;
+  }
+
+  bool operator == (const Object & rhs) const
+  {
+    if (__isset.selected != rhs.__isset.selected)
+      return false;
+    else if (__isset.selected && !(selected == rhs.selected))
+      return false;
+    if (__isset.active != rhs.__isset.active)
+      return false;
+    else if (__isset.active && !(active == rhs.active))
+      return false;
+    if (__isset.name != rhs.__isset.name)
+      return false;
+    else if (__isset.name && !(name == rhs.name))
+      return false;
+    if (__isset.type != rhs.__isset.type)
+      return false;
+    else if (__isset.type && !(type == rhs.type))
+      return false;
+    if (__isset.baseAddress != rhs.__isset.baseAddress)
+      return false;
+    else if (__isset.baseAddress && !(baseAddress == rhs.baseAddress))
+      return false;
+    if (__isset.objectAddress != rhs.__isset.objectAddress)
+      return false;
+    else if (__isset.objectAddress && !(objectAddress == rhs.objectAddress))
+      return false;
+    if (__isset.parentType != rhs.__isset.parentType)
+      return false;
+    else if (__isset.parentType && !(parentType == rhs.parentType))
+      return false;
+    if (__isset.parentAddress != rhs.__isset.parentAddress)
+      return false;
+    else if (__isset.parentAddress && !(parentAddress == rhs.parentAddress))
+      return false;
+    return true;
+  }
+  bool operator != (const Object &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Object & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Object &a, Object &b);
+
+typedef struct _Context__isset {
+  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), visibleObjects(false) {}
+  bool windowName;
+  bool windowAddress;
+  bool screenName;
+  bool screenAddress;
+  bool spaceType;
+  bool spaceAddress;
+  bool regionType;
+  bool regionAddress;
+  bool visibleObjects;
+} _Context__isset;
+
+class Context {
+ public:
+
+  static const char* ascii_fingerprint; // = "7C97CDCEC7D70626EE1D3E69F8BA63CA";
+  static const uint8_t binary_fingerprint[16]; // = {0x7C,0x97,0xCD,0xCE,0xC7,0xD7,0x06,0x26,0xEE,0x1D,0x3E,0x69,0xF8,0xBA,0x63,0xCA};
+
+  Context() : windowName(), windowAddress(), screenName(), screenAddress(), spaceType(0), spaceAddress(), regionType(0), regionAddress() {
+  }
+
+  virtual ~Context() throw() {}
+
+  std::string windowName;
+  std::string windowAddress;
+  std::string screenName;
+  std::string screenAddress;
+  int16_t spaceType;
+  std::string spaceAddress;
+  int16_t regionType;
+  std::string regionAddress;
+  std::vector<Object>  visibleObjects;
+
+  _Context__isset __isset;
+
+  void __set_windowName(const std::string& val) {
+    windowName = val;
+    __isset.windowName = true;
+  }
+
+  void __set_windowAddress(const std::string& val) {
+    windowAddress = val;
+    __isset.windowAddress = true;
+  }
+
+  void __set_screenName(const std::string& val) {
+    screenName = val;
+    __isset.screenName = true;
+  }
+
+  void __set_screenAddress(const std::string& val) {
+    screenAddress = val;
+    __isset.screenAddress = true;
+  }
+
+  void __set_spaceType(const int16_t val) {
+    spaceType = val;
+    __isset.spaceType = true;
+  }
+
+  void __set_spaceAddress(const std::string& val) {
+    spaceAddress = val;
+    __isset.spaceAddress = true;
+  }
+
+  void __set_regionType(const int16_t val) {
+    regionType = val;
+    __isset.regionType = true;
+  }
+
+  void __set_regionAddress(const std::string& val) {
+    regionAddress = val;
+    __isset.regionAddress = true;
+  }
+
+  void __set_visibleObjects(const std::vector<Object> & val) {
+    visibleObjects = val;
+    __isset.visibleObjects = true;
+  }
+
+  bool operator == (const Context & rhs) const
+  {
+    if (__isset.windowName != rhs.__isset.windowName)
+      return false;
+    else if (__isset.windowName && !(windowName == rhs.windowName))
+      return false;
+    if (__isset.windowAddress != rhs.__isset.windowAddress)
+      return false;
+    else if (__isset.windowAddress && !(windowAddress == rhs.windowAddress))
+      return false;
+    if (__isset.screenName != rhs.__isset.screenName)
+      return false;
+    else if (__isset.screenName && !(screenName == rhs.screenName))
+      return false;
+    if (__isset.screenAddress != rhs.__isset.screenAddress)
+      return false;
+    else if (__isset.screenAddress && !(screenAddress == rhs.screenAddress))
+      return false;
+    if (__isset.spaceType != rhs.__isset.spaceType)
+      return false;
+    else if (__isset.spaceType && !(spaceType == rhs.spaceType))
+      return false;
+    if (__isset.spaceAddress != rhs.__isset.spaceAddress)
+      return false;
+    else if (__isset.spaceAddress && !(spaceAddress == rhs.spaceAddress))
+      return false;
+    if (__isset.regionType != rhs.__isset.regionType)
+      return false;
+    else if (__isset.regionType && !(regionType == rhs.regionType))
+      return false;
+    if (__isset.regionAddress != rhs.__isset.regionAddress)
+      return false;
+    else if (__isset.regionAddress && !(regionAddress == rhs.regionAddress))
+      return false;
+    if (__isset.visibleObjects != rhs.__isset.visibleObjects)
+      return false;
+    else if (__isset.visibleObjects && !(visibleObjects == rhs.visibleObjects))
+      return false;
+    return true;
+  }
+  bool operator != (const Context &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Context & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Context &a, Context &b);
+
 typedef struct _WmOp__isset {
-  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false) {}
+  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false) {}
   bool operatorId;
   bool properties;
   bool pythonRepresentation;
   bool screenshotHash;
+  bool context;
 } _WmOp__isset;
 
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "E4328F54E79E0194622323D37317AAAC";
-  static const uint8_t binary_fingerprint[16]; // = {0xE4,0x32,0x8F,0x54,0xE7,0x9E,0x01,0x94,0x62,0x23,0x23,0xD3,0x73,0x17,0xAA,0xAC};
+  static const char* ascii_fingerprint; // = "F411A8EC0AC0D26C1A744D2DA1E1D49D";
+  static const uint8_t binary_fingerprint[16]; // = {0xF4,0x11,0xA8,0xEC,0x0A,0xC0,0xD2,0x6C,0x1A,0x74,0x4D,0x2D,0xA1,0xE1,0xD4,0x9D};
 
   WmOp() : operatorId(), pythonRepresentation(), screenshotHash() {
   }
@@ -439,6 +697,7 @@ class WmOp {
   std::vector<RNAProperty>  properties;
   std::string pythonRepresentation;
   std::string screenshotHash;
+  Context context;
 
   _WmOp__isset __isset;
 
@@ -462,6 +721,11 @@ class WmOp {
     __isset.screenshotHash = true;
   }
 
+  void __set_context(const Context& val) {
+    context = val;
+    __isset.context = true;
+  }
+
   bool operator == (const WmOp & rhs) const
   {
     if (__isset.operatorId != rhs.__isset.operatorId)
@@ -479,6 +743,10 @@ class WmOp {
     if (__isset.screenshotHash != rhs.__isset.screenshotHash)
       return false;
     else if (__isset.screenshotHash && !(screenshotHash == rhs.screenshotHash))
+      return false;
+    if (__isset.context != rhs.__isset.context)
+      return false;
+    else if (__isset.context && !(context == rhs.context))
       return false;
     return true;
   }
@@ -862,8 +1130,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "3C4DE0632037F5614E215F39780096E2";
-  static const uint8_t binary_fingerprint[16]; // = {0x3C,0x4D,0xE0,0x63,0x20,0x37,0xF5,0x61,0x4E,0x21,0x5F,0x39,0x78,0x00,0x96,0xE2};
+  static const char* ascii_fingerprint; // = "16EA0E6192778F3F81CD3B0272312613";
+  static const uint8_t binary_fingerprint[16]; // = {0x16,0xEA,0x0E,0x61,0x92,0x77,0x8F,0x3F,0x81,0xCD,0x3B,0x02,0x72,0x31,0x26,0x13};
 
   Data() {
   }

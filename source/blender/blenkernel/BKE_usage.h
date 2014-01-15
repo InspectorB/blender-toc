@@ -43,10 +43,12 @@ extern "C" {
 #include <thrift/protocol/TBinaryProtocol.h>
 
 #include "intern/usage/message_types.h"
+#include "intern/usage/data_types.h"
 
 #include "intern/usage/TocService.h"
 
-using namespace wire;
+//using namespace wire;
+//using namespace wire::data;
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
@@ -69,13 +71,13 @@ namespace usage {
 		bool shutdown;
 		bool enabled;
 		bool updateSettingsP;
-		Message *sendingMessage;
+		wire::Message *sendingMessage;
 		ScreenshotQueueItem *sendingScreenshot;
 		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
 		boost::shared_ptr<TProtocol> protocol;
-		TocServiceClient *client;
+		wire::TocServiceClient *client;
 		
 		boost::uuids::random_generator uuidGenerator;
 		ImageFormatData im_format;
@@ -89,7 +91,9 @@ namespace usage {
 		void teardownConnection();
 		void read_entire_file(const char *filepath, std::string &str);
 		long getTimestamp();
-		Message *getNewMessage();
+		wire::Message *getNewMessage();
+		std::string p2s(void *p);
+		wire::data::Context *getNewContext(const struct bContext *C);
 		
 		void handleQueue();
 		
@@ -109,8 +113,13 @@ namespace usage {
 
 extern "C" {
 #else /* __cplusplus */
-
+	
 /* C interface */
+	
+struct wmOperator;
+struct bContext;
+struct wmEvent;
+	
 void BKE_usage_update_settings(void);
 void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op);
 void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
