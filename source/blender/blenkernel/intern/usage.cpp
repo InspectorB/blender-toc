@@ -211,9 +211,6 @@ namespace usage {
 				
 				if (sendingMessage) {
 					sendingMessage->__set_token(token); // set token here so it can be updated
-					if (sendingMessage->data.__isset.wmOp) {
-						printf("wmOp is set\n");
-					}
 					client->sendMessage(*sendingMessage);
 					delete sendingMessage; // message has been sent, delete it
 					sendingMessage = NULL;
@@ -322,8 +319,7 @@ namespace usage {
 	void Usage::queueOperator(bContext *C, wmOperator *op)
 	{
 		// TODO: perhaps filter out timer operations
-		printf("we're in the c++ queue operator!\n");
-		
+
 		Message *msg = getNewMessage();
 		WmOp thriftOp;
 		
@@ -524,7 +520,6 @@ namespace usage {
 		data.__set_wmOp(thriftOp);
 		msg->__set_data(data);
 
-		printf("we're queueing the wmop\n");
 		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
@@ -608,39 +603,40 @@ namespace usage {
 			for (i = 0, dumprectC += 3; i < dumpsx * dumpsy; i++, dumprectC += 4)
 				*dumprectC = 255;
 			glReadBuffer(GL_BACK);
-		}
-		
-		sa = CTX_wm_area(C);
-		if (sa) cropRect = sa->totrct;
-		
-		
-		if (dumprect) {
-			ImBuf *ibuf; //, *ibufHalf;
+
+			if (dumprect) {
+				sa = CTX_wm_area(C);
 			
-			/* operator ensures the extension */
-			ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
-			ibuf->rect = dumprect;
-			
-			/* crop to show only single editor */
-			// copied from screenshot_crop
-			if (crop) {
-				unsigned int *to = ibuf->rect;
-				unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
-				int crop_x = BLI_rcti_size_x(&cropRect);
-				int crop_y = BLI_rcti_size_y(&cropRect);
-				int y;
+				ImBuf *ibuf; //, *ibufHalf;
 				
-				if (crop_x > 0 && crop_y > 0) {
-					for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
-						memmove(to, from, sizeof(unsigned int) * crop_x);
-					
-					ibuf->x = crop_x;
-					ibuf->y = crop_y;
+				/* operator ensures the extension */
+				ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
+				ibuf->rect = dumprect;
+				
+				/* crop to show only single editor */
+				// copied from screenshot_crop
+				if (sa) {
+					cropRect = sa->totrct;
+					if (crop) {
+						unsigned int *to = ibuf->rect;
+						unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
+						int crop_x = BLI_rcti_size_x(&cropRect);
+						int crop_y = BLI_rcti_size_y(&cropRect);
+						int y;
+						
+						if (crop_x > 0 && crop_y > 0) {
+							for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
+								memmove(to, from, sizeof(unsigned int) * crop_x);
+							
+							ibuf->x = crop_x;
+							ibuf->y = crop_y;
+						}
+					}
 				}
+				
+				//MEM_freeN(dumprect);
+				return ibuf;
 			}
-			if (dumprect) MEM_freeN(dumprect);
-			
-			return ibuf;
 		}
 		
 		return NULL;
