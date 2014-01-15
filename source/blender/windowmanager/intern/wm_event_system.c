@@ -655,7 +655,7 @@ static void wm_operator_finished(bContext *C, wmOperator *op, int repeat, const 
 	wmWindowManager *wm = CTX_wm_manager(C);
 
 #ifdef WITH_USAGE
-	if(usage_log) BKE_usage_queue_operator(C, op);
+	if(usage_log) BKE_usage_queue_operator(C, op, repeat);
 #endif 
 
 	op->customdata = NULL;

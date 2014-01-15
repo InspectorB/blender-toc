@@ -104,7 +104,7 @@ namespace usage {
 		void updateSettings();
 		void ping();
 		void doThread();
-		void queueOperator(bContext *C, wmOperator *op);
+		void queueOperator(bContext *C, wmOperator *op, int repeat);
 		void queueEvent(bContext *C, const wmEvent *ev);
 		void free();
 	};
@@ -121,7 +121,7 @@ struct bContext;
 struct wmEvent;
 	
 void BKE_usage_update_settings(void);
-void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op);
+void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int repeat);
 void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
 void BKE_usage_shutdown();
 	

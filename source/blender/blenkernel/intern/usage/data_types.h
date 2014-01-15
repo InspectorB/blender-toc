@@ -674,21 +674,22 @@ class Context {
 void swap(Context &a, Context &b);
 
 typedef struct _WmOp__isset {
-  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false) {}
+  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false), repeat(false) {}
   bool operatorId;
   bool properties;
   bool pythonRepresentation;
   bool screenshotHash;
   bool context;
+  bool repeat;
 } _WmOp__isset;
 
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "F411A8EC0AC0D26C1A744D2DA1E1D49D";
-  static const uint8_t binary_fingerprint[16]; // = {0xF4,0x11,0xA8,0xEC,0x0A,0xC0,0xD2,0x6C,0x1A,0x74,0x4D,0x2D,0xA1,0xE1,0xD4,0x9D};
+  static const char* ascii_fingerprint; // = "D7F8A76CE9C01D0AE82E781B40830367";
+  static const uint8_t binary_fingerprint[16]; // = {0xD7,0xF8,0xA7,0x6C,0xE9,0xC0,0x1D,0x0A,0xE8,0x2E,0x78,0x1B,0x40,0x83,0x03,0x67};
 
-  WmOp() : operatorId(), pythonRepresentation(), screenshotHash() {
+  WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0) {
   }
 
   virtual ~WmOp() throw() {}
@@ -698,6 +699,7 @@ class WmOp {
   std::string pythonRepresentation;
   std::string screenshotHash;
   Context context;
+  bool repeat;
 
   _WmOp__isset __isset;
 
@@ -726,6 +728,11 @@ class WmOp {
     __isset.context = true;
   }
 
+  void __set_repeat(const bool val) {
+    repeat = val;
+    __isset.repeat = true;
+  }
+
   bool operator == (const WmOp & rhs) const
   {
     if (__isset.operatorId != rhs.__isset.operatorId)
@@ -747,6 +754,10 @@ class WmOp {
     if (__isset.context != rhs.__isset.context)
       return false;
     else if (__isset.context && !(context == rhs.context))
+      return false;
+    if (__isset.repeat != rhs.__isset.repeat)
+      return false;
+    else if (__isset.repeat && !(repeat == rhs.repeat))
       return false;
     return true;
   }
@@ -1130,8 +1141,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "16EA0E6192778F3F81CD3B0272312613";
-  static const uint8_t binary_fingerprint[16]; // = {0x16,0xEA,0x0E,0x61,0x92,0x77,0x8F,0x3F,0x81,0xCD,0x3B,0x02,0x72,0x31,0x26,0x13};
+  static const char* ascii_fingerprint; // = "45F372849FF3C98220D343E1B794DEEA";
+  static const uint8_t binary_fingerprint[16]; // = {0x45,0xF3,0x72,0x84,0x9F,0xF3,0xC9,0x82,0x20,0xD3,0x43,0xE1,0xB7,0x94,0xDE,0xEA};
 
   Data() {
   }
