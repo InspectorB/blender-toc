@@ -810,8 +810,8 @@ void swap(Object &a, Object &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Context::ascii_fingerprint = "D778B00BF825EAEB25F05F885CF943A6";
-const uint8_t Context::binary_fingerprint[16] = {0xD7,0x78,0xB0,0x0B,0xF8,0x25,0xEA,0xEB,0x25,0xF0,0x5F,0x88,0x5C,0xF9,0x43,0xA6};
+const char* Context::ascii_fingerprint = "52D7832FF3FD5146F1336D7F5F3249AE";
+const uint8_t Context::binary_fingerprint[16] = {0x52,0xD7,0x83,0x2F,0xF3,0xFD,0x51,0x46,0xF1,0x33,0x6D,0x7F,0x5F,0x32,0x49,0xAE};
 
 uint32_t Context::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -906,6 +906,22 @@ uint32_t Context::read(::apache::thrift::protocol::TProtocol* iprot) {
         }
         break;
       case 10:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->sceneName);
+          this->__isset.sceneName = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 11:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->sceneAddress);
+          this->__isset.sceneAddress = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 50:
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->visibleObjects.clear();
@@ -986,8 +1002,18 @@ uint32_t Context::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeString(this->dataMode);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.sceneName) {
+    xfer += oprot->writeFieldBegin("sceneName", ::apache::thrift::protocol::T_STRING, 10);
+    xfer += oprot->writeString(this->sceneName);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.sceneAddress) {
+    xfer += oprot->writeFieldBegin("sceneAddress", ::apache::thrift::protocol::T_STRING, 11);
+    xfer += oprot->writeString(this->sceneAddress);
+    xfer += oprot->writeFieldEnd();
+  }
   if (this->__isset.visibleObjects) {
-    xfer += oprot->writeFieldBegin("visibleObjects", ::apache::thrift::protocol::T_LIST, 10);
+    xfer += oprot->writeFieldBegin("visibleObjects", ::apache::thrift::protocol::T_LIST, 50);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->visibleObjects.size()));
       std::vector<Object> ::const_iterator _iter44;
@@ -1015,12 +1041,14 @@ void swap(Context &a, Context &b) {
   swap(a.regionType, b.regionType);
   swap(a.regionAddress, b.regionAddress);
   swap(a.dataMode, b.dataMode);
+  swap(a.sceneName, b.sceneName);
+  swap(a.sceneAddress, b.sceneAddress);
   swap(a.visibleObjects, b.visibleObjects);
   swap(a.__isset, b.__isset);
 }
 
-const char* WmOp::ascii_fingerprint = "197B25015B7E7BAF7A3570AFE4019C02";
-const uint8_t WmOp::binary_fingerprint[16] = {0x19,0x7B,0x25,0x01,0x5B,0x7E,0x7B,0xAF,0x7A,0x35,0x70,0xAF,0xE4,0x01,0x9C,0x02};
+const char* WmOp::ascii_fingerprint = "90F7EBE536E737808674F3887F4C3762";
+const uint8_t WmOp::binary_fingerprint[16] = {0x90,0xF7,0xEB,0xE5,0x36,0xE7,0x37,0x80,0x86,0x74,0xF3,0x88,0x7F,0x4C,0x37,0x62};
 
 uint32_t WmOp::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1634,8 +1662,8 @@ void swap(WmEv &a, WmEv &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "56CBE0FB4F81B69A34DFE99FE9AA5500";
-const uint8_t Data::binary_fingerprint[16] = {0x56,0xCB,0xE0,0xFB,0x4F,0x81,0xB6,0x9A,0x34,0xDF,0xE9,0x9F,0xE9,0xAA,0x55,0x00};
+const char* Data::ascii_fingerprint = "7E96B5A498120CD0AADC1FD47D032703";
+const uint8_t Data::binary_fingerprint[16] = {0x7E,0x96,0xB5,0xA4,0x98,0x12,0x0C,0xD0,0xAA,0xDC,0x1F,0xD4,0x7D,0x03,0x27,0x03};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 

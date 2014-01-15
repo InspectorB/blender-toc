@@ -540,7 +540,7 @@ class Object {
 void swap(Object &a, Object &b);
 
 typedef struct _Context__isset {
-  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), dataMode(false), visibleObjects(false) {}
+  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), dataMode(false), sceneName(false), sceneAddress(false), visibleObjects(false) {}
   bool windowName;
   bool windowAddress;
   bool screenName;
@@ -550,16 +550,18 @@ typedef struct _Context__isset {
   bool regionType;
   bool regionAddress;
   bool dataMode;
+  bool sceneName;
+  bool sceneAddress;
   bool visibleObjects;
 } _Context__isset;
 
 class Context {
  public:
 
-  static const char* ascii_fingerprint; // = "D778B00BF825EAEB25F05F885CF943A6";
-  static const uint8_t binary_fingerprint[16]; // = {0xD7,0x78,0xB0,0x0B,0xF8,0x25,0xEA,0xEB,0x25,0xF0,0x5F,0x88,0x5C,0xF9,0x43,0xA6};
+  static const char* ascii_fingerprint; // = "52D7832FF3FD5146F1336D7F5F3249AE";
+  static const uint8_t binary_fingerprint[16]; // = {0x52,0xD7,0x83,0x2F,0xF3,0xFD,0x51,0x46,0xF1,0x33,0x6D,0x7F,0x5F,0x32,0x49,0xAE};
 
-  Context() : windowName(), windowAddress(), screenName(), screenAddress(), spaceType(0), spaceAddress(), regionType(0), regionAddress(), dataMode() {
+  Context() : windowName(), windowAddress(), screenName(), screenAddress(), spaceType(0), spaceAddress(), regionType(0), regionAddress(), dataMode(), sceneName(), sceneAddress() {
   }
 
   virtual ~Context() throw() {}
@@ -573,6 +575,8 @@ class Context {
   int16_t regionType;
   std::string regionAddress;
   std::string dataMode;
+  std::string sceneName;
+  std::string sceneAddress;
   std::vector<Object>  visibleObjects;
 
   _Context__isset __isset;
@@ -622,6 +626,16 @@ class Context {
     __isset.dataMode = true;
   }
 
+  void __set_sceneName(const std::string& val) {
+    sceneName = val;
+    __isset.sceneName = true;
+  }
+
+  void __set_sceneAddress(const std::string& val) {
+    sceneAddress = val;
+    __isset.sceneAddress = true;
+  }
+
   void __set_visibleObjects(const std::vector<Object> & val) {
     visibleObjects = val;
     __isset.visibleObjects = true;
@@ -665,6 +679,14 @@ class Context {
       return false;
     else if (__isset.dataMode && !(dataMode == rhs.dataMode))
       return false;
+    if (__isset.sceneName != rhs.__isset.sceneName)
+      return false;
+    else if (__isset.sceneName && !(sceneName == rhs.sceneName))
+      return false;
+    if (__isset.sceneAddress != rhs.__isset.sceneAddress)
+      return false;
+    else if (__isset.sceneAddress && !(sceneAddress == rhs.sceneAddress))
+      return false;
     if (__isset.visibleObjects != rhs.__isset.visibleObjects)
       return false;
     else if (__isset.visibleObjects && !(visibleObjects == rhs.visibleObjects))
@@ -697,8 +719,8 @@ typedef struct _WmOp__isset {
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "197B25015B7E7BAF7A3570AFE4019C02";
-  static const uint8_t binary_fingerprint[16]; // = {0x19,0x7B,0x25,0x01,0x5B,0x7E,0x7B,0xAF,0x7A,0x35,0x70,0xAF,0xE4,0x01,0x9C,0x02};
+  static const char* ascii_fingerprint; // = "90F7EBE536E737808674F3887F4C3762";
+  static const uint8_t binary_fingerprint[16]; // = {0x90,0xF7,0xEB,0xE5,0x36,0xE7,0x37,0x80,0x86,0x74,0xF3,0x88,0x7F,0x4C,0x37,0x62};
 
   WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0) {
   }
@@ -1152,8 +1174,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "56CBE0FB4F81B69A34DFE99FE9AA5500";
-  static const uint8_t binary_fingerprint[16]; // = {0x56,0xCB,0xE0,0xFB,0x4F,0x81,0xB6,0x9A,0x34,0xDF,0xE9,0x9F,0xE9,0xAA,0x55,0x00};
+  static const char* ascii_fingerprint; // = "7E96B5A498120CD0AADC1FD47D032703";
+  static const uint8_t binary_fingerprint[16]; // = {0x7E,0x96,0xB5,0xA4,0x98,0x12,0x0C,0xD0,0xAA,0xDC,0x1F,0xD4,0x7D,0x03,0x27,0x03};
 
   Data() {
   }

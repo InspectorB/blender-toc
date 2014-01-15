@@ -333,6 +333,9 @@ namespace usage {
 		bScreen *bs = CTX_wm_screen(C);
 		ScrArea *sa = CTX_wm_area(C);
 		ARegion *ar = CTX_wm_region(C);
+
+//		Main *main = CTX_data_main(C);
+		Scene *scene = CTX_data_scene(C);
 		
 		Context *ctx = new Context();
 		
@@ -358,7 +361,12 @@ namespace usage {
 			ctx->__set_regionType(ar->regiontype);
 			ctx->__set_regionAddress(p2s(ar));
 		}
-
+		
+		if (scene) {
+			ctx->__set_sceneName(scene->id.name);
+			ctx->__set_sceneAddress(p2s(scene));
+		}
+		
 		// set object related information
 		Base *active = CTX_data_active_base(C);
 		std::vector<wire::data::Object> objs;
