@@ -540,7 +540,7 @@ class Object {
 void swap(Object &a, Object &b);
 
 typedef struct _Context__isset {
-  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), visibleObjects(false) {}
+  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), dataMode(false), visibleObjects(false) {}
   bool windowName;
   bool windowAddress;
   bool screenName;
@@ -549,16 +549,17 @@ typedef struct _Context__isset {
   bool spaceAddress;
   bool regionType;
   bool regionAddress;
+  bool dataMode;
   bool visibleObjects;
 } _Context__isset;
 
 class Context {
  public:
 
-  static const char* ascii_fingerprint; // = "7C97CDCEC7D70626EE1D3E69F8BA63CA";
-  static const uint8_t binary_fingerprint[16]; // = {0x7C,0x97,0xCD,0xCE,0xC7,0xD7,0x06,0x26,0xEE,0x1D,0x3E,0x69,0xF8,0xBA,0x63,0xCA};
+  static const char* ascii_fingerprint; // = "D778B00BF825EAEB25F05F885CF943A6";
+  static const uint8_t binary_fingerprint[16]; // = {0xD7,0x78,0xB0,0x0B,0xF8,0x25,0xEA,0xEB,0x25,0xF0,0x5F,0x88,0x5C,0xF9,0x43,0xA6};
 
-  Context() : windowName(), windowAddress(), screenName(), screenAddress(), spaceType(0), spaceAddress(), regionType(0), regionAddress() {
+  Context() : windowName(), windowAddress(), screenName(), screenAddress(), spaceType(0), spaceAddress(), regionType(0), regionAddress(), dataMode() {
   }
 
   virtual ~Context() throw() {}
@@ -571,6 +572,7 @@ class Context {
   std::string spaceAddress;
   int16_t regionType;
   std::string regionAddress;
+  std::string dataMode;
   std::vector<Object>  visibleObjects;
 
   _Context__isset __isset;
@@ -615,6 +617,11 @@ class Context {
     __isset.regionAddress = true;
   }
 
+  void __set_dataMode(const std::string& val) {
+    dataMode = val;
+    __isset.dataMode = true;
+  }
+
   void __set_visibleObjects(const std::vector<Object> & val) {
     visibleObjects = val;
     __isset.visibleObjects = true;
@@ -654,6 +661,10 @@ class Context {
       return false;
     else if (__isset.regionAddress && !(regionAddress == rhs.regionAddress))
       return false;
+    if (__isset.dataMode != rhs.__isset.dataMode)
+      return false;
+    else if (__isset.dataMode && !(dataMode == rhs.dataMode))
+      return false;
     if (__isset.visibleObjects != rhs.__isset.visibleObjects)
       return false;
     else if (__isset.visibleObjects && !(visibleObjects == rhs.visibleObjects))
@@ -686,8 +697,8 @@ typedef struct _WmOp__isset {
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "D7F8A76CE9C01D0AE82E781B40830367";
-  static const uint8_t binary_fingerprint[16]; // = {0xD7,0xF8,0xA7,0x6C,0xE9,0xC0,0x1D,0x0A,0xE8,0x2E,0x78,0x1B,0x40,0x83,0x03,0x67};
+  static const char* ascii_fingerprint; // = "197B25015B7E7BAF7A3570AFE4019C02";
+  static const uint8_t binary_fingerprint[16]; // = {0x19,0x7B,0x25,0x01,0x5B,0x7E,0x7B,0xAF,0x7A,0x35,0x70,0xAF,0xE4,0x01,0x9C,0x02};
 
   WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0) {
   }
@@ -1141,8 +1152,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "45F372849FF3C98220D343E1B794DEEA";
-  static const uint8_t binary_fingerprint[16]; // = {0x45,0xF3,0x72,0x84,0x9F,0xF3,0xC9,0x82,0x20,0xD3,0x43,0xE1,0xB7,0x94,0xDE,0xEA};
+  static const char* ascii_fingerprint; // = "56CBE0FB4F81B69A34DFE99FE9AA5500";
+  static const uint8_t binary_fingerprint[16]; // = {0x56,0xCB,0xE0,0xFB,0x4F,0x81,0xB6,0x9A,0x34,0xDF,0xE9,0x9F,0xE9,0xAA,0x55,0x00};
 
   Data() {
   }

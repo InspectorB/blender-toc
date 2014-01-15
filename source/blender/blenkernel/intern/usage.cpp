@@ -383,6 +383,9 @@ namespace usage {
 
 		ctx->__set_visibleObjects(objs);
 		
+		std::string mode = CTX_data_mode_string(C);
+		ctx->__set_dataMode(mode);
+		
 		return ctx;
 	}
 	

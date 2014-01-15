@@ -810,8 +810,8 @@ void swap(Object &a, Object &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Context::ascii_fingerprint = "7C97CDCEC7D70626EE1D3E69F8BA63CA";
-const uint8_t Context::binary_fingerprint[16] = {0x7C,0x97,0xCD,0xCE,0xC7,0xD7,0x06,0x26,0xEE,0x1D,0x3E,0x69,0xF8,0xBA,0x63,0xCA};
+const char* Context::ascii_fingerprint = "D778B00BF825EAEB25F05F885CF943A6";
+const uint8_t Context::binary_fingerprint[16] = {0xD7,0x78,0xB0,0x0B,0xF8,0x25,0xEA,0xEB,0x25,0xF0,0x5F,0x88,0x5C,0xF9,0x43,0xA6};
 
 uint32_t Context::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -897,6 +897,14 @@ uint32_t Context::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 9:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->dataMode);
+          this->__isset.dataMode = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       case 10:
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
@@ -973,6 +981,11 @@ uint32_t Context::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeString(this->regionAddress);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.dataMode) {
+    xfer += oprot->writeFieldBegin("dataMode", ::apache::thrift::protocol::T_STRING, 9);
+    xfer += oprot->writeString(this->dataMode);
+    xfer += oprot->writeFieldEnd();
+  }
   if (this->__isset.visibleObjects) {
     xfer += oprot->writeFieldBegin("visibleObjects", ::apache::thrift::protocol::T_LIST, 10);
     {
@@ -1001,12 +1014,13 @@ void swap(Context &a, Context &b) {
   swap(a.spaceAddress, b.spaceAddress);
   swap(a.regionType, b.regionType);
   swap(a.regionAddress, b.regionAddress);
+  swap(a.dataMode, b.dataMode);
   swap(a.visibleObjects, b.visibleObjects);
   swap(a.__isset, b.__isset);
 }
 
-const char* WmOp::ascii_fingerprint = "D7F8A76CE9C01D0AE82E781B40830367";
-const uint8_t WmOp::binary_fingerprint[16] = {0xD7,0xF8,0xA7,0x6C,0xE9,0xC0,0x1D,0x0A,0xE8,0x2E,0x78,0x1B,0x40,0x83,0x03,0x67};
+const char* WmOp::ascii_fingerprint = "197B25015B7E7BAF7A3570AFE4019C02";
+const uint8_t WmOp::binary_fingerprint[16] = {0x19,0x7B,0x25,0x01,0x5B,0x7E,0x7B,0xAF,0x7A,0x35,0x70,0xAF,0xE4,0x01,0x9C,0x02};
 
 uint32_t WmOp::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1620,8 +1634,8 @@ void swap(WmEv &a, WmEv &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "45F372849FF3C98220D343E1B794DEEA";
-const uint8_t Data::binary_fingerprint[16] = {0x45,0xF3,0x72,0x84,0x9F,0xF3,0xC9,0x82,0x20,0xD3,0x43,0xE1,0xB7,0x94,0xDE,0xEA};
+const char* Data::ascii_fingerprint = "56CBE0FB4F81B69A34DFE99FE9AA5500";
+const uint8_t Data::binary_fingerprint[16] = {0x56,0xCB,0xE0,0xFB,0x4F,0x81,0xB6,0x9A,0x34,0xDF,0xE9,0x9F,0xE9,0xAA,0x55,0x00};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 
