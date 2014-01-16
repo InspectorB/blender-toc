@@ -90,7 +90,7 @@ static void wm_notifier_clear(wmNotifier *note);
 static void update_tablet_data(wmWindow *win, wmEvent *event);
 
 static int wm_operator_call_internal(bContext *C, wmOperatorType *ot, PointerRNA *properties, ReportList *reports,
-                                     const short context, const bool poll_only, const bool usage_log);
+                                     const short context, const bool poll_only);
 
 /* ************ event management ************** */
 
@@ -490,7 +490,7 @@ int WM_operator_poll(bContext *C, wmOperatorType *ot)
 /* sets up the new context and calls 'wm_operator_invoke()' with poll_only */
 int WM_operator_poll_context(bContext *C, wmOperatorType *ot, short context)
 {
-	return wm_operator_call_internal(C, ot, NULL, NULL, context, TRUE, FALSE);
+	return wm_operator_call_internal(C, ot, NULL, NULL, context, TRUE);
 }
 
 static void wm_operator_print(bContext *C, wmOperator *op)
@@ -598,8 +598,12 @@ void WM_reportf(const bContext *C, ReportType type, const char *format, ...)
 }
 
 /* (caller_owns_reports == TRUE) when called from python */
-static void wm_operator_reports(bContext *C, wmOperator *op, int retval, int caller_owns_reports)
+static void wm_operator_reports(bContext *C, wmOperator *op, int retval, int caller_owns_reports, int repeat)
 {
+#ifdef WITH_USAGE
+	BKE_usage_queue_operator(C, op, retval, repeat);
+#endif
+	
 	if (caller_owns_reports == FALSE) { /* popup */
 		if (op->reports->list.first) {
 			/* FIXME, temp setting window, see other call to uiPupMenuReports for why */
@@ -650,13 +654,9 @@ static int wm_operator_register_check(wmWindowManager *wm, wmOperatorType *ot)
 	return wm && (wm->op_undo_depth == 0) && (ot->flag & OPTYPE_REGISTER);
 }
 
-static void wm_operator_finished(bContext *C, wmOperator *op, int repeat, const bool usage_log)
+static void wm_operator_finished(bContext *C, wmOperator *op, int repeat)
 {
 	wmWindowManager *wm = CTX_wm_manager(C);
-
-#ifdef WITH_USAGE
-	if(usage_log) BKE_usage_queue_operator(C, op, repeat);
-#endif 
 
 	op->customdata = NULL;
 
@@ -688,7 +688,7 @@ static void wm_operator_finished(bContext *C, wmOperator *op, int repeat, const 
 }
 
 /* if repeat is true, it doesn't register again, nor does it free */
-static int wm_operator_exec(bContext *C, wmOperator *op, int repeat, const bool usage_log)
+static int wm_operator_exec(bContext *C, wmOperator *op, int repeat)
 {
 	wmWindowManager *wm = CTX_wm_manager(C);
 	int retval = OPERATOR_CANCELLED;
@@ -716,7 +716,7 @@ static int wm_operator_exec(bContext *C, wmOperator *op, int repeat, const bool 
 	 *     Carefully checked all calls to wm_operator_exec and WM_operator_repeat, don't see any reason
 	 *     why this was needed, but worth to note it in case something turns bad. (mont29) */
 	if (retval & (OPERATOR_FINISHED | OPERATOR_CANCELLED)/* && repeat == 0 */)
-		wm_operator_reports(C, op, retval, FALSE);
+		wm_operator_reports(C, op, retval, FALSE, repeat);
 	
 	if (retval & OPERATOR_FINISHED) {
 		if (repeat) {
@@ -724,7 +724,7 @@ static int wm_operator_exec(bContext *C, wmOperator *op, int repeat, const bool 
 				WM_operator_last_properties_store(op);
 			}
 		}
-		wm_operator_finished(C, op, repeat, usage_log);
+		wm_operator_finished(C, op, repeat);
 	}
 	else if (repeat == 0) {
 		WM_operator_free(op);
@@ -748,25 +748,13 @@ static int wm_operator_exec_notest(bContext *C, wmOperator *op)
 	return retval;
 }
 
-#ifdef WITH_USAGE
 /* for running operators with frozen context (modal handlers, menus)
  *
  * warning: do not use this within an operator to call its self! [#29537] */
 int WM_operator_call(bContext *C, wmOperator *op)
 {
-	return WM_operator_call_log(C, op, TRUE);
+	return wm_operator_exec(C, op, 0);
 }
-
-int WM_operator_call_log(bContext *C, wmOperator *op, const bool usage_log)
-{
-	return wm_operator_exec(C, op, 0, usage_log);
-}
-#else
-int WM_operator_call(bContext *C, wmOperator *op)
-{
-	return wm_operator_exec(C, op, 0, usage_log);
-}
-#endif
 
 
 /* this is intended to be used when an invoke operator wants to call exec on its self
@@ -777,26 +765,11 @@ int WM_operator_call_notest(bContext *C, wmOperator *op)
 	return wm_operator_exec_notest(C, op);
 }
 
-#ifdef WITH_USAGE
-/* do this operator again, put here so it can share above code */
-int WM_operator_repeat(bContext *C, wmOperator *op)
-{
-	return WM_operator_repeat_log(C, op, TRUE);
-}
-
-int WM_operator_repeat_log(bContext *C, wmOperator *op, const bool usage_log)
-{
-	return wm_operator_exec(C, op, 1, usage_log);
-}
-#else
 /* do this operator again, put here so it can share above code */
 int WM_operator_repeat(bContext *C, wmOperator *op)
 {
 	return wm_operator_exec(C, op, 1);
 }
-#endif
-
-
 
 /* TRUE if WM_operator_repeat can run
  * simple check for now but may become more involved.
@@ -1008,8 +981,7 @@ int WM_operator_last_properties_store(wmOperator *UNUSED(op))
 #endif
 
 static int wm_operator_invoke(bContext *C, wmOperatorType *ot, wmEvent *event,
-                              PointerRNA *properties, ReportList *reports, const bool poll_only,
-							  const bool usage_log)
+                              PointerRNA *properties, ReportList *reports, const bool poll_only)
 {
 	int retval = OPERATOR_PASS_THROUGH;
 
@@ -1065,7 +1037,7 @@ static int wm_operator_invoke(bContext *C, wmOperatorType *ot, wmEvent *event,
 		 * currently python only uses this */
 		if (!(retval & OPERATOR_HANDLED) && (retval & (OPERATOR_FINISHED | OPERATOR_CANCELLED))) {
 			/* only show the report if the report list was not given in the function */
-			wm_operator_reports(C, op, retval, (reports != NULL));
+			wm_operator_reports(C, op, retval, (reports != NULL), FALSE);
 		}
 
 		if (retval & OPERATOR_HANDLED) {
@@ -1075,7 +1047,7 @@ static int wm_operator_invoke(bContext *C, wmOperatorType *ot, wmEvent *event,
 			if (!is_nested_call) { /* not called by py script */
 				WM_operator_last_properties_store(op);
 			}
-			wm_operator_finished(C, op, 0, usage_log);
+			wm_operator_finished(C, op, 0);
 		}
 		else if (retval & OPERATOR_RUNNING_MODAL) {
 			/* take ownership of reports (in case python provided own) */
@@ -1149,7 +1121,7 @@ static int wm_operator_invoke(bContext *C, wmOperatorType *ot, wmEvent *event,
  * 
  * invokes operator in context */
 static int wm_operator_call_internal(bContext *C, wmOperatorType *ot, PointerRNA *properties, ReportList *reports,
-                                     const short context, const bool poll_only, const bool usage_log)
+                                     const short context, const bool poll_only)
 {
 	wmEvent *event;
 	
@@ -1229,7 +1201,7 @@ static int wm_operator_call_internal(bContext *C, wmOperatorType *ot, PointerRNA
 						CTX_wm_region_set(C, ar1);
 				}
 				
-				retval = wm_operator_invoke(C, ot, event, properties, reports, poll_only, usage_log);
+				retval = wm_operator_invoke(C, ot, event, properties, reports, poll_only);
 				
 				/* set region back */
 				CTX_wm_region_set(C, ar);
@@ -1243,7 +1215,7 @@ static int wm_operator_call_internal(bContext *C, wmOperatorType *ot, PointerRNA
 				ARegion *ar = CTX_wm_region(C);
 
 				CTX_wm_region_set(C, NULL);
-				retval = wm_operator_invoke(C, ot, event, properties, reports, poll_only, usage_log);
+				retval = wm_operator_invoke(C, ot, event, properties, reports, poll_only);
 				CTX_wm_region_set(C, ar);
 
 				return retval;
@@ -1257,7 +1229,7 @@ static int wm_operator_call_internal(bContext *C, wmOperatorType *ot, PointerRNA
 
 				CTX_wm_region_set(C, NULL);
 				CTX_wm_area_set(C, NULL);
-				retval = wm_operator_invoke(C, ot, event, properties, reports, poll_only, usage_log);
+				retval = wm_operator_invoke(C, ot, event, properties, reports, poll_only);
 				CTX_wm_area_set(C, area);
 				CTX_wm_region_set(C, ar);
 
@@ -1265,43 +1237,22 @@ static int wm_operator_call_internal(bContext *C, wmOperatorType *ot, PointerRNA
 			}
 			case WM_OP_EXEC_DEFAULT:
 			case WM_OP_INVOKE_DEFAULT:
-				return wm_operator_invoke(C, ot, event, properties, reports, poll_only, usage_log);
+				return wm_operator_invoke(C, ot, event, properties, reports, poll_only);
 		}
 	}
 	
 	return 0;
 }
 
-
-
-
-#ifdef WITH_USAGE
-/* invokes operator in context */
-int WM_operator_name_call(bContext *C, const char *opstring, short context, PointerRNA *properties)
-{
-	return WM_operator_name_call_log(C, opstring, context, properties, TRUE);
-}
-
-int WM_operator_name_call_log(bContext *C, const char *opstring, short context, PointerRNA *properties, const bool usage_log)
-{
-	wmOperatorType *ot = WM_operatortype_find(opstring, 0);
-	if (ot)
-		return wm_operator_call_internal(C, ot, properties, NULL, context, FALSE, usage_log);
-	
-	return 0;
-}
-#else
 /* invokes operator in context */
 int WM_operator_name_call(bContext *C, const char *opstring, short context, PointerRNA *properties)
 {
 	wmOperatorType *ot = WM_operatortype_find(opstring, 0);
 	if (ot)
-		return wm_operator_call_internal(C, ot, properties, NULL, context, FALSE, FALSE);
+		return wm_operator_call_internal(C, ot, properties, NULL, context, FALSE);
 	
 	return 0;
 }
-#endif
-
 
 /* Similar to WM_operator_name_call called with WM_OP_EXEC_DEFAULT context.
  * - wmOperatorType is used instead of operator name since python already has the operator type
@@ -1339,7 +1290,7 @@ int WM_operator_call_py(bContext *C, wmOperatorType *ot, short context,
 	wmWindowManager *wm = CTX_wm_manager(C);
 	if (!is_undo && wm) wm->op_undo_depth++;
 
-	retval = wm_operator_call_internal(C, ot, properties, reports, context, FALSE, TRUE);
+	retval = wm_operator_call_internal(C, ot, properties, reports, context, FALSE);
 	
 	if (!is_undo && wm && (wm == CTX_wm_manager(C))) wm->op_undo_depth--;
 
@@ -1588,11 +1539,11 @@ static int wm_handler_operator_call(bContext *C, ListBase *handlers, wmEventHand
 					wm->op_undo_depth--;
 
 				if (retval & (OPERATOR_CANCELLED | OPERATOR_FINISHED))
-					wm_operator_reports(C, op, retval, FALSE);
+					wm_operator_reports(C, op, retval, FALSE, FALSE);
 
 				/* important to run 'wm_operator_finished' before NULLing the context members */
 				if (retval & OPERATOR_FINISHED) {
-					wm_operator_finished(C, op, 0, TRUE);
+					wm_operator_finished(C, op, 0);
 					handler->op = NULL;
 				}
 				else if (retval & (OPERATOR_CANCELLED | OPERATOR_FINISHED)) {
@@ -1632,7 +1583,7 @@ static int wm_handler_operator_call(bContext *C, ListBase *handlers, wmEventHand
 		wmOperatorType *ot = WM_operatortype_find(event->keymap_idname, 0);
 
 		if (ot) {
-			retval = wm_operator_invoke(C, ot, event, properties, NULL, FALSE, TRUE);
+			retval = wm_operator_invoke(C, ot, event, properties, NULL, FALSE);
 		}
 	}
 	/* Finished and pass through flag as handled */

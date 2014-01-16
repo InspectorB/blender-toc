@@ -431,7 +431,7 @@ namespace usage {
 		return ctx;
 	}
 	
-	void Usage::queueOperator(bContext *C, wmOperator *op, int repeat)
+	void Usage::queueOperator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// TODO: perhaps filter out timer operations
 		
@@ -506,6 +506,7 @@ namespace usage {
 		cstring = NULL;
 		
 		thriftOp.__set_repeat(repeat);
+		thriftOp.__set_retval(retval);
 		
 		RNA_PROP_BEGIN (op->ptr, propptr, iterprop)
 		{
@@ -804,12 +805,12 @@ namespace usage {
 /* C interface */
 extern "C" {
 	
-	void BKE_usage_queue_operator(bContext *C, wmOperator *op, int repeat)
+	void BKE_usage_queue_operator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// don't register internal operators
 		if (op->type && (op->type->flag & OPTYPE_INTERNAL))
 			return;
-		usage::Usage::getInstance().queueOperator(C, op, repeat);
+		usage::Usage::getInstance().queueOperator(C, op, retval, repeat);
 	}
 	
 	void BKE_usage_queue_event(bContext *C, const wmEvent *ev)

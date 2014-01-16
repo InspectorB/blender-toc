@@ -863,22 +863,23 @@ class Context {
 void swap(Context &a, Context &b);
 
 typedef struct _WmOp__isset {
-  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false), repeat(false) {}
+  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false), repeat(false), retval(false) {}
   bool operatorId;
   bool properties;
   bool pythonRepresentation;
   bool screenshotHash;
   bool context;
   bool repeat;
+  bool retval;
 } _WmOp__isset;
 
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "1AC5D568F29F3D6EAE06EAB091A43B08";
-  static const uint8_t binary_fingerprint[16]; // = {0x1A,0xC5,0xD5,0x68,0xF2,0x9F,0x3D,0x6E,0xAE,0x06,0xEA,0xB0,0x91,0xA4,0x3B,0x08};
+  static const char* ascii_fingerprint; // = "ACA73808D88C7EBA1CF0C1C5570967FB";
+  static const uint8_t binary_fingerprint[16]; // = {0xAC,0xA7,0x38,0x08,0xD8,0x8C,0x7E,0xBA,0x1C,0xF0,0xC1,0xC5,0x57,0x09,0x67,0xFB};
 
-  WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0) {
+  WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0), retval(0) {
   }
 
   virtual ~WmOp() throw() {}
@@ -889,6 +890,7 @@ class WmOp {
   std::string screenshotHash;
   Context context;
   bool repeat;
+  int32_t retval;
 
   _WmOp__isset __isset;
 
@@ -922,6 +924,11 @@ class WmOp {
     __isset.repeat = true;
   }
 
+  void __set_retval(const int32_t val) {
+    retval = val;
+    __isset.retval = true;
+  }
+
   bool operator == (const WmOp & rhs) const
   {
     if (__isset.operatorId != rhs.__isset.operatorId)
@@ -947,6 +954,10 @@ class WmOp {
     if (__isset.repeat != rhs.__isset.repeat)
       return false;
     else if (__isset.repeat && !(repeat == rhs.repeat))
+      return false;
+    if (__isset.retval != rhs.__isset.retval)
+      return false;
+    else if (__isset.retval && !(retval == rhs.retval))
       return false;
     return true;
   }
@@ -1330,8 +1341,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "42D0AB34FF00542CBAF43A27A1A22506";
-  static const uint8_t binary_fingerprint[16]; // = {0x42,0xD0,0xAB,0x34,0xFF,0x00,0x54,0x2C,0xBA,0xF4,0x3A,0x27,0xA1,0xA2,0x25,0x06};
+  static const char* ascii_fingerprint; // = "75E51861C1422D80AEC20D5C6B107F01";
+  static const uint8_t binary_fingerprint[16]; // = {0x75,0xE5,0x18,0x61,0xC1,0x42,0x2D,0x80,0xAE,0xC2,0x0D,0x5C,0x6B,0x10,0x7F,0x01};
 
   Data() {
   }

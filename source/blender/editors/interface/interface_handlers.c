@@ -444,6 +444,9 @@ static void ui_apply_but_func(bContext *C, uiBut *but)
 	if (but->func || but->funcN || block->handle_func || but->rename_func ||
 	    (but->type == BUTM && block->butm_func) || but->optype || but->rnaprop)
 	{
+		printf("button pressed u%p\n", but);
+		
+		
 		after = ui_afterfunc_new();
 
 		if (but->func && ELEM(but, but->func_arg1, but->func_arg2)) {
@@ -542,6 +545,8 @@ static void ui_apply_but_funcs_after(bContext *C)
 	/* copy to avoid recursive calls */
 	funcs = UIAfterFuncs;
 	UIAfterFuncs.first = UIAfterFuncs.last = NULL;
+	
+	printf("butfuncs after..%p\n", C);
 
 	for (afterf = funcs.first; afterf; afterf = after.next) {
 		after = *afterf; /* copy to avoid memleak on exit() */
