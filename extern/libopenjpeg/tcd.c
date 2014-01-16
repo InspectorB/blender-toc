@@ -1304,7 +1304,7 @@ int tcd_encode_tile(opj_tcd_t *tcd, int tileno, unsigned char *dest, int len, op
 	
 	if(tcd->cur_tp_num == tcd->cur_totnum_tp - 1){
 		tcd->encoding_time = opj_clock() - tcd->encoding_time;
-		opj_event_msg(tcd->cinfo, EVT_INFO, "- tile encoded in %f s\n", tcd->encoding_time);
+//		opj_event_msg(tcd->cinfo, EVT_INFO, "- tile encoded in %f s\n", tcd->encoding_time);
 
 		/* cleaning memory */
 		for (compno = 0; compno < tile->numcomps; compno++) {

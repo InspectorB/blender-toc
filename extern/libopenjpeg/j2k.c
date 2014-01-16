@@ -2365,7 +2365,7 @@ opj_bool j2k_encode(opj_j2k_t *j2k, opj_cio_t *cio, opj_image_t *image, opj_code
 
 
 		opj_tcp_t *tcp = &cp->tcps[tileno];
-		opj_event_msg(j2k->cinfo, EVT_INFO, "tile number %d / %d\n", tileno + 1, cp->tw * cp->th);
+//		opj_event_msg(j2k->cinfo, EVT_INFO, "tile number %d / %d\n", tileno + 1, cp->tw * cp->th);
 
 		j2k->curtileno = tileno;
 		j2k->cur_tp_num = 0;

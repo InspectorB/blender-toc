@@ -1030,7 +1030,7 @@ int imb_savejp2(struct ImBuf *ibuf, const char *name, int flags)
 		}
 		fwrite(cio->buffer, 1, codestream_length, f);
 		fclose(f);
-		fprintf(stderr, "Generated outfile %s\n", name);
+//		fprintf(stderr, "Generated outfile %s\n", name);
 		/* close and free the byte stream */
 		opj_cio_close(cio);
 		

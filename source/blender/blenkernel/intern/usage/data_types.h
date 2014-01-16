@@ -539,8 +539,153 @@ class Object {
 
 void swap(Object &a, Object &b);
 
+typedef struct _ViewOrientation__isset {
+  _ViewOrientation__isset() : offset(false), distance(false), viewquat(false), camzoom(false), camdx(false), camdy(false), is_persp(false), persp(false), view(false), is_local(false) {}
+  bool offset;
+  bool distance;
+  bool viewquat;
+  bool camzoom;
+  bool camdx;
+  bool camdy;
+  bool is_persp;
+  bool persp;
+  bool view;
+  bool is_local;
+} _ViewOrientation__isset;
+
+class ViewOrientation {
+ public:
+
+  static const char* ascii_fingerprint; // = "859FCA2B860EF820E28F115DC20F8AB4";
+  static const uint8_t binary_fingerprint[16]; // = {0x85,0x9F,0xCA,0x2B,0x86,0x0E,0xF8,0x20,0xE2,0x8F,0x11,0x5D,0xC2,0x0F,0x8A,0xB4};
+
+  ViewOrientation() : distance(0), camzoom(0), camdx(0), camdy(0), is_persp(0), persp(0), view(0), is_local(0) {
+  }
+
+  virtual ~ViewOrientation() throw() {}
+
+  std::vector<double>  offset;
+  double distance;
+  std::vector<double>  viewquat;
+  double camzoom;
+  double camdx;
+  double camdy;
+  bool is_persp;
+  int8_t persp;
+  int8_t view;
+  bool is_local;
+
+  _ViewOrientation__isset __isset;
+
+  void __set_offset(const std::vector<double> & val) {
+    offset = val;
+    __isset.offset = true;
+  }
+
+  void __set_distance(const double val) {
+    distance = val;
+    __isset.distance = true;
+  }
+
+  void __set_viewquat(const std::vector<double> & val) {
+    viewquat = val;
+    __isset.viewquat = true;
+  }
+
+  void __set_camzoom(const double val) {
+    camzoom = val;
+    __isset.camzoom = true;
+  }
+
+  void __set_camdx(const double val) {
+    camdx = val;
+    __isset.camdx = true;
+  }
+
+  void __set_camdy(const double val) {
+    camdy = val;
+    __isset.camdy = true;
+  }
+
+  void __set_is_persp(const bool val) {
+    is_persp = val;
+    __isset.is_persp = true;
+  }
+
+  void __set_persp(const int8_t val) {
+    persp = val;
+    __isset.persp = true;
+  }
+
+  void __set_view(const int8_t val) {
+    view = val;
+    __isset.view = true;
+  }
+
+  void __set_is_local(const bool val) {
+    is_local = val;
+    __isset.is_local = true;
+  }
+
+  bool operator == (const ViewOrientation & rhs) const
+  {
+    if (__isset.offset != rhs.__isset.offset)
+      return false;
+    else if (__isset.offset && !(offset == rhs.offset))
+      return false;
+    if (__isset.distance != rhs.__isset.distance)
+      return false;
+    else if (__isset.distance && !(distance == rhs.distance))
+      return false;
+    if (__isset.viewquat != rhs.__isset.viewquat)
+      return false;
+    else if (__isset.viewquat && !(viewquat == rhs.viewquat))
+      return false;
+    if (__isset.camzoom != rhs.__isset.camzoom)
+      return false;
+    else if (__isset.camzoom && !(camzoom == rhs.camzoom))
+      return false;
+    if (__isset.camdx != rhs.__isset.camdx)
+      return false;
+    else if (__isset.camdx && !(camdx == rhs.camdx))
+      return false;
+    if (__isset.camdy != rhs.__isset.camdy)
+      return false;
+    else if (__isset.camdy && !(camdy == rhs.camdy))
+      return false;
+    if (__isset.is_persp != rhs.__isset.is_persp)
+      return false;
+    else if (__isset.is_persp && !(is_persp == rhs.is_persp))
+      return false;
+    if (__isset.persp != rhs.__isset.persp)
+      return false;
+    else if (__isset.persp && !(persp == rhs.persp))
+      return false;
+    if (__isset.view != rhs.__isset.view)
+      return false;
+    else if (__isset.view && !(view == rhs.view))
+      return false;
+    if (__isset.is_local != rhs.__isset.is_local)
+      return false;
+    else if (__isset.is_local && !(is_local == rhs.is_local))
+      return false;
+    return true;
+  }
+  bool operator != (const ViewOrientation &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ViewOrientation & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(ViewOrientation &a, ViewOrientation &b);
+
 typedef struct _Context__isset {
-  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), dataMode(false), sceneName(false), sceneAddress(false), visibleObjects(false) {}
+  _Context__isset() : windowName(false), windowAddress(false), screenName(false), screenAddress(false), spaceType(false), spaceAddress(false), regionType(false), regionAddress(false), dataMode(false), sceneName(false), sceneAddress(false), viewOrientation(false), visibleObjects(false) {}
   bool windowName;
   bool windowAddress;
   bool screenName;
@@ -552,14 +697,15 @@ typedef struct _Context__isset {
   bool dataMode;
   bool sceneName;
   bool sceneAddress;
+  bool viewOrientation;
   bool visibleObjects;
 } _Context__isset;
 
 class Context {
  public:
 
-  static const char* ascii_fingerprint; // = "52D7832FF3FD5146F1336D7F5F3249AE";
-  static const uint8_t binary_fingerprint[16]; // = {0x52,0xD7,0x83,0x2F,0xF3,0xFD,0x51,0x46,0xF1,0x33,0x6D,0x7F,0x5F,0x32,0x49,0xAE};
+  static const char* ascii_fingerprint; // = "D40FF357275F5A61E981DB4CEBED198B";
+  static const uint8_t binary_fingerprint[16]; // = {0xD4,0x0F,0xF3,0x57,0x27,0x5F,0x5A,0x61,0xE9,0x81,0xDB,0x4C,0xEB,0xED,0x19,0x8B};
 
   Context() : windowName(), windowAddress(), screenName(), screenAddress(), spaceType(0), spaceAddress(), regionType(0), regionAddress(), dataMode(), sceneName(), sceneAddress() {
   }
@@ -577,6 +723,7 @@ class Context {
   std::string dataMode;
   std::string sceneName;
   std::string sceneAddress;
+  ViewOrientation viewOrientation;
   std::vector<Object>  visibleObjects;
 
   _Context__isset __isset;
@@ -636,6 +783,11 @@ class Context {
     __isset.sceneAddress = true;
   }
 
+  void __set_viewOrientation(const ViewOrientation& val) {
+    viewOrientation = val;
+    __isset.viewOrientation = true;
+  }
+
   void __set_visibleObjects(const std::vector<Object> & val) {
     visibleObjects = val;
     __isset.visibleObjects = true;
@@ -687,6 +839,10 @@ class Context {
       return false;
     else if (__isset.sceneAddress && !(sceneAddress == rhs.sceneAddress))
       return false;
+    if (__isset.viewOrientation != rhs.__isset.viewOrientation)
+      return false;
+    else if (__isset.viewOrientation && !(viewOrientation == rhs.viewOrientation))
+      return false;
     if (__isset.visibleObjects != rhs.__isset.visibleObjects)
       return false;
     else if (__isset.visibleObjects && !(visibleObjects == rhs.visibleObjects))
@@ -719,8 +875,8 @@ typedef struct _WmOp__isset {
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "90F7EBE536E737808674F3887F4C3762";
-  static const uint8_t binary_fingerprint[16]; // = {0x90,0xF7,0xEB,0xE5,0x36,0xE7,0x37,0x80,0x86,0x74,0xF3,0x88,0x7F,0x4C,0x37,0x62};
+  static const char* ascii_fingerprint; // = "1AC5D568F29F3D6EAE06EAB091A43B08";
+  static const uint8_t binary_fingerprint[16]; // = {0x1A,0xC5,0xD5,0x68,0xF2,0x9F,0x3D,0x6E,0xAE,0x06,0xEA,0xB0,0x91,0xA4,0x3B,0x08};
 
   WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0) {
   }
@@ -1174,8 +1330,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "7E96B5A498120CD0AADC1FD47D032703";
-  static const uint8_t binary_fingerprint[16]; // = {0x7E,0x96,0xB5,0xA4,0x98,0x12,0x0C,0xD0,0xAA,0xDC,0x1F,0xD4,0x7D,0x03,0x27,0x03};
+  static const char* ascii_fingerprint; // = "42D0AB34FF00542CBAF43A27A1A22506";
+  static const uint8_t binary_fingerprint[16]; // = {0x42,0xD0,0xAB,0x34,0xFF,0x00,0x54,0x2C,0xBA,0xF4,0x3A,0x27,0xA1,0xA2,0x25,0x06};
 
   Data() {
   }

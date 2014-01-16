@@ -54,6 +54,7 @@ extern "C" {
 #include "DNA_scene_types.h"
 #include "DNA_screen_types.h"
 #include "DNA_object_types.h"
+#include "DNA_view3d_types.h"
 	
 #include "RNA_types.h"
 #include "RNA_access.h"
@@ -337,6 +338,8 @@ namespace usage {
 //		Main *main = CTX_data_main(C);
 		Scene *scene = CTX_data_scene(C);
 		
+		RegionView3D *rvd = CTX_wm_region_view3d(C);
+		
 		Context *ctx = new Context();
 		
 		// set window related information
@@ -365,6 +368,37 @@ namespace usage {
 		if (scene) {
 			ctx->__set_sceneName(scene->id.name);
 			ctx->__set_sceneAddress(p2s(scene));
+		}
+		
+		// set view related information
+		if (rvd) {
+			ViewOrientation vo;
+			
+			std::vector<double> ofs;
+			ofs.push_back(rvd->ofs[0]);
+			ofs.push_back(rvd->ofs[1]);
+			ofs.push_back(rvd->ofs[2]);
+			vo.__set_offset(ofs);
+			
+			vo.__set_distance(rvd->dist);
+
+			std::vector<double> viewquat;
+			viewquat.push_back(rvd->viewquat[0]);
+			viewquat.push_back(rvd->viewquat[1]);
+			viewquat.push_back(rvd->viewquat[2]);
+			viewquat.push_back(rvd->viewquat[3]);
+			vo.__set_viewquat(viewquat);
+
+			vo.__set_camzoom(rvd->camzoom);
+			vo.__set_camdx(rvd->camdx);
+			vo.__set_camdy(rvd->camdy);
+			
+			vo.__set_is_persp(rvd->is_persp);
+			vo.__set_persp(rvd->persp);					// persp: 0 for ortho, 1 for persp, 2 for camera
+			vo.__set_view(rvd->view);					// view: RV3D_VIEW_*
+			vo.__set_is_local(rvd->localvd != NULL);
+			
+			ctx->__set_viewOrientation(vo);
 		}
 		
 		// set object related information

@@ -810,8 +810,237 @@ void swap(Object &a, Object &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Context::ascii_fingerprint = "52D7832FF3FD5146F1336D7F5F3249AE";
-const uint8_t Context::binary_fingerprint[16] = {0x52,0xD7,0x83,0x2F,0xF3,0xFD,0x51,0x46,0xF1,0x33,0x6D,0x7F,0x5F,0x32,0x49,0xAE};
+const char* ViewOrientation::ascii_fingerprint = "859FCA2B860EF820E28F115DC20F8AB4";
+const uint8_t ViewOrientation::binary_fingerprint[16] = {0x85,0x9F,0xCA,0x2B,0x86,0x0E,0xF8,0x20,0xE2,0x8F,0x11,0x5D,0xC2,0x0F,0x8A,0xB4};
+
+uint32_t ViewOrientation::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->offset.clear();
+            uint32_t _size39;
+            ::apache::thrift::protocol::TType _etype42;
+            xfer += iprot->readListBegin(_etype42, _size39);
+            this->offset.resize(_size39);
+            uint32_t _i43;
+            for (_i43 = 0; _i43 < _size39; ++_i43)
+            {
+              xfer += iprot->readDouble(this->offset[_i43]);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.offset = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_DOUBLE) {
+          xfer += iprot->readDouble(this->distance);
+          this->__isset.distance = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->viewquat.clear();
+            uint32_t _size44;
+            ::apache::thrift::protocol::TType _etype47;
+            xfer += iprot->readListBegin(_etype47, _size44);
+            this->viewquat.resize(_size44);
+            uint32_t _i48;
+            for (_i48 = 0; _i48 < _size44; ++_i48)
+            {
+              xfer += iprot->readDouble(this->viewquat[_i48]);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.viewquat = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_DOUBLE) {
+          xfer += iprot->readDouble(this->camzoom);
+          this->__isset.camzoom = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 5:
+        if (ftype == ::apache::thrift::protocol::T_DOUBLE) {
+          xfer += iprot->readDouble(this->camdx);
+          this->__isset.camdx = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 6:
+        if (ftype == ::apache::thrift::protocol::T_DOUBLE) {
+          xfer += iprot->readDouble(this->camdy);
+          this->__isset.camdy = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 7:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->is_persp);
+          this->__isset.is_persp = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 8:
+        if (ftype == ::apache::thrift::protocol::T_BYTE) {
+          xfer += iprot->readByte(this->persp);
+          this->__isset.persp = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 9:
+        if (ftype == ::apache::thrift::protocol::T_BYTE) {
+          xfer += iprot->readByte(this->view);
+          this->__isset.view = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 10:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->is_local);
+          this->__isset.is_local = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t ViewOrientation::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("ViewOrientation");
+
+  if (this->__isset.offset) {
+    xfer += oprot->writeFieldBegin("offset", ::apache::thrift::protocol::T_LIST, 1);
+    {
+      xfer += oprot->writeListBegin(::apache::thrift::protocol::T_DOUBLE, static_cast<uint32_t>(this->offset.size()));
+      std::vector<double> ::const_iterator _iter49;
+      for (_iter49 = this->offset.begin(); _iter49 != this->offset.end(); ++_iter49)
+      {
+        xfer += oprot->writeDouble((*_iter49));
+      }
+      xfer += oprot->writeListEnd();
+    }
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.distance) {
+    xfer += oprot->writeFieldBegin("distance", ::apache::thrift::protocol::T_DOUBLE, 2);
+    xfer += oprot->writeDouble(this->distance);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.viewquat) {
+    xfer += oprot->writeFieldBegin("viewquat", ::apache::thrift::protocol::T_LIST, 3);
+    {
+      xfer += oprot->writeListBegin(::apache::thrift::protocol::T_DOUBLE, static_cast<uint32_t>(this->viewquat.size()));
+      std::vector<double> ::const_iterator _iter50;
+      for (_iter50 = this->viewquat.begin(); _iter50 != this->viewquat.end(); ++_iter50)
+      {
+        xfer += oprot->writeDouble((*_iter50));
+      }
+      xfer += oprot->writeListEnd();
+    }
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.camzoom) {
+    xfer += oprot->writeFieldBegin("camzoom", ::apache::thrift::protocol::T_DOUBLE, 4);
+    xfer += oprot->writeDouble(this->camzoom);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.camdx) {
+    xfer += oprot->writeFieldBegin("camdx", ::apache::thrift::protocol::T_DOUBLE, 5);
+    xfer += oprot->writeDouble(this->camdx);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.camdy) {
+    xfer += oprot->writeFieldBegin("camdy", ::apache::thrift::protocol::T_DOUBLE, 6);
+    xfer += oprot->writeDouble(this->camdy);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.is_persp) {
+    xfer += oprot->writeFieldBegin("is_persp", ::apache::thrift::protocol::T_BOOL, 7);
+    xfer += oprot->writeBool(this->is_persp);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.persp) {
+    xfer += oprot->writeFieldBegin("persp", ::apache::thrift::protocol::T_BYTE, 8);
+    xfer += oprot->writeByte(this->persp);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.view) {
+    xfer += oprot->writeFieldBegin("view", ::apache::thrift::protocol::T_BYTE, 9);
+    xfer += oprot->writeByte(this->view);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.is_local) {
+    xfer += oprot->writeFieldBegin("is_local", ::apache::thrift::protocol::T_BOOL, 10);
+    xfer += oprot->writeBool(this->is_local);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(ViewOrientation &a, ViewOrientation &b) {
+  using ::std::swap;
+  swap(a.offset, b.offset);
+  swap(a.distance, b.distance);
+  swap(a.viewquat, b.viewquat);
+  swap(a.camzoom, b.camzoom);
+  swap(a.camdx, b.camdx);
+  swap(a.camdy, b.camdy);
+  swap(a.is_persp, b.is_persp);
+  swap(a.persp, b.persp);
+  swap(a.view, b.view);
+  swap(a.is_local, b.is_local);
+  swap(a.__isset, b.__isset);
+}
+
+const char* Context::ascii_fingerprint = "D40FF357275F5A61E981DB4CEBED198B";
+const uint8_t Context::binary_fingerprint[16] = {0xD4,0x0F,0xF3,0x57,0x27,0x5F,0x5A,0x61,0xE9,0x81,0xDB,0x4C,0xEB,0xED,0x19,0x8B};
 
 uint32_t Context::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -921,18 +1150,26 @@ uint32_t Context::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 40:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->viewOrientation.read(iprot);
+          this->__isset.viewOrientation = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       case 50:
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->visibleObjects.clear();
-            uint32_t _size39;
-            ::apache::thrift::protocol::TType _etype42;
-            xfer += iprot->readListBegin(_etype42, _size39);
-            this->visibleObjects.resize(_size39);
-            uint32_t _i43;
-            for (_i43 = 0; _i43 < _size39; ++_i43)
+            uint32_t _size51;
+            ::apache::thrift::protocol::TType _etype54;
+            xfer += iprot->readListBegin(_etype54, _size51);
+            this->visibleObjects.resize(_size51);
+            uint32_t _i55;
+            for (_i55 = 0; _i55 < _size51; ++_i55)
             {
-              xfer += this->visibleObjects[_i43].read(iprot);
+              xfer += this->visibleObjects[_i55].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -1012,14 +1249,19 @@ uint32_t Context::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeString(this->sceneAddress);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.viewOrientation) {
+    xfer += oprot->writeFieldBegin("viewOrientation", ::apache::thrift::protocol::T_STRUCT, 40);
+    xfer += this->viewOrientation.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   if (this->__isset.visibleObjects) {
     xfer += oprot->writeFieldBegin("visibleObjects", ::apache::thrift::protocol::T_LIST, 50);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->visibleObjects.size()));
-      std::vector<Object> ::const_iterator _iter44;
-      for (_iter44 = this->visibleObjects.begin(); _iter44 != this->visibleObjects.end(); ++_iter44)
+      std::vector<Object> ::const_iterator _iter56;
+      for (_iter56 = this->visibleObjects.begin(); _iter56 != this->visibleObjects.end(); ++_iter56)
       {
-        xfer += (*_iter44).write(oprot);
+        xfer += (*_iter56).write(oprot);
       }
       xfer += oprot->writeListEnd();
     }
@@ -1043,12 +1285,13 @@ void swap(Context &a, Context &b) {
   swap(a.dataMode, b.dataMode);
   swap(a.sceneName, b.sceneName);
   swap(a.sceneAddress, b.sceneAddress);
+  swap(a.viewOrientation, b.viewOrientation);
   swap(a.visibleObjects, b.visibleObjects);
   swap(a.__isset, b.__isset);
 }
 
-const char* WmOp::ascii_fingerprint = "90F7EBE536E737808674F3887F4C3762";
-const uint8_t WmOp::binary_fingerprint[16] = {0x90,0xF7,0xEB,0xE5,0x36,0xE7,0x37,0x80,0x86,0x74,0xF3,0x88,0x7F,0x4C,0x37,0x62};
+const char* WmOp::ascii_fingerprint = "1AC5D568F29F3D6EAE06EAB091A43B08";
+const uint8_t WmOp::binary_fingerprint[16] = {0x1A,0xC5,0xD5,0x68,0xF2,0x9F,0x3D,0x6E,0xAE,0x06,0xEA,0xB0,0x91,0xA4,0x3B,0x08};
 
 uint32_t WmOp::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1082,14 +1325,14 @@ uint32_t WmOp::read(::apache::thrift::protocol::TProtocol* iprot) {
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->properties.clear();
-            uint32_t _size45;
-            ::apache::thrift::protocol::TType _etype48;
-            xfer += iprot->readListBegin(_etype48, _size45);
-            this->properties.resize(_size45);
-            uint32_t _i49;
-            for (_i49 = 0; _i49 < _size45; ++_i49)
+            uint32_t _size57;
+            ::apache::thrift::protocol::TType _etype60;
+            xfer += iprot->readListBegin(_etype60, _size57);
+            this->properties.resize(_size57);
+            uint32_t _i61;
+            for (_i61 = 0; _i61 < _size57; ++_i61)
             {
-              xfer += this->properties[_i49].read(iprot);
+              xfer += this->properties[_i61].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -1155,10 +1398,10 @@ uint32_t WmOp::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeFieldBegin("properties", ::apache::thrift::protocol::T_LIST, 2);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->properties.size()));
-      std::vector<RNAProperty> ::const_iterator _iter50;
-      for (_iter50 = this->properties.begin(); _iter50 != this->properties.end(); ++_iter50)
+      std::vector<RNAProperty> ::const_iterator _iter62;
+      for (_iter62 = this->properties.begin(); _iter62 != this->properties.end(); ++_iter62)
       {
-        xfer += (*_iter50).write(oprot);
+        xfer += (*_iter62).write(oprot);
       }
       xfer += oprot->writeListEnd();
     }
@@ -1662,8 +1905,8 @@ void swap(WmEv &a, WmEv &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "7E96B5A498120CD0AADC1FD47D032703";
-const uint8_t Data::binary_fingerprint[16] = {0x7E,0x96,0xB5,0xA4,0x98,0x12,0x0C,0xD0,0xAA,0xDC,0x1F,0xD4,0x7D,0x03,0x27,0x03};
+const char* Data::ascii_fingerprint = "42D0AB34FF00542CBAF43A27A1A22506";
+const uint8_t Data::binary_fingerprint[16] = {0x42,0xD0,0xAB,0x34,0xFF,0x00,0x54,0x2C,0xBA,0xF4,0x3A,0x27,0xA1,0xA2,0x25,0x06};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 
