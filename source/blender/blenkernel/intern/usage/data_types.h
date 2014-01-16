@@ -1420,19 +1420,97 @@ class WmEv {
 
 void swap(WmEv &a, WmEv &b);
 
+
+class ButPress {
+ public:
+
+  static const char* ascii_fingerprint; // = "99914B932BD37A50B983C5E7C90AE93B";
+  static const uint8_t binary_fingerprint[16]; // = {0x99,0x91,0x4B,0x93,0x2B,0xD3,0x7A,0x50,0xB9,0x83,0xC5,0xE7,0xC9,0x0A,0xE9,0x3B};
+
+  ButPress() {
+  }
+
+  virtual ~ButPress() throw() {}
+
+
+  bool operator == (const ButPress & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const ButPress &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ButPress & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(ButPress &a, ButPress &b);
+
+typedef struct _Assignment__isset {
+  _Assignment__isset() : pythonRepresentation(false) {}
+  bool pythonRepresentation;
+} _Assignment__isset;
+
+class Assignment {
+ public:
+
+  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
+  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+  Assignment() : pythonRepresentation() {
+  }
+
+  virtual ~Assignment() throw() {}
+
+  std::string pythonRepresentation;
+
+  _Assignment__isset __isset;
+
+  void __set_pythonRepresentation(const std::string& val) {
+    pythonRepresentation = val;
+    __isset.pythonRepresentation = true;
+  }
+
+  bool operator == (const Assignment & rhs) const
+  {
+    if (__isset.pythonRepresentation != rhs.__isset.pythonRepresentation)
+      return false;
+    else if (__isset.pythonRepresentation && !(pythonRepresentation == rhs.pythonRepresentation))
+      return false;
+    return true;
+  }
+  bool operator != (const Assignment &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Assignment & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Assignment &a, Assignment &b);
+
 typedef struct _Data__isset {
-  _Data__isset() : noData(false), sessionStart(false), wmOp(false), wmEv(false) {}
+  _Data__isset() : noData(false), sessionStart(false), wmOp(false), wmEv(false), butPress(false), assignment(false) {}
   bool noData;
   bool sessionStart;
   bool wmOp;
   bool wmEv;
+  bool butPress;
+  bool assignment;
 } _Data__isset;
 
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "BF05BC87F878DA39076C19E2EB08A16F";
-  static const uint8_t binary_fingerprint[16]; // = {0xBF,0x05,0xBC,0x87,0xF8,0x78,0xDA,0x39,0x07,0x6C,0x19,0xE2,0xEB,0x08,0xA1,0x6F};
+  static const char* ascii_fingerprint; // = "00CC7CF4894E233B5F2C742AD7AC6085";
+  static const uint8_t binary_fingerprint[16]; // = {0x00,0xCC,0x7C,0xF4,0x89,0x4E,0x23,0x3B,0x5F,0x2C,0x74,0x2A,0xD7,0xAC,0x60,0x85};
 
   Data() {
   }
@@ -1443,6 +1521,8 @@ class Data {
   SessionStart sessionStart;
   WmOp wmOp;
   WmEv wmEv;
+  ButPress butPress;
+  Assignment assignment;
 
   _Data__isset __isset;
 
@@ -1470,6 +1550,18 @@ class Data {
     __isset.wmEv = true;
   }
 
+  void __set_butPress(const ButPress& val) {
+    butPress = val;
+    __isset = _Data__isset();
+    __isset.butPress = true;
+  }
+
+  void __set_assignment(const Assignment& val) {
+    assignment = val;
+    __isset = _Data__isset();
+    __isset.assignment = true;
+  }
+
   bool operator == (const Data & rhs) const
   {
     if (__isset.noData != rhs.__isset.noData)
@@ -1487,6 +1579,14 @@ class Data {
     if (__isset.wmEv != rhs.__isset.wmEv)
       return false;
     else if (__isset.wmEv && !(wmEv == rhs.wmEv))
+      return false;
+    if (__isset.butPress != rhs.__isset.butPress)
+      return false;
+    else if (__isset.butPress && !(butPress == rhs.butPress))
+      return false;
+    if (__isset.assignment != rhs.__isset.assignment)
+      return false;
+    else if (__isset.assignment && !(assignment == rhs.assignment))
       return false;
     return true;
   }

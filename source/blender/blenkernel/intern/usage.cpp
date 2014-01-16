@@ -58,6 +58,7 @@ extern "C" {
 	
 #include "RNA_types.h"
 #include "RNA_access.h"
+//#include "RNA_blender.h"
 	
 #include "WM_api.h"
 #include "WM_types.h"
@@ -77,6 +78,8 @@ extern "C" {
 	
 #include "IMB_imbuf.h"
 #include "IMB_imbuf_types.h"
+	
+#include "UI_interface.h"
 }
 
 #include <string>
@@ -282,6 +285,73 @@ namespace usage {
 				updateSettings();
 			}
 		}
+	}
+	
+	ImBuf* Usage::take_screenshot(bContext *C, const bool crop)
+	{
+		ScrArea *sa;
+		rcti cropRect;
+		unsigned int *dumprect = NULL;
+		int dumpsx, dumpsy;
+		
+		// copied from screenshot
+		wmWindow *win = CTX_wm_window(C);
+		int x = 0, y = 0;
+		
+		WM_redraw_windows(C);
+		
+		dumpsx = WM_window_pixels_x(win);
+		dumpsy = WM_window_pixels_y(win);
+		
+		if (dumpsx && dumpsy) {
+			unsigned char *dumprectC;
+			dumprect = (unsigned int*)MEM_mallocN(sizeof(int) * (dumpsx) * (dumpsy), "dumprect");
+			dumprectC = (unsigned char*)dumprect;
+			glReadBuffer(GL_FRONT);
+			// copied from screenshot_read_pixels
+			glReadPixels(x, y, dumpsx, dumpsy, GL_RGBA, GL_UNSIGNED_BYTE, dumprectC);
+			glFinish();
+			int i;
+			for (i = 0, dumprectC += 3; i < dumpsx * dumpsy; i++, dumprectC += 4)
+				*dumprectC = 255;
+			glReadBuffer(GL_BACK);
+			
+			if (dumprect) {
+				sa = CTX_wm_area(C);
+				
+				ImBuf *ibuf; //, *ibufHalf;
+				
+				/* operator ensures the extension */
+				ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
+				ibuf->rect = dumprect;
+				
+				/* crop to show only single editor */
+				// copied from screenshot_crop
+				if (sa) {
+					cropRect = sa->totrct;
+					if (crop) {
+						unsigned int *to = ibuf->rect;
+						unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
+						int crop_x = BLI_rcti_size_x(&cropRect);
+						int crop_y = BLI_rcti_size_y(&cropRect);
+						int y;
+						
+						if (crop_x > 0 && crop_y > 0) {
+							for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
+								memmove(to, from, sizeof(unsigned int) * crop_x);
+							
+							ibuf->x = crop_x;
+							ibuf->y = crop_y;
+						}
+					}
+				}
+				
+				//MEM_freeN(dumprect);
+				return ibuf;
+			}
+		}
+		
+		return NULL;
 	}
 	
 	void Usage::read_entire_file(const char *filepath, std::string &str)
@@ -719,71 +789,54 @@ namespace usage {
 		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
-	ImBuf* Usage::take_screenshot(bContext *C, const bool crop)
+		
+	void Usage::queueButtonPress(bContext *C, uiBut *but)
 	{
-		ScrArea *sa;
-		rcti cropRect;
-		unsigned int *dumprect = NULL;
-		int dumpsx, dumpsy;
+		// just send an empty ButtonPress
+		wire::Message *msg = getNewMessage();
+		wire::data::ButPress bp;
 		
-		// copied from screenshot
-		wmWindow *win = CTX_wm_window(C);
-		int x = 0, y = 0;
+		wire::metadata::Metadata metadata;
+		wire::metadata::NoMetadata noMetadata;
+		metadata.__set_noMetadata(noMetadata);
+		msg->__set_metadata(metadata);
 		
-		WM_redraw_windows(C);
+		wire::data::Data data;
+		data.__set_butPress(bp);
+		msg->__set_data(data);
 		
-		dumpsx = WM_window_pixels_x(win);
-		dumpsy = WM_window_pixels_y(win);
+		BLI_thread_queue_push(messageQueue, msg);
+	}
+	
+	void Usage::queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index)
+	{
+		wire::Message *msg = getNewMessage();
+		wire::data::Assignment as;
 		
-		if (dumpsx && dumpsy) {
-			unsigned char *dumprectC;
-			dumprect = (unsigned int*)MEM_mallocN(sizeof(int) * (dumpsx) * (dumpsy), "dumprect");
-			dumprectC = (unsigned char*)dumprect;
-			glReadBuffer(GL_FRONT);
-			// copied from screenshot_read_pixels
-			glReadPixels(x, y, dumpsx, dumpsy, GL_RGBA, GL_UNSIGNED_BYTE, dumprectC);
-			glFinish();
-			int i;
-			for (i = 0, dumprectC += 3; i < dumpsx * dumpsy; i++, dumprectC += 4)
-				*dumprectC = 255;
-			glReadBuffer(GL_BACK);
-
-			if (dumprect) {
-				sa = CTX_wm_area(C);
-			
-				ImBuf *ibuf; //, *ibufHalf;
-				
-				/* operator ensures the extension */
-				ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
-				ibuf->rect = dumprect;
-				
-				/* crop to show only single editor */
-				// copied from screenshot_crop
-				if (sa) {
-					cropRect = sa->totrct;
-					if (crop) {
-						unsigned int *to = ibuf->rect;
-						unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
-						int crop_x = BLI_rcti_size_x(&cropRect);
-						int crop_y = BLI_rcti_size_y(&cropRect);
-						int y;
-						
-						if (crop_x > 0 && crop_y > 0) {
-							for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
-								memmove(to, from, sizeof(unsigned int) * crop_x);
-							
-							ibuf->x = crop_x;
-							ibuf->y = crop_y;
-						}
-					}
-				}
-				
-				//MEM_freeN(dumprect);
-				return ibuf;
-			}
+		// set python reperesentation
+		char *buf;
+		
+		buf = WM_prop_pystring_assign(C, ptr, prop, index);
+		if (buf) {
+			std::string bufS = buf;
+			as.__set_pythonRepresentation(bufS);
+			MEM_freeN(buf);
 		}
 		
-		return NULL;
+		if (ptr->type) {
+			printf("identifier: %s\n ", RNA_struct_identifier(ptr->type));
+		}
+		
+		wire::metadata::Metadata metadata;
+		wire::metadata::NoMetadata noMetadata;
+		metadata.__set_noMetadata(noMetadata);
+		msg->__set_metadata(metadata);
+		
+		wire::data::Data data;
+		data.__set_assignment(as);
+		msg->__set_data(data);
+		
+		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
 } /* namespace */
@@ -802,6 +855,16 @@ extern "C" {
 	void BKE_usage_queue_event(bContext *C, const wmEvent *ev)
 	{
 		usage::Usage::getInstance().queueEvent(C, ev);
+	}
+	
+	void BKE_usage_queue_button(struct bContext *C, struct uiBut *but)
+	{
+		usage::Usage::getInstance().queueButtonPress(C, but);
+	}
+	
+	void BKE_usage_queue_assignment(struct bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index)
+	{
+		usage::Usage::getInstance().queueAssignment(C, ptr, prop, index);
 	}
 	
 	void BKE_usage_update_settings(void)

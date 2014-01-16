@@ -2058,8 +2058,116 @@ void swap(WmEv &a, WmEv &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "BF05BC87F878DA39076C19E2EB08A16F";
-const uint8_t Data::binary_fingerprint[16] = {0xBF,0x05,0xBC,0x87,0xF8,0x78,0xDA,0x39,0x07,0x6C,0x19,0xE2,0xEB,0x08,0xA1,0x6F};
+const char* ButPress::ascii_fingerprint = "99914B932BD37A50B983C5E7C90AE93B";
+const uint8_t ButPress::binary_fingerprint[16] = {0x99,0x91,0x4B,0x93,0x2B,0xD3,0x7A,0x50,0xB9,0x83,0xC5,0xE7,0xC9,0x0A,0xE9,0x3B};
+
+uint32_t ButPress::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    xfer += iprot->skip(ftype);
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t ButPress::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("ButPress");
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(ButPress &a, ButPress &b) {
+  using ::std::swap;
+  (void) a;
+  (void) b;
+}
+
+const char* Assignment::ascii_fingerprint = "66E694018C17E5B65A59AE8F55CCA3CD";
+const uint8_t Assignment::binary_fingerprint[16] = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+uint32_t Assignment::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->pythonRepresentation);
+          this->__isset.pythonRepresentation = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t Assignment::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("Assignment");
+
+  if (this->__isset.pythonRepresentation) {
+    xfer += oprot->writeFieldBegin("pythonRepresentation", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->pythonRepresentation);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(Assignment &a, Assignment &b) {
+  using ::std::swap;
+  swap(a.pythonRepresentation, b.pythonRepresentation);
+  swap(a.__isset, b.__isset);
+}
+
+const char* Data::ascii_fingerprint = "00CC7CF4894E233B5F2C742AD7AC6085";
+const uint8_t Data::binary_fingerprint[16] = {0x00,0xCC,0x7C,0xF4,0x89,0x4E,0x23,0x3B,0x5F,0x2C,0x74,0x2A,0xD7,0xAC,0x60,0x85};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -2113,6 +2221,22 @@ uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 5:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->butPress.read(iprot);
+          this->__isset.butPress = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 6:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->assignment.read(iprot);
+          this->__isset.assignment = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -2149,6 +2273,16 @@ uint32_t Data::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += this->wmEv.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.butPress) {
+    xfer += oprot->writeFieldBegin("butPress", ::apache::thrift::protocol::T_STRUCT, 5);
+    xfer += this->butPress.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.assignment) {
+    xfer += oprot->writeFieldBegin("assignment", ::apache::thrift::protocol::T_STRUCT, 6);
+    xfer += this->assignment.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -2160,6 +2294,8 @@ void swap(Data &a, Data &b) {
   swap(a.sessionStart, b.sessionStart);
   swap(a.wmOp, b.wmOp);
   swap(a.wmEv, b.wmEv);
+  swap(a.butPress, b.butPress);
+  swap(a.assignment, b.assignment);
   swap(a.__isset, b.__isset);
 }
 

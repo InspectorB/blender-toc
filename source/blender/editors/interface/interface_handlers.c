@@ -66,6 +66,10 @@
 #include "BKE_unit.h"
 #include "BKE_paint.h"
 
+#ifdef WITH_USAGE
+#include "BKE_usage.h"
+#endif
+
 #include "ED_screen.h"
 #include "ED_util.h"
 #include "ED_keyframing.h"
@@ -444,9 +448,6 @@ static void ui_apply_but_func(bContext *C, uiBut *but)
 	if (but->func || but->funcN || block->handle_func || but->rename_func ||
 	    (but->type == BUTM && block->butm_func) || but->optype || but->rnaprop)
 	{
-		printf("button pressed u%p\n", but);
-		
-		
 		after = ui_afterfunc_new();
 
 		if (but->func && ELEM(but, but->func_arg1, but->func_arg2)) {
@@ -523,16 +524,27 @@ static void ui_apply_autokey(bContext *C, uiBut *but)
 
 	/* try autokey */
 	ui_but_anim_autokey(C, but, scene, scene->r.cfra);
+	
+#ifdef WITH_USAGE
+	BKE_usage_queue_button(C, but);
+#endif
 
 	/* make a little report about what we've done! */
 	if (but->rnaprop) {
 		char *buf = WM_prop_pystring_assign(C, &but->rnapoin, but->rnaprop, but->rnaindex);
 		if (buf) {
 			BKE_report(CTX_wm_reports(C), RPT_PROPERTY, buf);
+			
+			// TODO: queue RNA change
+			
 			MEM_freeN(buf);
 
 			WM_event_add_notifier(C, NC_SPACE | ND_SPACE_INFO_REPORT, NULL);
 		}
+		
+#ifdef WITH_USAGE
+		BKE_usage_queue_assignment(C, &but->rnapoin, but->rnaprop, but->rnaindex);
+#endif
 	}
 }
 
@@ -545,8 +557,6 @@ static void ui_apply_but_funcs_after(bContext *C)
 	/* copy to avoid recursive calls */
 	funcs = UIAfterFuncs;
 	UIAfterFuncs.first = UIAfterFuncs.last = NULL;
-	
-	printf("butfuncs after..%p\n", C);
 
 	for (afterf = funcs.first; afterf; afterf = after.next) {
 		after = *afterf; /* copy to avoid memleak on exit() */

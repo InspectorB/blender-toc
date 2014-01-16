@@ -70,4 +70,12 @@ if(WITH_PYTHON)
 	add_definitions(-DWITH_PYTHON)
 endif()
 
+if(WITH_USAGE)
+	add_definitions(-DWITH_USAGE)
+	list(APPEND INC_SYS
+		${THRIFT_INCLUDE_DIRS}
+		${BOOST_INCLUDE_DIR}
+	)
+endif()
+
 blender_add_lib(bf_editor_interface "${SRC}" "${INC}" "${INC_SYS}")

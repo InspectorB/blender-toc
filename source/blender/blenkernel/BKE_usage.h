@@ -36,6 +36,7 @@ extern "C" {
 #include "BLI_threads.h" 
 
 #include "DNA_windowmanager_types.h"
+#include "UI_interface.h"
 }
 
 #include <thrift/transport/TSocket.h>
@@ -106,6 +107,8 @@ namespace usage {
 		void doThread();
 		void queueOperator(bContext *C, wmOperator *op, int retval, int repeat);
 		void queueEvent(bContext *C, const wmEvent *ev);
+		void queueButtonPress(bContext *C, uiBut *but);
+		void queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index);
 		void free();
 	};
 	
@@ -116,14 +119,19 @@ extern "C" {
 	
 /* C interface */
 	
-struct wmOperator;
-struct bContext;
-struct wmEvent;
-	
-void BKE_usage_update_settings(void);
-void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int retval, int repeat);
-void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
-void BKE_usage_shutdown();
+	struct wmOperator;
+	struct bContext;
+	struct wmEvent;
+	struct uiBut;
+	struct PointerRNA;
+	struct PropertyRNA;
+		
+	void BKE_usage_update_settings(void);
+	void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int retval, int repeat);
+	void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
+	void BKE_usage_queue_button(struct bContext *C, struct uiBut *but);
+	void BKE_usage_queue_assignment(struct bContext *C, struct PointerRNA *ptr, struct PropertyRNA *prop, int index);
+	void BKE_usage_shutdown();
 	
 #endif /* __cplusplus */
 #ifdef __cplusplus
