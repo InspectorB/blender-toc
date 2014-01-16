@@ -1290,8 +1290,113 @@ void swap(Context &a, Context &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* WmOp::ascii_fingerprint = "ACA73808D88C7EBA1CF0C1C5570967FB";
-const uint8_t WmOp::binary_fingerprint[16] = {0xAC,0xA7,0x38,0x08,0xD8,0x8C,0x7E,0xBA,0x1C,0xF0,0xC1,0xC5,0x57,0x09,0x67,0xFB};
+const char* Report::ascii_fingerprint = "B46BA713D1FC8C213E02068EC74F2A86";
+const uint8_t Report::binary_fingerprint[16] = {0xB4,0x6B,0xA7,0x13,0xD1,0xFC,0x8C,0x21,0x3E,0x02,0x06,0x8E,0xC7,0x4F,0x2A,0x86};
+
+uint32_t Report::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I16) {
+          xfer += iprot->readI16(this->type);
+          this->__isset.type = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->flag);
+          this->__isset.flag = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->typestr);
+          this->__isset.typestr = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->message);
+          this->__isset.message = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t Report::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("Report");
+
+  if (this->__isset.type) {
+    xfer += oprot->writeFieldBegin("type", ::apache::thrift::protocol::T_I16, 1);
+    xfer += oprot->writeI16(this->type);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.flag) {
+    xfer += oprot->writeFieldBegin("flag", ::apache::thrift::protocol::T_I32, 2);
+    xfer += oprot->writeI32(this->flag);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.typestr) {
+    xfer += oprot->writeFieldBegin("typestr", ::apache::thrift::protocol::T_STRING, 3);
+    xfer += oprot->writeString(this->typestr);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.message) {
+    xfer += oprot->writeFieldBegin("message", ::apache::thrift::protocol::T_STRING, 4);
+    xfer += oprot->writeString(this->message);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(Report &a, Report &b) {
+  using ::std::swap;
+  swap(a.type, b.type);
+  swap(a.flag, b.flag);
+  swap(a.typestr, b.typestr);
+  swap(a.message, b.message);
+  swap(a.__isset, b.__isset);
+}
+
+const char* WmOp::ascii_fingerprint = "AB911F48FB7D3A4E09B40095B0555891";
+const uint8_t WmOp::binary_fingerprint[16] = {0xAB,0x91,0x1F,0x48,0xFB,0x7D,0x3A,0x4E,0x09,0xB4,0x00,0x95,0xB0,0x55,0x58,0x91};
 
 uint32_t WmOp::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -1381,6 +1486,26 @@ uint32_t WmOp::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 8:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->reports.clear();
+            uint32_t _size62;
+            ::apache::thrift::protocol::TType _etype65;
+            xfer += iprot->readListBegin(_etype65, _size62);
+            this->reports.resize(_size62);
+            uint32_t _i66;
+            for (_i66 = 0; _i66 < _size62; ++_i66)
+            {
+              xfer += this->reports[_i66].read(iprot);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.reports = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -1406,10 +1531,10 @@ uint32_t WmOp::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeFieldBegin("properties", ::apache::thrift::protocol::T_LIST, 2);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->properties.size()));
-      std::vector<RNAProperty> ::const_iterator _iter62;
-      for (_iter62 = this->properties.begin(); _iter62 != this->properties.end(); ++_iter62)
+      std::vector<RNAProperty> ::const_iterator _iter67;
+      for (_iter67 = this->properties.begin(); _iter67 != this->properties.end(); ++_iter67)
       {
-        xfer += (*_iter62).write(oprot);
+        xfer += (*_iter67).write(oprot);
       }
       xfer += oprot->writeListEnd();
     }
@@ -1440,6 +1565,19 @@ uint32_t WmOp::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeI32(this->retval);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.reports) {
+    xfer += oprot->writeFieldBegin("reports", ::apache::thrift::protocol::T_LIST, 8);
+    {
+      xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->reports.size()));
+      std::vector<Report> ::const_iterator _iter68;
+      for (_iter68 = this->reports.begin(); _iter68 != this->reports.end(); ++_iter68)
+      {
+        xfer += (*_iter68).write(oprot);
+      }
+      xfer += oprot->writeListEnd();
+    }
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -1454,6 +1592,7 @@ void swap(WmOp &a, WmOp &b) {
   swap(a.context, b.context);
   swap(a.repeat, b.repeat);
   swap(a.retval, b.retval);
+  swap(a.reports, b.reports);
   swap(a.__isset, b.__isset);
 }
 
@@ -1919,8 +2058,8 @@ void swap(WmEv &a, WmEv &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "75E51861C1422D80AEC20D5C6B107F01";
-const uint8_t Data::binary_fingerprint[16] = {0x75,0xE5,0x18,0x61,0xC1,0x42,0x2D,0x80,0xAE,0xC2,0x0D,0x5C,0x6B,0x10,0x7F,0x01};
+const char* Data::ascii_fingerprint = "BF05BC87F878DA39076C19E2EB08A16F";
+const uint8_t Data::binary_fingerprint[16] = {0xBF,0x05,0xBC,0x87,0xF8,0x78,0xDA,0x39,0x07,0x6C,0x19,0xE2,0xEB,0x08,0xA1,0x6F};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 

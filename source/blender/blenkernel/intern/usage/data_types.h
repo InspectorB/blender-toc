@@ -862,8 +862,87 @@ class Context {
 
 void swap(Context &a, Context &b);
 
+typedef struct _Report__isset {
+  _Report__isset() : type(false), flag(false), typestr(false), message(false) {}
+  bool type;
+  bool flag;
+  bool typestr;
+  bool message;
+} _Report__isset;
+
+class Report {
+ public:
+
+  static const char* ascii_fingerprint; // = "B46BA713D1FC8C213E02068EC74F2A86";
+  static const uint8_t binary_fingerprint[16]; // = {0xB4,0x6B,0xA7,0x13,0xD1,0xFC,0x8C,0x21,0x3E,0x02,0x06,0x8E,0xC7,0x4F,0x2A,0x86};
+
+  Report() : type(0), flag(0), typestr(), message() {
+  }
+
+  virtual ~Report() throw() {}
+
+  int16_t type;
+  int32_t flag;
+  std::string typestr;
+  std::string message;
+
+  _Report__isset __isset;
+
+  void __set_type(const int16_t val) {
+    type = val;
+    __isset.type = true;
+  }
+
+  void __set_flag(const int32_t val) {
+    flag = val;
+    __isset.flag = true;
+  }
+
+  void __set_typestr(const std::string& val) {
+    typestr = val;
+    __isset.typestr = true;
+  }
+
+  void __set_message(const std::string& val) {
+    message = val;
+    __isset.message = true;
+  }
+
+  bool operator == (const Report & rhs) const
+  {
+    if (__isset.type != rhs.__isset.type)
+      return false;
+    else if (__isset.type && !(type == rhs.type))
+      return false;
+    if (__isset.flag != rhs.__isset.flag)
+      return false;
+    else if (__isset.flag && !(flag == rhs.flag))
+      return false;
+    if (__isset.typestr != rhs.__isset.typestr)
+      return false;
+    else if (__isset.typestr && !(typestr == rhs.typestr))
+      return false;
+    if (__isset.message != rhs.__isset.message)
+      return false;
+    else if (__isset.message && !(message == rhs.message))
+      return false;
+    return true;
+  }
+  bool operator != (const Report &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Report & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Report &a, Report &b);
+
 typedef struct _WmOp__isset {
-  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false), repeat(false), retval(false) {}
+  _WmOp__isset() : operatorId(false), properties(false), pythonRepresentation(false), screenshotHash(false), context(false), repeat(false), retval(false), reports(false) {}
   bool operatorId;
   bool properties;
   bool pythonRepresentation;
@@ -871,13 +950,14 @@ typedef struct _WmOp__isset {
   bool context;
   bool repeat;
   bool retval;
+  bool reports;
 } _WmOp__isset;
 
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "ACA73808D88C7EBA1CF0C1C5570967FB";
-  static const uint8_t binary_fingerprint[16]; // = {0xAC,0xA7,0x38,0x08,0xD8,0x8C,0x7E,0xBA,0x1C,0xF0,0xC1,0xC5,0x57,0x09,0x67,0xFB};
+  static const char* ascii_fingerprint; // = "AB911F48FB7D3A4E09B40095B0555891";
+  static const uint8_t binary_fingerprint[16]; // = {0xAB,0x91,0x1F,0x48,0xFB,0x7D,0x3A,0x4E,0x09,0xB4,0x00,0x95,0xB0,0x55,0x58,0x91};
 
   WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0), retval(0) {
   }
@@ -891,6 +971,7 @@ class WmOp {
   Context context;
   bool repeat;
   int32_t retval;
+  std::vector<Report>  reports;
 
   _WmOp__isset __isset;
 
@@ -929,6 +1010,11 @@ class WmOp {
     __isset.retval = true;
   }
 
+  void __set_reports(const std::vector<Report> & val) {
+    reports = val;
+    __isset.reports = true;
+  }
+
   bool operator == (const WmOp & rhs) const
   {
     if (__isset.operatorId != rhs.__isset.operatorId)
@@ -958,6 +1044,10 @@ class WmOp {
     if (__isset.retval != rhs.__isset.retval)
       return false;
     else if (__isset.retval && !(retval == rhs.retval))
+      return false;
+    if (__isset.reports != rhs.__isset.reports)
+      return false;
+    else if (__isset.reports && !(reports == rhs.reports))
       return false;
     return true;
   }
@@ -1341,8 +1431,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "75E51861C1422D80AEC20D5C6B107F01";
-  static const uint8_t binary_fingerprint[16]; // = {0x75,0xE5,0x18,0x61,0xC1,0x42,0x2D,0x80,0xAE,0xC2,0x0D,0x5C,0x6B,0x10,0x7F,0x01};
+  static const char* ascii_fingerprint; // = "BF05BC87F878DA39076C19E2EB08A16F";
+  static const uint8_t binary_fingerprint[16]; // = {0xBF,0x05,0xBC,0x87,0xF8,0x78,0xDA,0x39,0x07,0x6C,0x19,0xE2,0xEB,0x08,0xA1,0x6F};
 
   Data() {
   }

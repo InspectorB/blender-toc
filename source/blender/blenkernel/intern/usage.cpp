@@ -95,9 +95,9 @@ extern "C" {
 #include "usage/metadata_types.h"
 #include "usage/message_types.h"
 
-using namespace wire;
-using namespace wire::data;
-using namespace wire::metadata;
+//using namespace wire;
+//using namespace wire::data;
+//using namespace wire::metadata;
 
 extern "C" {
 	static void *usage_do_thread(void *callerdata)
@@ -166,7 +166,7 @@ namespace usage {
 		boost::shared_ptr<TTransport> newTransport(new TFramedTransport(newSocket));
 		boost::shared_ptr<TProtocol> newProtocol(new TBinaryProtocol(newTransport));
 		newTransport->open();
-		client = new TocServiceClient(newProtocol);
+		client = new wire::TocServiceClient(newProtocol);
 		// transfer ownership of pointers to the singleton
 		socket = newSocket;
 		transport = newTransport;
@@ -207,7 +207,7 @@ namespace usage {
 				unsigned char sent = 0;
 				
 				if (sendingMessage == NULL)
-					sendingMessage = (Message*)BLI_thread_queue_pop_timeout(messageQueue, 10);
+					sendingMessage = (wire::Message*)BLI_thread_queue_pop_timeout(messageQueue, 10);
 				if (sendingScreenshot == NULL)
 					sendingScreenshot = (ScreenshotQueueItem*)BLI_thread_queue_pop_timeout(screenshotQueue, 10);
 				
@@ -239,7 +239,7 @@ namespace usage {
 					BLI_delete(filepath, FALSE, FALSE);
 
 					std::string token = U.usage_service_token;
-					Screenshot *sshot = new Screenshot();
+					wire::Screenshot *sshot = new wire::Screenshot();
 					sshot->__set_hash(sendingScreenshot->hash);
 					sshot->__set_token(token);
 					sshot->__set_screenshot(content);
@@ -256,11 +256,11 @@ namespace usage {
 				
 				if (!sent) usleep(100000);
 			}
-			catch (UnknownToken e) {
+			catch (wire::UnknownToken e) {
 				enabled = false;
 				printf("TOKEN: %s\n", e.message.c_str());
 			}
-			catch (Unavailable) {
+			catch (wire::Unavailable) {
 				printf("TODO: service unavailable\n");
 			}
 			catch (TApplicationException e) {
@@ -313,9 +313,9 @@ namespace usage {
 		return (long)sec * 1000L + msec;
 	}
 	
-	Message *Usage::getNewMessage()
+	wire::Message *Usage::getNewMessage()
 	{
-		Message *msg = new Message();
+		wire::Message *msg = new wire::Message();
 		msg->__set_timestamp(getTimestamp());
 		return msg;
 	}
@@ -328,7 +328,7 @@ namespace usage {
 		return address;
 	}
 	
-	Context *Usage::getNewContext(const bContext *C)
+	wire::data::Context *Usage::getNewContext(const bContext *C)
 	{
 		wmWindow *win = CTX_wm_window(C);
 		bScreen *bs = CTX_wm_screen(C);
@@ -340,7 +340,7 @@ namespace usage {
 		
 		RegionView3D *rvd = CTX_wm_region_view3d(C);
 		
-		Context *ctx = new Context();
+		wire::data::Context *ctx = new wire::data::Context();
 		
 		// set window related information
 		if (win) {
@@ -372,7 +372,7 @@ namespace usage {
 		
 		// set view related information
 		if (rvd) {
-			ViewOrientation vo;
+			wire::data::ViewOrientation vo;
 			
 			std::vector<double> ofs;
 			ofs.push_back(rvd->ofs[0]);
@@ -435,8 +435,8 @@ namespace usage {
 	{
 		// TODO: perhaps filter out timer operations
 		
-		Message *msg = getNewMessage();
-		WmOp thriftOp;
+		wire::Message *msg = getNewMessage();
+		wire::data::WmOp thriftOp;
 		
 		PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
 		PropertyRNA *prop;
@@ -444,40 +444,7 @@ namespace usage {
 		const char *arg_name;
 		char *cstring = NULL;
 		
-		std::vector<RNAProperty> thriftOpProperties;
-		
-		{ // Have a go at inspecting the context
-			//const wmWindowManager *wm = CTX_wm_manager(C); // not interested in toplevel
-//			const wmWindow *win = CTX_wm_window(C);
-//			const bScreen *bs = CTX_wm_screen(C);
-//			const ScrArea *sa = CTX_wm_area(C);
-//			const ARegion *ar = CTX_wm_region(C);
-//			
-//			printf("\n -- WM --\n");
-//			//wm  ? printf("wm:  %s\n", wm->id.name)	 : printf("!wm\n");
-//			win ? printf("win: %-64s (%p)\n", win->screenname, win)	: printf("!win\n");
-//			bs  ? printf("bs:  %-64s (%p)\n", bs->id.name, bs)		: printf("!bs\n");
-//			sa  ? printf("sa:  %-64i (%p)\n", sa->spacetype, sa)	: printf("!sa\n");
-//			ar  ? printf("ar:  %-64i (%p)\n", ar->regiontype, ar)	: printf("!ar\n");
-			
-//			printf("\n -- bases --\n");
-//			Base *active = CTX_data_active_base(C);
-//			CTX_DATA_BEGIN (C, Base *, base, visible_bases)
-//			{
-//				if (base->object) {
-//					printf("%s %-64s \t (t:%-3i, b:%p, o:%p, pt:%-3i, po:%p)\n",
-//						   base->flag & SELECT ? (base == active ? "[*]" : "[ ]") : "   ",
-//						   base->object->id.name,
-//						   base->object->type,
-//						   base,
-//						   base->object,
-//						   base->object->partype,
-//						   base->object->parent);
-//				}
-//				else printf("! base, but no object\n");
-//			}
-//			CTX_DATA_END;
-		}
+		std::vector<wire::data::RNAProperty> thriftOpProperties;
 		
 		// check if there's a window, otherwise opening a file crashes
 		if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
@@ -508,11 +475,29 @@ namespace usage {
 		thriftOp.__set_repeat(repeat);
 		thriftOp.__set_retval(retval);
 		
+		// set reports
+		if (op->reports) {
+			std::vector<wire::data::Report> reports;
+			Report *report = NULL; // N.B. blender Report, not thrift Report
+			for (report = (Report*)op->reports->list.first; report; report = report->next) {
+				wire::data::Report r;
+				r.__set_type(report->type);
+				r.__set_flag(report->flag);
+				std::string typestr = report->typestr;
+				r.__set_typestr(typestr);
+				std::string message = report->message;
+				r.__set_message(message);
+				reports.push_back(r);
+			}
+			thriftOp.__set_reports(reports);
+		}
+		
+		// set properties
 		RNA_PROP_BEGIN (op->ptr, propptr, iterprop)
 		{
 			int type, len;
-			RNAProperty thriftProp;
-			RNAPropertyData thriftPropData;
+			wire::data::RNAProperty thriftProp;
+			wire::data::RNAPropertyData thriftPropData;
 			bool setDataP = true;
 			
 			prop = (PropertyRNA*)propptr.data;
@@ -664,17 +649,17 @@ namespace usage {
 		thriftOp.__set_properties(thriftOpProperties);
 		
 		// set the context
-		Context *ctx = getNewContext(C);
+		wire::data::Context *ctx = getNewContext(C);
 		thriftOp.__set_context(*ctx);
 		delete ctx;
 		
 		// set enveloping message
-		Metadata metadata;
-		NoMetadata noMetadata;
+		wire::metadata::Metadata metadata;
+		wire::metadata::NoMetadata noMetadata;
 		metadata.__set_noMetadata(noMetadata);
 		msg->__set_metadata(metadata);
 
-		Data data;
+		wire::data::Data data;
 		data.__set_wmOp(thriftOp);
 		msg->__set_data(data);
 
@@ -685,8 +670,8 @@ namespace usage {
 	{
 		// TODO: might want to filter out simple mouse movements
 		
-		Message *msg = getNewMessage();
-		WmEv ev;
+		wire::Message *msg = getNewMessage();
+		wire::data::WmEv ev;
 		
 		ev.__set_type(event->type);
 		ev.__set_value(event->val);
@@ -721,12 +706,12 @@ namespace usage {
 		
 		// TODO: set tablet data
 		
-		Metadata metadata;
-		NoMetadata noMetadata;
+		wire::metadata::Metadata metadata;
+		wire::metadata::NoMetadata noMetadata;
 		metadata.__set_noMetadata(noMetadata);
 		msg->__set_metadata(metadata);
 		
-		Data data;
+		wire::data::Data data;
 		data.__set_wmEv(ev);
 		msg->__set_data(data);
 		
