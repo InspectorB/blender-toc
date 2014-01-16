@@ -489,7 +489,8 @@ namespace usage {
 				r.__set_message(message);
 				reports.push_back(r);
 			}
-			thriftOp.__set_reports(reports);
+			if (!reports.empty())
+				thriftOp.__set_reports(reports);
 		}
 		
 		// set properties
