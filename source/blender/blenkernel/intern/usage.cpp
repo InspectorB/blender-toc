@@ -295,6 +295,9 @@ namespace usage {
 				printf("Scary town... %s.\n", e.what());
 				updateSettings();
 			}
+		} else {
+			updateSettings();
+			usleep(1000000);
 		}
 	}
 	
@@ -667,206 +670,199 @@ namespace usage {
 	void Usage::queueOperator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// TODO: perhaps filter out timer operations
-		
-		wire::Message *msg = getNewMessage();
-		wire::data::WmOp thriftOp;
-		
-		char *cstring = NULL;
-		
-		PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
-		
-		std::vector<wire::data::RNAProperty> thriftOpProperties;
-		
-		// check if there's a window, otherwise opening a file crashes
-		if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
-			// prepare uuid
-			boost::uuids::uuid uuid = uuidGenerator();
-			const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
+		if (enabled) {
+			
+			wire::Message *msg = getNewMessage();
+			wire::data::WmOp thriftOp;
+			
+			char *cstring = NULL;
+			
+			PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
+			
+			std::vector<wire::data::RNAProperty> thriftOpProperties;
+			
+			// check if there's a window, otherwise opening a file crashes
+			if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
+				// prepare uuid
+				boost::uuids::uuid uuid = uuidGenerator();
+				const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
 
-			ImBuf *ibuf;
-			ScreenshotQueueItem *sqi;
-					
-			// take screenshot
-			ibuf = take_screenshot(C, 0);
-			sqi = new ScreenshotQueueItem;
-			sqi->buf = ibuf;
-			sqi->hash = uuidStr;
-			sqi->timestamp = msg->timestamp;
-			BLI_thread_queue_push(screenshotQueue, sqi);
-			thriftOp.__set_screenshotHash(uuidStr);
-		}
-		
-		// create op
-		thriftOp.__set_operatorId(std::string(op->idname));
-		cstring = WM_operator_pystring(C, op, true, true);
-		thriftOp.__set_pythonRepresentation(std::string(cstring ? cstring : ""));
-		MEM_freeN(cstring);
-		cstring = NULL;
-		
-		thriftOp.__set_repeat(repeat);
-		thriftOp.__set_retval(retval);
-		
-		// set reports
-		if (op->reports) {
-			std::vector<wire::data::Report> reports;
-			Report *report = NULL; // N.B. blender Report, not thrift Report
-			for (report = (Report*)op->reports->list.first; report; report = report->next) {
-				wire::data::Report r;
-				r.__set_type(report->type);
-				r.__set_flag(report->flag);
-				std::string typestr = report->typestr;
-				r.__set_typestr(typestr);
-				std::string message = report->message;
-				r.__set_message(message);
-				reports.push_back(r);
+				ImBuf *ibuf;
+				ScreenshotQueueItem *sqi;
+						
+				// take screenshot
+				ibuf = take_screenshot(C, 0);
+				sqi = new ScreenshotQueueItem;
+				sqi->buf = ibuf;
+				sqi->hash = uuidStr;
+				sqi->timestamp = msg->timestamp;
+				BLI_thread_queue_push(screenshotQueue, sqi);
+				thriftOp.__set_screenshotHash(uuidStr);
 			}
-			if (!reports.empty())
-				thriftOp.__set_reports(reports);
-		}
-		
-		// set properties
-		RNA_PROP_BEGIN (op->ptr, propptr, iterprop)
-		{
-			wire::data::RNAProperty thriftProp;
-			setProperty(&thriftProp, C, op->ptr, (PropertyRNA*)propptr.data);
-			thriftOpProperties.push_back(thriftProp);
-		}
-		RNA_PROP_END;
-		
-		thriftOp.__set_properties(thriftOpProperties);
-		
-		// set the context
-		wire::data::Context *ctx = getNewContext(C);
-		thriftOp.__set_context(*ctx);
-		delete ctx;
-		
-		// set enveloping message
-		wire::metadata::Metadata metadata;
-		wire::metadata::NoMetadata noMetadata;
-		metadata.__set_noMetadata(noMetadata);
-		msg->__set_metadata(metadata);
+			
+			// create op
+			thriftOp.__set_operatorId(std::string(op->idname));
+			cstring = WM_operator_pystring(C, op, true, true);
+			thriftOp.__set_pythonRepresentation(std::string(cstring ? cstring : ""));
+			MEM_freeN(cstring);
+			cstring = NULL;
+			
+			thriftOp.__set_repeat(repeat);
+			thriftOp.__set_retval(retval);
+			
+			// set reports
+			if (op->reports) {
+				std::vector<wire::data::Report> reports;
+				Report *report = NULL; // N.B. blender Report, not thrift Report
+				for (report = (Report*)op->reports->list.first; report; report = report->next) {
+					wire::data::Report r;
+					r.__set_type(report->type);
+					r.__set_flag(report->flag);
+					std::string typestr = report->typestr;
+					r.__set_typestr(typestr);
+					std::string message = report->message;
+					r.__set_message(message);
+					reports.push_back(r);
+				}
+				if (!reports.empty())
+					thriftOp.__set_reports(reports);
+			}
+			
+			// set properties
+			RNA_PROP_BEGIN (op->ptr, propptr, iterprop)
+			{
+				wire::data::RNAProperty thriftProp;
+				setProperty(&thriftProp, C, op->ptr, (PropertyRNA*)propptr.data);
+				thriftOpProperties.push_back(thriftProp);
+			}
+			RNA_PROP_END;
+			
+			thriftOp.__set_properties(thriftOpProperties);
+			
+			// set the context
+			wire::data::Context *ctx = getNewContext(C);
+			thriftOp.__set_context(*ctx);
+			delete ctx;
+			
+			// set enveloping message
+			wire::metadata::Metadata metadata;
+			wire::metadata::NoMetadata noMetadata;
+			metadata.__set_noMetadata(noMetadata);
+			msg->__set_metadata(metadata);
 
-		wire::data::Data data;
-		data.__set_wmOp(thriftOp);
-		msg->__set_data(data);
+			wire::data::Data data;
+			data.__set_wmOp(thriftOp);
+			msg->__set_data(data);
 
-		BLI_thread_queue_push(messageQueue, msg);
+			BLI_thread_queue_push(messageQueue, msg);
+		}
 	}
 	
 	void Usage::queueEvent(bContext *C, const wmEvent *event)
 	{
 		// TODO: might want to filter out simple mouse movements
+		if (enabled) {
 		
-		wire::Message *msg = getNewMessage();
-		wire::data::WmEv ev;
-		
-		ev.__set_type(event->type);
-		ev.__set_value(event->val);
-		ev.__set_x(event->x);
-		ev.__set_y(event->y);
-		ev.__set_mval1(event->mval[0]);
-		ev.__set_mval2(event->mval[1]);
+			wire::Message *msg = getNewMessage();
+			wire::data::WmEv ev;
+			
+			ev.__set_type(event->type);
+			ev.__set_value(event->val);
+			ev.__set_x(event->x);
+			ev.__set_y(event->y);
+			ev.__set_mval1(event->mval[0]);
+			ev.__set_mval2(event->mval[1]);
 
 
-		char str[BLI_UTF8_MAX + 1];
-		size_t len;
-		if (event->utf8_buf[0]) {
-			len = BLI_str_utf8_size_safe(event->utf8_buf);
-			memcpy(str, event->utf8_buf, len);
-		} else str[0] = event->ascii;
-		ev.__set_character(str);
-		
-		ev.__set_prevtype(event->prevtype);
-		ev.__set_prevval(event->prevval);
-		ev.__set_prevx(event->prevx);
-		ev.__set_prevy(event->prevy);
-		ev.__set_prevclicktime(event->prevclicktime);
-		ev.__set_prevclickx(event->prevclickx);
-		ev.__set_prevclicky(event->prevclicky);
-		ev.__set_shift(event->shift);
-		ev.__set_ctrl(event->ctrl);
-		ev.__set_alt(event->alt);
-		ev.__set_oskey(event->oskey);
-		ev.__set_keymodifier(event->keymodifier);
-		ev.__set_check_click(event->check_click);
-		if (event->keymap_idname) ev.__set_keymap_idname(event->keymap_idname);
-		
-		// TODO: set tablet data
-		
-		wire::metadata::Metadata metadata;
-		wire::metadata::NoMetadata noMetadata;
-		metadata.__set_noMetadata(noMetadata);
-		msg->__set_metadata(metadata);
-		
-		wire::data::Data data;
-		data.__set_wmEv(ev);
-		msg->__set_data(data);
-		
-		BLI_thread_queue_push(messageQueue, msg);
+			char str[BLI_UTF8_MAX + 1];
+			size_t len;
+			if (event->utf8_buf[0]) {
+				len = BLI_str_utf8_size_safe(event->utf8_buf);
+				memcpy(str, event->utf8_buf, len);
+			} else str[0] = event->ascii;
+			ev.__set_character(str);
+			
+			ev.__set_prevtype(event->prevtype);
+			ev.__set_prevval(event->prevval);
+			ev.__set_prevx(event->prevx);
+			ev.__set_prevy(event->prevy);
+			ev.__set_prevclicktime(event->prevclicktime);
+			ev.__set_prevclickx(event->prevclickx);
+			ev.__set_prevclicky(event->prevclicky);
+			ev.__set_shift(event->shift);
+			ev.__set_ctrl(event->ctrl);
+			ev.__set_alt(event->alt);
+			ev.__set_oskey(event->oskey);
+			ev.__set_keymodifier(event->keymodifier);
+			ev.__set_check_click(event->check_click);
+			if (event->keymap_idname) ev.__set_keymap_idname(event->keymap_idname);
+			
+			// TODO: set tablet data
+			
+			wire::metadata::Metadata metadata;
+			wire::metadata::NoMetadata noMetadata;
+			metadata.__set_noMetadata(noMetadata);
+			msg->__set_metadata(metadata);
+			
+			wire::data::Data data;
+			data.__set_wmEv(ev);
+			msg->__set_data(data);
+			
+			BLI_thread_queue_push(messageQueue, msg);
+		}
 	}
 	
-		
 	void Usage::queueButtonPress(bContext *C, uiBut *but)
 	{
-		// just send an empty ButtonPress
-		wire::Message *msg = getNewMessage();
-		wire::data::ButPress bp;
-		
-		wire::metadata::Metadata metadata;
-		wire::metadata::NoMetadata noMetadata;
-		metadata.__set_noMetadata(noMetadata);
-		msg->__set_metadata(metadata);
-		
-		wire::data::Data data;
-		data.__set_butPress(bp);
-		msg->__set_data(data);
-		
-		BLI_thread_queue_push(messageQueue, msg);
+		if (enabled) {
+			// just send an empty ButtonPress
+			wire::Message *msg = getNewMessage();
+			wire::data::ButPress bp;
+			
+			wire::metadata::Metadata metadata;
+			wire::metadata::NoMetadata noMetadata;
+			metadata.__set_noMetadata(noMetadata);
+			msg->__set_metadata(metadata);
+			
+			wire::data::Data data;
+			data.__set_butPress(bp);
+			msg->__set_data(data);
+			
+			BLI_thread_queue_push(messageQueue, msg);
+		}
 	}
 	
 	void Usage::queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index)
 	{
-		wire::Message *msg = getNewMessage();
-		wire::data::Assignment as;
-		
-		// set python reperesentation
-		char *buf;
-		
-		buf = WM_prop_pystring_assign(C, ptr, prop, index);
-		if (buf) {
-			std::string bufS = buf;
-			as.__set_pythonRepresentation(bufS);
-			MEM_freeN(buf);
+		if (enabled) {
+			wire::Message *msg = getNewMessage();
+			wire::data::Assignment as;
+			
+			// set python reperesentation
+			char *buf;
+			
+			buf = WM_prop_pystring_assign(C, ptr, prop, index);
+			if (buf) {
+				std::string bufS = buf;
+				as.__set_pythonRepresentation(bufS);
+				MEM_freeN(buf);
+			}
+			
+			wire::data::RNAProperty thriftProp;
+			setProperty(&thriftProp, C, ptr, prop);
+			as.__set_property(thriftProp);
+			
+			wire::metadata::Metadata metadata;
+			wire::metadata::NoMetadata noMetadata;
+			metadata.__set_noMetadata(noMetadata);
+			msg->__set_metadata(metadata);
+			
+			wire::data::Data data;
+			data.__set_assignment(as);
+			msg->__set_data(data);
+			
+			BLI_thread_queue_push(messageQueue, msg);
 		}
-		
-//		if (ptr->type) {
-//			printf("srna id: %s\n ", RNA_struct_identifier(ptr->type));
-//			printf("srna ui_name: %s\n ", RNA_struct_ui_name(ptr->type));
-//			printf("ui_description: %s\n ", RNA_struct_ui_description(ptr->type));
-//			
-//			printf("prop id: %s\n", RNA_property_identifier(prop));
-//			printf("prop desc: %s\n", RNA_property_description(prop));
-//			
-//			printf("prop type: %i\n", RNA_property_type(prop));
-//			printf("prop subtype: %i\n", RNA_property_subtype(prop));
-//			
-//			printf("prop value string: %s\n", RNA_property_as_string(C, ptr, prop, index, INT_MAX));
-//		}
-		
-		wire::data::RNAProperty thriftProp;
-		setProperty(&thriftProp, C, ptr, prop);
-		as.__set_property(thriftProp);
-		
-		wire::metadata::Metadata metadata;
-		wire::metadata::NoMetadata noMetadata;
-		metadata.__set_noMetadata(noMetadata);
-		msg->__set_metadata(metadata);
-		
-		wire::data::Data data;
-		data.__set_assignment(as);
-		msg->__set_data(data);
-		
-		BLI_thread_queue_push(messageQueue, msg);
 	}
 	
 } /* namespace */
