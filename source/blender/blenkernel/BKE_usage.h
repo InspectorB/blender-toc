@@ -88,7 +88,7 @@ namespace usage {
 		Usage(Usage const&);
 		void operator=(Usage const&);
 		
-		void createConnection();
+		bool createConnection();
 		void teardownConnection();
 		void read_entire_file(const char *filepath, std::string &str);
 		long getTimestamp();

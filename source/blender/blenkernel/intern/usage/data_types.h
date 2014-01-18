@@ -338,9 +338,10 @@ class RNAPropertyData {
 void swap(RNAPropertyData &a, RNAPropertyData &b);
 
 typedef struct _RNAProperty__isset {
-  _RNAProperty__isset() : identifier(false), type(false), length(false), data(false) {}
+  _RNAProperty__isset() : identifier(false), type(false), subtype(false), length(false), data(false) {}
   bool identifier;
   bool type;
+  bool subtype;
   bool length;
   bool data;
 } _RNAProperty__isset;
@@ -348,16 +349,17 @@ typedef struct _RNAProperty__isset {
 class RNAProperty {
  public:
 
-  static const char* ascii_fingerprint; // = "765F2F039979508BE12A0AD81BFAEBA2";
-  static const uint8_t binary_fingerprint[16]; // = {0x76,0x5F,0x2F,0x03,0x99,0x79,0x50,0x8B,0xE1,0x2A,0x0A,0xD8,0x1B,0xFA,0xEB,0xA2};
+  static const char* ascii_fingerprint; // = "0C995634E14A6DF2E194AE199E18BF0B";
+  static const uint8_t binary_fingerprint[16]; // = {0x0C,0x99,0x56,0x34,0xE1,0x4A,0x6D,0xF2,0xE1,0x94,0xAE,0x19,0x9E,0x18,0xBF,0x0B};
 
-  RNAProperty() : identifier(), type(0), length(0) {
+  RNAProperty() : identifier(), type(0), subtype(0), length(0) {
   }
 
   virtual ~RNAProperty() throw() {}
 
   std::string identifier;
   int16_t type;
+  int16_t subtype;
   int16_t length;
   RNAPropertyData data;
 
@@ -371,6 +373,11 @@ class RNAProperty {
   void __set_type(const int16_t val) {
     type = val;
     __isset.type = true;
+  }
+
+  void __set_subtype(const int16_t val) {
+    subtype = val;
+    __isset.subtype = true;
   }
 
   void __set_length(const int16_t val) {
@@ -392,6 +399,10 @@ class RNAProperty {
     if (__isset.type != rhs.__isset.type)
       return false;
     else if (__isset.type && !(type == rhs.type))
+      return false;
+    if (__isset.subtype != rhs.__isset.subtype)
+      return false;
+    else if (__isset.subtype && !(subtype == rhs.subtype))
       return false;
     if (__isset.length != rhs.__isset.length)
       return false;
@@ -956,8 +967,8 @@ typedef struct _WmOp__isset {
 class WmOp {
  public:
 
-  static const char* ascii_fingerprint; // = "AB911F48FB7D3A4E09B40095B0555891";
-  static const uint8_t binary_fingerprint[16]; // = {0xAB,0x91,0x1F,0x48,0xFB,0x7D,0x3A,0x4E,0x09,0xB4,0x00,0x95,0xB0,0x55,0x58,0x91};
+  static const char* ascii_fingerprint; // = "AE532D7E4C15DC24AD6BC97D00231A85";
+  static const uint8_t binary_fingerprint[16]; // = {0xAE,0x53,0x2D,0x7E,0x4C,0x15,0xDC,0x24,0xAD,0x6B,0xC9,0x7D,0x00,0x23,0x1A,0x85};
 
   WmOp() : operatorId(), pythonRepresentation(), screenshotHash(), repeat(0), retval(0) {
   }
@@ -1459,8 +1470,8 @@ typedef struct _Assignment__isset {
 class Assignment {
  public:
 
-  static const char* ascii_fingerprint; // = "44180693FB0F21CEEDFB2E7C7E7787FA";
-  static const uint8_t binary_fingerprint[16]; // = {0x44,0x18,0x06,0x93,0xFB,0x0F,0x21,0xCE,0xED,0xFB,0x2E,0x7C,0x7E,0x77,0x87,0xFA};
+  static const char* ascii_fingerprint; // = "A734246EA62A545F141C4CB7810D5F07";
+  static const uint8_t binary_fingerprint[16]; // = {0xA7,0x34,0x24,0x6E,0xA6,0x2A,0x54,0x5F,0x14,0x1C,0x4C,0xB7,0x81,0x0D,0x5F,0x07};
 
   Assignment() : pythonRepresentation() {
   }
@@ -1520,8 +1531,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "260DAA6AA83F256728722130D7797C96";
-  static const uint8_t binary_fingerprint[16]; // = {0x26,0x0D,0xAA,0x6A,0xA8,0x3F,0x25,0x67,0x28,0x72,0x21,0x30,0xD7,0x79,0x7C,0x96};
+  static const char* ascii_fingerprint; // = "9F44036572C3078FDF62B3CD50055F4C";
+  static const uint8_t binary_fingerprint[16]; // = {0x9F,0x44,0x03,0x65,0x72,0xC3,0x07,0x8F,0xDF,0x62,0xB3,0xCD,0x50,0x05,0x5F,0x4C};
 
   Data() {
   }

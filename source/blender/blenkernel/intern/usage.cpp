@@ -162,18 +162,28 @@ namespace usage {
 		updateSettingsP = true;
 	}
 	
-	void Usage::createConnection()
+	bool Usage::createConnection()
 	{
-		// set up new connection
-		boost::shared_ptr<TSocket> newSocket(new TSocket(U.usage_service_host, U.usage_service_port));
-		boost::shared_ptr<TTransport> newTransport(new TFramedTransport(newSocket));
-		boost::shared_ptr<TProtocol> newProtocol(new TBinaryProtocol(newTransport));
-		newTransport->open();
-		client = new wire::TocServiceClient(newProtocol);
-		// transfer ownership of pointers to the singleton
-		socket = newSocket;
-		transport = newTransport;
-		protocol = newProtocol;
+		try {
+			// set up new connection
+			boost::shared_ptr<TSocket> newSocket(new TSocket(U.usage_service_host, U.usage_service_port));
+			boost::shared_ptr<TTransport> newTransport(new TFramedTransport(newSocket));
+			boost::shared_ptr<TProtocol> newProtocol(new TBinaryProtocol(newTransport));
+			newTransport->open();
+			if (!newTransport->isOpen()) throw TException("Can't open transport");
+			client = new wire::TocServiceClient(newProtocol);
+			// transfer ownership of pointers to the singleton
+			socket = newSocket;
+			transport = newTransport;
+			protocol = newProtocol;
+			return true;
+		}
+		catch (TException e) {
+			printf("%s\n", e.what());
+			updateSettings();
+			usleep(1000000);
+			return false;
+		}
 	}
 	
 	void Usage::teardownConnection()
@@ -201,7 +211,8 @@ namespace usage {
 			// Check to see if settings have changed
 			if (updateSettingsP) {
 				teardownConnection();
-				createConnection();
+				if (!createConnection())
+					return;
 				updateSettingsP = false;
 			}
 				
@@ -503,7 +514,7 @@ namespace usage {
 	
 	void Usage::setProperty(wire::data::RNAProperty *thriftProp, bContext *C, PointerRNA* ptr, PropertyRNA* prop)
 	{
-		int type, len, i = 0;
+		int type, subtype, len, i = 0;
 		wire::data::RNAPropertyData thriftPropData;
 		bool setDataP = true;
 		char *cstring = NULL;
@@ -511,10 +522,12 @@ namespace usage {
 		const char* arg_name = RNA_property_identifier(prop);
 		
 		type = RNA_property_type(prop);
+		subtype = RNA_property_subtype(prop);
 		len = RNA_property_array_length(ptr, prop);
 		
 		thriftProp->__set_identifier(std::string(arg_name));
 		thriftProp->__set_type(type);
+		thriftProp->__set_subtype(subtype);
 		thriftProp->__set_length(len);
 		
 		switch (type) {
