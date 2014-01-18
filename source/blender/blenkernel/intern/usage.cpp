@@ -501,6 +501,156 @@ namespace usage {
 		return ctx;
 	}
 	
+	void Usage::setProperty(wire::data::RNAProperty *thriftProp, bContext *C, PointerRNA* ptr, PropertyRNA* prop)
+	{
+		int type, len, i = 0;
+		wire::data::RNAPropertyData thriftPropData;
+		bool setDataP = true;
+		char *cstring = NULL;
+		
+		const char* arg_name = RNA_property_identifier(prop);
+		
+		type = RNA_property_type(prop);
+		len = RNA_property_array_length(ptr, prop);
+		
+		thriftProp->__set_identifier(std::string(arg_name));
+		thriftProp->__set_type(type);
+		thriftProp->__set_length(len);
+		
+		switch (type) {
+			case PROP_BOOLEAN:
+				if (len == 0)
+					thriftPropData.__set_valueBoolean(RNA_property_boolean_get(ptr, prop));
+				else {
+					std::vector<bool> l;
+					for (i = 0; i < len; i++)
+						l.push_back(RNA_property_boolean_get_index(ptr, prop, i));
+					thriftPropData.__set_listBoolean(l);
+				}
+				break;
+			case PROP_INT:
+				if (len == 0)
+					thriftPropData.__set_valueInt(RNA_property_int_get(ptr, prop));
+				else {
+					std::vector<int> l;
+					for (i = 0; i < len; i++)
+						l.push_back(RNA_property_int_get_index(ptr, prop, i));
+					thriftPropData.__set_listInt(l);
+				}
+				break;
+			case PROP_FLOAT:
+				if (len == 0)
+					thriftPropData.__set_valueDouble(RNA_property_float_get(ptr, prop));
+				else {
+					std::vector<double> l;
+					for (i = 0; i < len; i++)
+						l.push_back(RNA_property_float_get_index(ptr, prop, i));
+					thriftPropData.__set_listDouble(l);
+				}
+				break;
+			case PROP_STRING:
+			{
+				cstring = RNA_property_string_get_alloc(ptr, prop, NULL, 0, NULL);
+				thriftPropData.__set_valueString(std::string(cstring ? cstring : ""));
+				if (cstring != NULL) {
+					MEM_freeN(cstring);
+					cstring = NULL;
+				}
+				break;
+			}
+			case PROP_ENUM:
+			{
+				const char *identifier;
+				int val = RNA_property_enum_get(ptr, prop);
+				
+				// a set of enums
+				if (RNA_property_flag(prop) & PROP_ENUM_FLAG) {
+					
+					std::set<std::string> s;
+					
+					if (val) {
+						EnumPropertyItem *item = NULL;
+						bool free;
+						
+						// start enum items
+						RNA_property_enum_items(C, ptr, prop, &item, NULL, &free);
+						if (item) {
+							for (; item->identifier; item++) {
+								if (item->identifier[0] && item->value & val) {
+									s.insert(item->identifier);
+								}
+							}
+							
+							if (free)
+								MEM_freeN(item);
+						}
+					}
+					
+					thriftPropData.__set_listEnum(s);
+				}
+				else if (RNA_property_enum_identifier(C, ptr, prop, val, &identifier)) {
+					thriftPropData.__set_valueEnum(std::string(identifier));
+				}
+				else {
+					// Unknown enum, explicitly set the length field to -1
+					setDataP = false;
+					thriftProp->__set_length(-1);
+				}
+				break;
+			}
+			case PROP_POINTER:
+			{
+				// TODO: the pointer can be one of several things...
+				PointerRNA tptr = RNA_property_pointer_get(ptr, prop);
+				cstring = RNA_pointer_as_string(C, ptr, prop, &tptr);
+				thriftPropData.__set_valuePointer(std::string(cstring ? cstring : ""));
+				if (cstring != NULL) {
+					MEM_freeN(cstring);
+					cstring = NULL;
+				}
+				break;
+			}
+			case PROP_COLLECTION:
+			{
+				std::vector<std::string> c;
+				
+				CollectionPropertyIterator collect_iter;
+				
+				i = 0;
+				
+				for (RNA_property_collection_begin(ptr, prop, &collect_iter);
+					 (i < INT_MAX) && collect_iter.valid;
+					 RNA_property_collection_next(&collect_iter), i++)
+				{
+					PointerRNA itemptr = collect_iter.ptr;
+					
+					// now get every prop of the collection
+					// TODO: the pointer can be one of several things...
+					cstring = RNA_pointer_as_string(C, ptr, prop, &itemptr);
+					c.push_back(std::string(cstring ? cstring : NULL));
+					if (cstring != NULL) {
+						MEM_freeN(cstring);
+						cstring = NULL;
+					}
+				}
+				
+				RNA_property_collection_end(&collect_iter);
+				
+				thriftPropData.__set_collection(c);
+				
+				break;
+			}
+			default:
+				thriftProp->__set_type(-1);
+				break;
+		}
+		
+		// Don't set the property's data if we've marked it as such
+		// This happens for example with unknown enums
+		if (setDataP)
+			thriftProp->__set_data(thriftPropData);
+	}
+	
 	void Usage::queueOperator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// TODO: perhaps filter out timer operations
@@ -508,11 +658,9 @@ namespace usage {
 		wire::Message *msg = getNewMessage();
 		wire::data::WmOp thriftOp;
 		
-		PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
-		PropertyRNA *prop;
-		int i;
-		const char *arg_name;
 		char *cstring = NULL;
+		
+		PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
 		
 		std::vector<wire::data::RNAProperty> thriftOpProperties;
 		
@@ -566,153 +714,8 @@ namespace usage {
 		// set properties
 		RNA_PROP_BEGIN (op->ptr, propptr, iterprop)
 		{
-			int type, len;
 			wire::data::RNAProperty thriftProp;
-			wire::data::RNAPropertyData thriftPropData;
-			bool setDataP = true;
-			
-			prop = (PropertyRNA*)propptr.data;
-			arg_name = RNA_property_identifier(prop);
-			
-			type = RNA_property_type(prop);
-			len = RNA_property_array_length(op->ptr, prop);
-			
-			thriftProp.__set_identifier(std::string(arg_name));
-			thriftProp.__set_type(type);
-			thriftProp.__set_length(len);
-			
-			switch (type) {
-				case PROP_BOOLEAN:
-					if (len == 0)
-						thriftPropData.__set_valueBoolean(RNA_property_boolean_get(op->ptr, prop));
-					else {
-						std::vector<bool> l;
-						for (i = 0; i < len; i++)
-							l.push_back(RNA_property_boolean_get_index(op->ptr, prop, i));
-						thriftPropData.__set_listBoolean(l);
-					}
-					break;
-				case PROP_INT:
-					if (len == 0)
-						thriftPropData.__set_valueInt(RNA_property_int_get(op->ptr, prop));
-					else {
-						std::vector<int> l;
-						for (i = 0; i < len; i++)
-							l.push_back(RNA_property_int_get_index(op->ptr, prop, i));
-						thriftPropData.__set_listInt(l);
-					}
-					break;
-				case PROP_FLOAT:
-					if (len == 0)
-						thriftPropData.__set_valueDouble(RNA_property_float_get(op->ptr, prop));
-					else {
-						std::vector<double> l;
-						for (i = 0; i < len; i++)
-							l.push_back(RNA_property_float_get_index(op->ptr, prop, i));
-						thriftPropData.__set_listDouble(l);
-					}
-					break;
-				case PROP_STRING:
-				{
-					cstring = RNA_property_string_get_alloc(op->ptr, prop, NULL, 0, NULL);
-					thriftPropData.__set_valueString(std::string(cstring ? cstring : ""));
-					if (cstring != NULL) {
-						MEM_freeN(cstring);
-						cstring = NULL;
-					}
-					break;
-				}
-				case PROP_ENUM:
-				{
-					const char *identifier;
-					int val = RNA_property_enum_get(op->ptr, prop);
-					
-					// a set of enums
-					if (RNA_property_flag(prop) & PROP_ENUM_FLAG) {
-						
-						std::set<std::string> s;
-						
-						if (val) {
-							EnumPropertyItem *item = NULL;
-							bool free;
-							
-							// start enum items
-							RNA_property_enum_items(C, op->ptr, prop, &item, NULL, &free);
-							if (item) {
-								for (; item->identifier; item++) {
-									if (item->identifier[0] && item->value & val) {
-										s.insert(item->identifier);
-									}
-								}
-								
-								if (free)
-									MEM_freeN(item);
-							}
-						}
-						
-						thriftPropData.__set_listEnum(s);
-					}
-					else if (RNA_property_enum_identifier(C, op->ptr, prop, val, &identifier)) {
-						thriftPropData.__set_valueEnum(std::string(identifier));
-					}
-					else {
-						// Unknown enum, explicitly set the length field to -1
-						setDataP = false;
-						thriftProp.__set_length(-1);
-					}
-					break;
-				}
-				case PROP_POINTER:
-				{
-					// TODO: the pointer can be one of several things...
-					PointerRNA tptr = RNA_property_pointer_get(op->ptr, prop);
-					cstring = RNA_pointer_as_string(C, op->ptr, prop, &tptr);
-					thriftPropData.__set_valuePointer(std::string(cstring ? cstring : ""));
-					if (cstring != NULL) {
-						MEM_freeN(cstring);
-						cstring = NULL;
-					}
-					break;
-				}
-				case PROP_COLLECTION:
-				{
-					std::vector<std::string> c;
-					
-					CollectionPropertyIterator collect_iter;
-					
-					i = 0;
-
-					for (RNA_property_collection_begin(op->ptr, prop, &collect_iter);
-						 (i < INT_MAX) && collect_iter.valid;
-						 RNA_property_collection_next(&collect_iter), i++)
-					{
-						PointerRNA itemptr = collect_iter.ptr;
-						
-						// now get every prop of the collection
-						// TODO: the pointer can be one of several things...
-						cstring = RNA_pointer_as_string(C, op->ptr, prop, &itemptr);
-						c.push_back(std::string(cstring ? cstring : NULL));
-						if (cstring != NULL) {
-							MEM_freeN(cstring);
-							cstring = NULL;
-						}
-					}
-					
-					RNA_property_collection_end(&collect_iter);
-					
-					thriftPropData.__set_collection(c);
-					
-					break;
-				}
-				default:
-					thriftProp.__set_type(-1);
-					break;
-			}
-			
-			// Don't set the property's data if we've marked it as such
-			// This happens for example with unknown enums
-			if (setDataP)
-				thriftProp.__set_data(thriftPropData);
+			setProperty(&thriftProp, C, op->ptr, (PropertyRNA*)propptr.data);
 			thriftOpProperties.push_back(thriftProp);
 		}
 		RNA_PROP_END;
@@ -823,9 +826,23 @@ namespace usage {
 			MEM_freeN(buf);
 		}
 		
-		if (ptr->type) {
-			printf("identifier: %s\n ", RNA_struct_identifier(ptr->type));
-		}
+//		if (ptr->type) {
+//			printf("srna id: %s\n ", RNA_struct_identifier(ptr->type));
+//			printf("srna ui_name: %s\n ", RNA_struct_ui_name(ptr->type));
+//			printf("ui_description: %s\n ", RNA_struct_ui_description(ptr->type));
+//			
+//			printf("prop id: %s\n", RNA_property_identifier(prop));
+//			printf("prop desc: %s\n", RNA_property_description(prop));
+//			
+//			printf("prop type: %i\n", RNA_property_type(prop));
+//			printf("prop subtype: %i\n", RNA_property_subtype(prop));
+//			
+//			printf("prop value string: %s\n", RNA_property_as_string(C, ptr, prop, index, INT_MAX));
+//		}
+		
+		wire::data::RNAProperty thriftProp;
+		setProperty(&thriftProp, C, ptr, prop);
+		as.__set_property(thriftProp);
 		
 		wire::metadata::Metadata metadata;
 		wire::metadata::NoMetadata noMetadata;

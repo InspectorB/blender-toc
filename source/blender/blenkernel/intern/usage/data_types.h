@@ -1451,15 +1451,16 @@ class ButPress {
 void swap(ButPress &a, ButPress &b);
 
 typedef struct _Assignment__isset {
-  _Assignment__isset() : pythonRepresentation(false) {}
+  _Assignment__isset() : pythonRepresentation(false), property(false) {}
   bool pythonRepresentation;
+  bool property;
 } _Assignment__isset;
 
 class Assignment {
  public:
 
-  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
-  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+  static const char* ascii_fingerprint; // = "44180693FB0F21CEEDFB2E7C7E7787FA";
+  static const uint8_t binary_fingerprint[16]; // = {0x44,0x18,0x06,0x93,0xFB,0x0F,0x21,0xCE,0xED,0xFB,0x2E,0x7C,0x7E,0x77,0x87,0xFA};
 
   Assignment() : pythonRepresentation() {
   }
@@ -1467,6 +1468,7 @@ class Assignment {
   virtual ~Assignment() throw() {}
 
   std::string pythonRepresentation;
+  RNAProperty property;
 
   _Assignment__isset __isset;
 
@@ -1475,11 +1477,20 @@ class Assignment {
     __isset.pythonRepresentation = true;
   }
 
+  void __set_property(const RNAProperty& val) {
+    property = val;
+    __isset.property = true;
+  }
+
   bool operator == (const Assignment & rhs) const
   {
     if (__isset.pythonRepresentation != rhs.__isset.pythonRepresentation)
       return false;
     else if (__isset.pythonRepresentation && !(pythonRepresentation == rhs.pythonRepresentation))
+      return false;
+    if (__isset.property != rhs.__isset.property)
+      return false;
+    else if (__isset.property && !(property == rhs.property))
       return false;
     return true;
   }
@@ -1509,8 +1520,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "00CC7CF4894E233B5F2C742AD7AC6085";
-  static const uint8_t binary_fingerprint[16]; // = {0x00,0xCC,0x7C,0xF4,0x89,0x4E,0x23,0x3B,0x5F,0x2C,0x74,0x2A,0xD7,0xAC,0x60,0x85};
+  static const char* ascii_fingerprint; // = "260DAA6AA83F256728722130D7797C96";
+  static const uint8_t binary_fingerprint[16]; // = {0x26,0x0D,0xAA,0x6A,0xA8,0x3F,0x25,0x67,0x28,0x72,0x21,0x30,0xD7,0x79,0x7C,0x96};
 
   Data() {
   }

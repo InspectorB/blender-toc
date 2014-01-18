@@ -2103,8 +2103,8 @@ void swap(ButPress &a, ButPress &b) {
   (void) b;
 }
 
-const char* Assignment::ascii_fingerprint = "66E694018C17E5B65A59AE8F55CCA3CD";
-const uint8_t Assignment::binary_fingerprint[16] = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+const char* Assignment::ascii_fingerprint = "44180693FB0F21CEEDFB2E7C7E7787FA";
+const uint8_t Assignment::binary_fingerprint[16] = {0x44,0x18,0x06,0x93,0xFB,0x0F,0x21,0xCE,0xED,0xFB,0x2E,0x7C,0x7E,0x77,0x87,0xFA};
 
 uint32_t Assignment::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -2134,6 +2134,14 @@ uint32_t Assignment::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->property.read(iprot);
+          this->__isset.property = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -2155,6 +2163,11 @@ uint32_t Assignment::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeString(this->pythonRepresentation);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.property) {
+    xfer += oprot->writeFieldBegin("property", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->property.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -2163,11 +2176,12 @@ uint32_t Assignment::write(::apache::thrift::protocol::TProtocol* oprot) const {
 void swap(Assignment &a, Assignment &b) {
   using ::std::swap;
   swap(a.pythonRepresentation, b.pythonRepresentation);
+  swap(a.property, b.property);
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "00CC7CF4894E233B5F2C742AD7AC6085";
-const uint8_t Data::binary_fingerprint[16] = {0x00,0xCC,0x7C,0xF4,0x89,0x4E,0x23,0x3B,0x5F,0x2C,0x74,0x2A,0xD7,0xAC,0x60,0x85};
+const char* Data::ascii_fingerprint = "260DAA6AA83F256728722130D7797C96";
+const uint8_t Data::binary_fingerprint[16] = {0x26,0x0D,0xAA,0x6A,0xA8,0x3F,0x25,0x67,0x28,0x72,0x21,0x30,0xD7,0x79,0x7C,0x96};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 

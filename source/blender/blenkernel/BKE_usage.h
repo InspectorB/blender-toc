@@ -95,6 +95,7 @@ namespace usage {
 		wire::Message *getNewMessage();
 		std::string p2s(void *p);
 		wire::data::Context *getNewContext(const struct bContext *C);
+		void setProperty(wire::data::RNAProperty *thriftProp, bContext *C, PointerRNA* ptr, PropertyRNA* prop);
 		
 		void handleQueue();
 		
