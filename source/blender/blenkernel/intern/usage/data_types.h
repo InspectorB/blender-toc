@@ -48,7 +48,7 @@ class NoData {
 void swap(NoData &a, NoData &b);
 
 typedef struct _SessionStart__isset {
-  _SessionStart__isset() : properties(false), blender_version(false), blender_subversion(false), os(false), os_version(false), resolution_x(false), resolution_y(false), gui(false) {}
+  _SessionStart__isset() : properties(false), blender_version(false), blender_subversion(false), os(false), os_version(false), resolution_x(false), resolution_y(false), gui(false), num_displays(false) {}
   bool properties;
   bool blender_version;
   bool blender_subversion;
@@ -57,15 +57,16 @@ typedef struct _SessionStart__isset {
   bool resolution_x;
   bool resolution_y;
   bool gui;
+  bool num_displays;
 } _SessionStart__isset;
 
 class SessionStart {
  public:
 
-  static const char* ascii_fingerprint; // = "156EF29B76E759BBEFED8A8D03EDB600";
-  static const uint8_t binary_fingerprint[16]; // = {0x15,0x6E,0xF2,0x9B,0x76,0xE7,0x59,0xBB,0xEF,0xED,0x8A,0x8D,0x03,0xED,0xB6,0x00};
+  static const char* ascii_fingerprint; // = "5767EA2F8C9144D595D7B4793141F55B";
+  static const uint8_t binary_fingerprint[16]; // = {0x57,0x67,0xEA,0x2F,0x8C,0x91,0x44,0xD5,0x95,0xD7,0xB4,0x79,0x31,0x41,0xF5,0x5B};
 
-  SessionStart() : blender_version(0), blender_subversion(0), os(), os_version(), resolution_x(0), resolution_y(0), gui(0) {
+  SessionStart() : blender_version(0), blender_subversion(0), os(), os_version(), resolution_x(0), resolution_y(0), gui(0), num_displays(0) {
   }
 
   virtual ~SessionStart() throw() {}
@@ -78,6 +79,7 @@ class SessionStart {
   int16_t resolution_x;
   int16_t resolution_y;
   bool gui;
+  int16_t num_displays;
 
   _SessionStart__isset __isset;
 
@@ -121,6 +123,11 @@ class SessionStart {
     __isset.gui = true;
   }
 
+  void __set_num_displays(const int16_t val) {
+    num_displays = val;
+    __isset.num_displays = true;
+  }
+
   bool operator == (const SessionStart & rhs) const
   {
     if (__isset.properties != rhs.__isset.properties)
@@ -154,6 +161,10 @@ class SessionStart {
     if (__isset.gui != rhs.__isset.gui)
       return false;
     else if (__isset.gui && !(gui == rhs.gui))
+      return false;
+    if (__isset.num_displays != rhs.__isset.num_displays)
+      return false;
+    else if (__isset.num_displays && !(num_displays == rhs.num_displays))
       return false;
     return true;
   }
@@ -1531,8 +1542,8 @@ typedef struct _Data__isset {
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "9F44036572C3078FDF62B3CD50055F4C";
-  static const uint8_t binary_fingerprint[16]; // = {0x9F,0x44,0x03,0x65,0x72,0xC3,0x07,0x8F,0xDF,0x62,0xB3,0xCD,0x50,0x05,0x5F,0x4C};
+  static const char* ascii_fingerprint; // = "18AA87C9BEE1DE7ADEC80881D5962E52";
+  static const uint8_t binary_fingerprint[16]; // = {0x18,0xAA,0x87,0xC9,0xBE,0xE1,0xDE,0x7A,0xDE,0xC8,0x08,0x81,0xD5,0x96,0x2E,0x52};
 
   Data() {
   }

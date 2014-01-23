@@ -125,6 +125,13 @@ void wm_get_desktopsize(int *width_r, int *height_r)
 	*height_r = uiheight;
 }
 
+/* return number of screens */
+int wm_get_num_displays()
+{
+	int displays = GHOST_GetNumDisplays(g_system);
+	return displays;
+}
+
 /* keeps offset and size within monitor bounds */
 /* XXX solve dual screen... */
 static void wm_window_check_position(rcti *rect)

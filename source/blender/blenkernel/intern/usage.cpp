@@ -65,6 +65,8 @@ extern "C" {
 
 #include "BKE_context.h"
 #include "BKE_image.h"
+#include "BKE_global.h"
+#include "BKE_blender.h"
 	
 #include "BLI_string_utf8.h"
 #include "BLI_string.h"
@@ -80,27 +82,36 @@ extern "C" {
 #include "IMB_imbuf_types.h"
 	
 #include "UI_interface.h"
+	
+#include "wm_window.h"
+//#include "GHOST_C-api.h"
 }
 
+#include "BKE_usage.h"
+
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <streambuf>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-
-#include "BKE_usage.h"
 
 #include "usage/service_types.h"
 #include "usage/data_types.h"
 #include "usage/metadata_types.h"
 #include "usage/message_types.h"
 
-//using namespace wire;
-//using namespace wire::data;
-//using namespace wire::metadata;
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#ifdef __APPLE__
+#include <CoreServices/CoreServices.h>
+#endif
+#ifdef __linux__
+#include <sys/utsname.h>
+#endif
 
 extern "C" {
 	static void *usage_do_thread(void *callerdata)
@@ -194,7 +205,6 @@ namespace usage {
 	
 	void Usage::doThread()
 	{
-		
 		while(!shutdown) {
 			try {
 				handleQueue();
@@ -520,7 +530,7 @@ namespace usage {
 		int type, subtype, len, i = 0;
 		wire::data::RNAPropertyData thriftPropData;
 		bool setDataP = true;
-		char *cstring = NULL;
+		char *cstr = NULL;
 		
 		const char* arg_name = RNA_property_identifier(prop);
 		
@@ -566,11 +576,11 @@ namespace usage {
 				break;
 			case PROP_STRING:
 			{
-				cstring = RNA_property_string_get_alloc(ptr, prop, NULL, 0, NULL);
-				thriftPropData.__set_valueString(std::string(cstring ? cstring : ""));
-				if (cstring != NULL) {
-					MEM_freeN(cstring);
-					cstring = NULL;
+				cstr = RNA_property_string_get_alloc(ptr, prop, NULL, 0, NULL);
+				thriftPropData.__set_valueString(std::string(cstr ? cstr : ""));
+				if (cstr != NULL) {
+					MEM_freeN(cstr);
+					cstr = NULL;
 				}
 				break;
 			}
@@ -618,11 +628,11 @@ namespace usage {
 			{
 				// TODO: the pointer can be one of several things...
 				PointerRNA tptr = RNA_property_pointer_get(ptr, prop);
-				cstring = RNA_pointer_as_string(C, ptr, prop, &tptr);
-				thriftPropData.__set_valuePointer(std::string(cstring ? cstring : ""));
-				if (cstring != NULL) {
-					MEM_freeN(cstring);
-					cstring = NULL;
+				cstr = RNA_pointer_as_string(C, ptr, prop, &tptr);
+				thriftPropData.__set_valuePointer(std::string(cstr ? cstr : ""));
+				if (cstr != NULL) {
+					MEM_freeN(cstr);
+					cstr = NULL;
 				}
 				break;
 			}
@@ -642,11 +652,11 @@ namespace usage {
 					
 					// now get every prop of the collection
 					// TODO: the pointer can be one of several things...
-					cstring = RNA_pointer_as_string(C, ptr, prop, &itemptr);
-					c.push_back(std::string(cstring ? cstring : NULL));
-					if (cstring != NULL) {
-						MEM_freeN(cstring);
-						cstring = NULL;
+					cstr = RNA_pointer_as_string(C, ptr, prop, &itemptr);
+					c.push_back(std::string(cstr ? cstr : NULL));
+					if (cstr != NULL) {
+						MEM_freeN(cstr);
+						cstr = NULL;
 					}
 				}
 				
@@ -675,7 +685,7 @@ namespace usage {
 			wire::Message *msg = getNewMessage();
 			wire::data::WmOp thriftOp;
 			
-			char *cstring = NULL;
+			char *cstr = NULL;
 			
 			PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
 			
@@ -702,10 +712,10 @@ namespace usage {
 			
 			// create op
 			thriftOp.__set_operatorId(std::string(op->idname));
-			cstring = WM_operator_pystring(C, op, true, true);
-			thriftOp.__set_pythonRepresentation(std::string(cstring ? cstring : ""));
-			MEM_freeN(cstring);
-			cstring = NULL;
+			cstr = WM_operator_pystring(C, op, true, true);
+			thriftOp.__set_pythonRepresentation(std::string(cstr ? cstr : ""));
+			MEM_freeN(cstr);
+			cstr = NULL;
 			
 			thriftOp.__set_repeat(repeat);
 			thriftOp.__set_retval(retval);
@@ -865,6 +875,103 @@ namespace usage {
 		}
 	}
 	
+	void Usage::queueStart()
+	{
+		if (enabled) {
+			wire::Message *msg = getNewMessage();
+			wire::data::SessionStart ss;
+			
+			ss.__set_gui(!G.background);
+			
+			/* Set OS version information */
+#ifdef _WIN32 // also defined if win64
+			ss.__set_os("Windows");
+			{
+				std::stringstream ver;
+				OSVERSIONINFO vi;
+				memset (&vi, 0, sizeof(vi));
+				vi.dwOSVersionInfoSize = sizeof(vi);
+				GetVersionEx(&vi);
+				
+				ver	<< vi.dwPlatformId		<< "."
+					<< vi.dwMajorVersion	<< "."
+					<< vi.dwMinorVersion	<< "."
+					<< vi.dwBuildNumber		<< "."
+					<< " (" << vi.szCSDVersion << ")";
+				ss.__set_os_version(ver.str());
+			}
+#endif
+#ifdef __APPLE__
+			ss.__set_os("MacOSX");
+			{
+				std::stringstream ver;
+				SInt32 majorVersion, minorVersion, bugFixVersion;
+				Gestalt(gestaltSystemVersionMajor, &majorVersion);
+				Gestalt(gestaltSystemVersionMinor, &minorVersion);
+				Gestalt(gestaltSystemVersionBugFix, &bugFixVersion);
+				
+				ver << majorVersion << "." << minorVersion << "." << bugFixVersion;
+				ss.__set_os_version(ver.str());
+			}
+#endif
+#ifdef __linux__
+			ss.__set_os("Linux");
+			{
+				struct utsname unameData;
+				if (!uname(&unameData)) {
+					std::stringstream ver;
+					ver << unameData.sysname << " - "
+						<< unameData.release << " - "
+						<< unameData.version;
+					ss.__set_os_version(ver.str());
+				} else {
+					ss.__set_os_version("unknown");
+				}
+			}
+#endif
+#ifdef __NetBSD__
+			ss.__set_os("NetBSD");
+			ss.__set_os_version("unknown");
+#endif
+#ifdef __OpenBSD__
+			ss.__set_os("OpenBSD");
+			ss.__set_os_version("unknown");
+#endif
+#ifdef __FreeBSD__
+			ss.__set_os("FreeBSD");
+			ss.__set_os_version("unknown");
+#endif
+			
+			/* Set Blender version information */
+			ss.__set_blender_version(BLENDER_VERSION);
+			ss.__set_blender_subversion(BLENDER_SUBVERSION);
+			
+			
+			/* Set display information */
+			if (!G.background) {
+				int dispwidth;
+				int dispheight;
+
+				ss.__set_num_displays(wm_get_num_displays());
+				
+				wm_get_desktopsize(&dispwidth, &dispheight);
+				ss.__set_resolution_x(dispwidth);
+				ss.__set_resolution_y(dispheight);
+			}
+			
+			wire::metadata::Metadata metadata;
+			wire::metadata::NoMetadata noMetadata;
+			metadata.__set_noMetadata(noMetadata);
+			msg->__set_metadata(metadata);
+			
+			wire::data::Data data;
+			data.__set_sessionStart(ss);
+			msg->__set_data(data);
+			
+			BLI_thread_queue_push(messageQueue, msg);
+		}
+	}
+	
 } /* namespace */
 
 /* C interface */
@@ -893,12 +1000,17 @@ extern "C" {
 		usage::Usage::getInstance().queueAssignment(C, ptr, prop, index);
 	}
 	
+	void BKE_usage_queue_start(void)
+	{
+		usage::Usage::getInstance().queueStart();
+	}
+	
 	void BKE_usage_update_settings(void)
 	{
 		usage::Usage::getInstance().updateSettings();
 	}
 	
-	void BKE_usage_shutdown()
+	void BKE_usage_shutdown(void)
 	{
 		usage::Usage::getInstance().free();
 	}

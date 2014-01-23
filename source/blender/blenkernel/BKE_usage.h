@@ -43,6 +43,8 @@ extern "C" {
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 
+#include <boost/uuid/uuid_generators.hpp>
+
 #include "intern/usage/message_types.h"
 #include "intern/usage/data_types.h"
 
@@ -110,6 +112,7 @@ namespace usage {
 		void queueEvent(bContext *C, const wmEvent *ev);
 		void queueButtonPress(bContext *C, uiBut *but);
 		void queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index);
+		void queueStart();
 		void free();
 	};
 	
@@ -127,11 +130,13 @@ extern "C" {
 	struct PointerRNA;
 	struct PropertyRNA;
 		
-	void BKE_usage_update_settings(void);
 	void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int retval, int repeat);
 	void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
 	void BKE_usage_queue_button(struct bContext *C, struct uiBut *but);
 	void BKE_usage_queue_assignment(struct bContext *C, struct PointerRNA *ptr, struct PropertyRNA *prop, int index);
+	void BKE_usage_queue_start(void);
+	
+	void BKE_usage_update_settings(void);
 	void BKE_usage_shutdown();
 	
 #endif /* __cplusplus */

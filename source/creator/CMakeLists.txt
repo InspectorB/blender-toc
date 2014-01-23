@@ -1071,6 +1071,14 @@ endif()
 	if(WITH_BULLET AND NOT WITH_SYSTEM_BULLET)
 		list_insert_after(BLENDER_SORTED_LIBS "ge_logic_ngnetwork" "extern_bullet")
 	endif()
+	
+	if(WITH_USAGE)
+		add_definitions(-DWITH_USAGE)
+		list(APPEND INC_SYS
+			${THRIFT_INCLUDE_DIRS}
+			${BOOST_INCLUDE_DIR}
+		)
+	endif()
 
 	foreach(SORTLIB ${BLENDER_SORTED_LIBS})
 		set(REMLIB ${SORTLIB})

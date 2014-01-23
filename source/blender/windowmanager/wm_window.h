@@ -41,6 +41,7 @@ void		wm_ghost_exit(void);
 
 void wm_get_screensize(int *width_r, int *height_r);
 void wm_get_desktopsize(int *width_r, int *height_r);
+int wm_get_num_displays(void);
 
 wmWindow	*wm_window_new			(bContext *C);
 void		wm_window_free			(bContext *C, wmWindowManager *wm, wmWindow *win);
