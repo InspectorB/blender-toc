@@ -55,8 +55,8 @@ void swap(NoData &a, NoData &b) {
   (void) b;
 }
 
-const char* SessionStart::ascii_fingerprint = "5767EA2F8C9144D595D7B4793141F55B";
-const uint8_t SessionStart::binary_fingerprint[16] = {0x57,0x67,0xEA,0x2F,0x8C,0x91,0x44,0xD5,0x95,0xD7,0xB4,0x79,0x31,0x41,0xF5,0x5B};
+const char* SessionStart::ascii_fingerprint = "C0FEAB176D1BC788998B3568057292C6";
+const uint8_t SessionStart::binary_fingerprint[16] = {0xC0,0xFE,0xAB,0x17,0x6D,0x1B,0xC7,0x88,0x99,0x8B,0x35,0x68,0x05,0x72,0x92,0xC6};
 
 uint32_t SessionStart::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -103,16 +103,16 @@ uint32_t SessionStart::read(::apache::thrift::protocol::TProtocol* iprot) {
         break;
       case 2:
         if (ftype == ::apache::thrift::protocol::T_I16) {
-          xfer += iprot->readI16(this->blender_version);
-          this->__isset.blender_version = true;
+          xfer += iprot->readI16(this->blenderVersion);
+          this->__isset.blenderVersion = true;
         } else {
           xfer += iprot->skip(ftype);
         }
         break;
       case 3:
         if (ftype == ::apache::thrift::protocol::T_I16) {
-          xfer += iprot->readI16(this->blender_subversion);
-          this->__isset.blender_subversion = true;
+          xfer += iprot->readI16(this->blenderSubversion);
+          this->__isset.blenderSubversion = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -127,24 +127,24 @@ uint32_t SessionStart::read(::apache::thrift::protocol::TProtocol* iprot) {
         break;
       case 5:
         if (ftype == ::apache::thrift::protocol::T_STRING) {
-          xfer += iprot->readString(this->os_version);
-          this->__isset.os_version = true;
+          xfer += iprot->readString(this->osVersion);
+          this->__isset.osVersion = true;
         } else {
           xfer += iprot->skip(ftype);
         }
         break;
       case 6:
         if (ftype == ::apache::thrift::protocol::T_I16) {
-          xfer += iprot->readI16(this->resolution_x);
-          this->__isset.resolution_x = true;
+          xfer += iprot->readI16(this->resolutionX);
+          this->__isset.resolutionX = true;
         } else {
           xfer += iprot->skip(ftype);
         }
         break;
       case 7:
         if (ftype == ::apache::thrift::protocol::T_I16) {
-          xfer += iprot->readI16(this->resolution_y);
-          this->__isset.resolution_y = true;
+          xfer += iprot->readI16(this->resolutionY);
+          this->__isset.resolutionY = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -159,8 +159,16 @@ uint32_t SessionStart::read(::apache::thrift::protocol::TProtocol* iprot) {
         break;
       case 9:
         if (ftype == ::apache::thrift::protocol::T_I16) {
-          xfer += iprot->readI16(this->num_displays);
-          this->__isset.num_displays = true;
+          xfer += iprot->readI16(this->numDisplays);
+          this->__isset.numDisplays = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 10:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->sessionKey);
+          this->__isset.sessionKey = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -195,14 +203,14 @@ uint32_t SessionStart::write(::apache::thrift::protocol::TProtocol* oprot) const
     }
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.blender_version) {
-    xfer += oprot->writeFieldBegin("blender_version", ::apache::thrift::protocol::T_I16, 2);
-    xfer += oprot->writeI16(this->blender_version);
+  if (this->__isset.blenderVersion) {
+    xfer += oprot->writeFieldBegin("blenderVersion", ::apache::thrift::protocol::T_I16, 2);
+    xfer += oprot->writeI16(this->blenderVersion);
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.blender_subversion) {
-    xfer += oprot->writeFieldBegin("blender_subversion", ::apache::thrift::protocol::T_I16, 3);
-    xfer += oprot->writeI16(this->blender_subversion);
+  if (this->__isset.blenderSubversion) {
+    xfer += oprot->writeFieldBegin("blenderSubversion", ::apache::thrift::protocol::T_I16, 3);
+    xfer += oprot->writeI16(this->blenderSubversion);
     xfer += oprot->writeFieldEnd();
   }
   if (this->__isset.os) {
@@ -210,19 +218,19 @@ uint32_t SessionStart::write(::apache::thrift::protocol::TProtocol* oprot) const
     xfer += oprot->writeString(this->os);
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.os_version) {
-    xfer += oprot->writeFieldBegin("os_version", ::apache::thrift::protocol::T_STRING, 5);
-    xfer += oprot->writeString(this->os_version);
+  if (this->__isset.osVersion) {
+    xfer += oprot->writeFieldBegin("osVersion", ::apache::thrift::protocol::T_STRING, 5);
+    xfer += oprot->writeString(this->osVersion);
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.resolution_x) {
-    xfer += oprot->writeFieldBegin("resolution_x", ::apache::thrift::protocol::T_I16, 6);
-    xfer += oprot->writeI16(this->resolution_x);
+  if (this->__isset.resolutionX) {
+    xfer += oprot->writeFieldBegin("resolutionX", ::apache::thrift::protocol::T_I16, 6);
+    xfer += oprot->writeI16(this->resolutionX);
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.resolution_y) {
-    xfer += oprot->writeFieldBegin("resolution_y", ::apache::thrift::protocol::T_I16, 7);
-    xfer += oprot->writeI16(this->resolution_y);
+  if (this->__isset.resolutionY) {
+    xfer += oprot->writeFieldBegin("resolutionY", ::apache::thrift::protocol::T_I16, 7);
+    xfer += oprot->writeI16(this->resolutionY);
     xfer += oprot->writeFieldEnd();
   }
   if (this->__isset.gui) {
@@ -230,9 +238,14 @@ uint32_t SessionStart::write(::apache::thrift::protocol::TProtocol* oprot) const
     xfer += oprot->writeBool(this->gui);
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.num_displays) {
-    xfer += oprot->writeFieldBegin("num_displays", ::apache::thrift::protocol::T_I16, 9);
-    xfer += oprot->writeI16(this->num_displays);
+  if (this->__isset.numDisplays) {
+    xfer += oprot->writeFieldBegin("numDisplays", ::apache::thrift::protocol::T_I16, 9);
+    xfer += oprot->writeI16(this->numDisplays);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.sessionKey) {
+    xfer += oprot->writeFieldBegin("sessionKey", ::apache::thrift::protocol::T_STRING, 10);
+    xfer += oprot->writeString(this->sessionKey);
     xfer += oprot->writeFieldEnd();
   }
   xfer += oprot->writeFieldStop();
@@ -243,14 +256,78 @@ uint32_t SessionStart::write(::apache::thrift::protocol::TProtocol* oprot) const
 void swap(SessionStart &a, SessionStart &b) {
   using ::std::swap;
   swap(a.properties, b.properties);
-  swap(a.blender_version, b.blender_version);
-  swap(a.blender_subversion, b.blender_subversion);
+  swap(a.blenderVersion, b.blenderVersion);
+  swap(a.blenderSubversion, b.blenderSubversion);
   swap(a.os, b.os);
-  swap(a.os_version, b.os_version);
-  swap(a.resolution_x, b.resolution_x);
-  swap(a.resolution_y, b.resolution_y);
+  swap(a.osVersion, b.osVersion);
+  swap(a.resolutionX, b.resolutionX);
+  swap(a.resolutionY, b.resolutionY);
   swap(a.gui, b.gui);
-  swap(a.num_displays, b.num_displays);
+  swap(a.numDisplays, b.numDisplays);
+  swap(a.sessionKey, b.sessionKey);
+  swap(a.__isset, b.__isset);
+}
+
+const char* SessionEnd::ascii_fingerprint = "66E694018C17E5B65A59AE8F55CCA3CD";
+const uint8_t SessionEnd::binary_fingerprint[16] = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+uint32_t SessionEnd::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->sessionKey);
+          this->__isset.sessionKey = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t SessionEnd::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("SessionEnd");
+
+  if (this->__isset.sessionKey) {
+    xfer += oprot->writeFieldBegin("sessionKey", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->sessionKey);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(SessionEnd &a, SessionEnd &b) {
+  using ::std::swap;
+  swap(a.sessionKey, b.sessionKey);
   swap(a.__isset, b.__isset);
 }
 
@@ -2208,8 +2285,8 @@ void swap(Assignment &a, Assignment &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "18AA87C9BEE1DE7ADEC80881D5962E52";
-const uint8_t Data::binary_fingerprint[16] = {0x18,0xAA,0x87,0xC9,0xBE,0xE1,0xDE,0x7A,0xDE,0xC8,0x08,0x81,0xD5,0x96,0x2E,0x52};
+const char* Data::ascii_fingerprint = "15EFC87A88FA714BE1146C9FC269A3B3";
+const uint8_t Data::binary_fingerprint[16] = {0x15,0xEF,0xC8,0x7A,0x88,0xFA,0x71,0x4B,0xE1,0x14,0x6C,0x9F,0xC2,0x69,0xA3,0xB3};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -2279,6 +2356,14 @@ uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 7:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->sessionEnd.read(iprot);
+          this->__isset.sessionEnd = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -2325,6 +2410,11 @@ uint32_t Data::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += this->assignment.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.sessionEnd) {
+    xfer += oprot->writeFieldBegin("sessionEnd", ::apache::thrift::protocol::T_STRUCT, 7);
+    xfer += this->sessionEnd.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -2338,6 +2428,7 @@ void swap(Data &a, Data &b) {
   swap(a.wmEv, b.wmEv);
   swap(a.butPress, b.butPress);
   swap(a.assignment, b.assignment);
+  swap(a.sessionEnd, b.sessionEnd);
   swap(a.__isset, b.__isset);
 }
 

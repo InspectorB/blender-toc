@@ -138,6 +138,8 @@ namespace usage {
 		im_format.jp2_codec = R_IMF_JP2_CODEC_JP2;
 		im_format.quality = 50;
 		
+		sessionKey = generateUUID();
+		
 		messageQueue = BLI_thread_queue_init();
 		screenshotQueue = BLI_thread_queue_init();
 		BLI_init_threads(&threads, &usage_do_thread, 1);
@@ -152,8 +154,31 @@ namespace usage {
 	
 	void Usage::free()
 	{
+		// Give the queue some time to send last messages
+		if (enabled && !emptyQueues() && transport->isOpen()) {
+			long startTS = getTimestamp();
+			long currentTS = startTS;
+			while (currentTS - startTS < 60000 && !emptyQueues()) { // 1 minute
+				usleep(1000000); // 1 second
+				currentTS = getTimestamp();
+			}
+		}
+		
+		// Shut down
 		shutdown = true;
 		BLI_end_threads(&threads);
+		
+		while (BLI_thread_queue_size(messageQueue) > 0) {
+			wire::Message *msg = (wire::Message*)BLI_thread_queue_pop(messageQueue);
+			delete msg;
+		}
+		
+		while (BLI_thread_queue_size(screenshotQueue) > 0) {
+			ScreenshotQueueItem *sqi = (ScreenshotQueueItem*)BLI_thread_queue_pop(screenshotQueue);
+			IMB_freeImBuf(sqi->buf);
+			delete sqi;
+		}
+		
 		BLI_thread_queue_free(messageQueue);
 		BLI_thread_queue_free(screenshotQueue);
 		teardownConnection();
@@ -215,6 +240,13 @@ namespace usage {
 		}
 	}
 	
+	bool Usage::emptyQueues()
+	{
+		return (BLI_thread_queue_size(messageQueue) == 0
+				&&
+				BLI_thread_queue_size(screenshotQueue) == 0);
+	}
+	
 	void Usage::handleQueue()
 	{
 		if (enabled) {
@@ -263,14 +295,14 @@ namespace usage {
 					BLI_delete(filepath, FALSE, FALSE);
 
 					std::string token = U.usage_service_token;
-					wire::Screenshot *sshot = new wire::Screenshot();
-					sshot->__set_hash(sendingScreenshot->hash);
-					sshot->__set_token(token);
-					sshot->__set_screenshot(content);
-					sshot->__set_timestamp(sendingScreenshot->timestamp);
+					wire::Screenshot sshot;
+					sshot.__set_hash(sendingScreenshot->hash);
+					sshot.__set_token(token);
+					sshot.__set_screenshot(content);
+					sshot.__set_timestamp(sendingScreenshot->timestamp);
 					
-					client->sendScreenshot(*sshot);
-					delete sshot;
+					client->sendScreenshot(sshot);
+					
 					IMB_freeImBuf(sendingScreenshot->buf);
 					delete sendingScreenshot;
 					sendingScreenshot = NULL;
@@ -370,7 +402,7 @@ namespace usage {
 					}
 				}
 				
-				//MEM_freeN(dumprect);
+				MEM_freeN(dumprect);
 				return ibuf;
 			}
 		}
@@ -677,6 +709,13 @@ namespace usage {
 			thriftProp->__set_data(thriftPropData);
 	}
 	
+	std::string Usage::generateUUID()
+	{
+		// prepare uuid
+		boost::uuids::uuid uuid = uuidGenerator();
+		return boost::lexical_cast<std::string>(uuid);
+	}
+	
 	void Usage::queueOperator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// TODO: perhaps filter out timer operations
@@ -686,17 +725,14 @@ namespace usage {
 			wire::data::WmOp thriftOp;
 			
 			char *cstr = NULL;
-			
 			PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
-			
 			std::vector<wire::data::RNAProperty> thriftOpProperties;
 			
 			// check if there's a window, otherwise opening a file crashes
 			if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
-				// prepare uuid
-				boost::uuids::uuid uuid = uuidGenerator();
-				const std::string uuidStr = boost::lexical_cast<std::string>(uuid);
-
+				
+				std::string uuidStr = generateUUID();
+				
 				ImBuf *ibuf;
 				ScreenshotQueueItem *sqi;
 						
@@ -882,6 +918,7 @@ namespace usage {
 			wire::data::SessionStart ss;
 			
 			ss.__set_gui(!G.background);
+			ss.__set_sessionKey(sessionKey);
 			
 			/* Set OS version information */
 #ifdef _WIN32 // also defined if win64
@@ -898,7 +935,7 @@ namespace usage {
 					<< vi.dwMinorVersion	<< "."
 					<< vi.dwBuildNumber		<< "."
 					<< " (" << vi.szCSDVersion << ")";
-				ss.__set_os_version(ver.str());
+				ss.__set_osVersion(ver.str());
 			}
 #endif
 #ifdef __APPLE__
@@ -911,7 +948,7 @@ namespace usage {
 				Gestalt(gestaltSystemVersionBugFix, &bugFixVersion);
 				
 				ver << majorVersion << "." << minorVersion << "." << bugFixVersion;
-				ss.__set_os_version(ver.str());
+				ss.__set_osVersion(ver.str());
 			}
 #endif
 #ifdef __linux__
@@ -923,28 +960,28 @@ namespace usage {
 					ver << unameData.sysname << " - "
 						<< unameData.release << " - "
 						<< unameData.version;
-					ss.__set_os_version(ver.str());
+					ss.__set_osVersion(ver.str());
 				} else {
-					ss.__set_os_version("unknown");
+					ss.__set_osVersion("unknown");
 				}
 			}
 #endif
 #ifdef __NetBSD__
 			ss.__set_os("NetBSD");
-			ss.__set_os_version("unknown");
+			ss.__set_osVersion("unknown");
 #endif
 #ifdef __OpenBSD__
 			ss.__set_os("OpenBSD");
-			ss.__set_os_version("unknown");
+			ss.__set_osVersion("unknown");
 #endif
 #ifdef __FreeBSD__
 			ss.__set_os("FreeBSD");
-			ss.__set_os_version("unknown");
+			ss.__set_osVersion("unknown");
 #endif
 			
 			/* Set Blender version information */
-			ss.__set_blender_version(BLENDER_VERSION);
-			ss.__set_blender_subversion(BLENDER_SUBVERSION);
+			ss.__set_blenderVersion(BLENDER_VERSION);
+			ss.__set_blenderSubversion(BLENDER_SUBVERSION);
 			
 			
 			/* Set display information */
@@ -952,11 +989,11 @@ namespace usage {
 				int dispwidth;
 				int dispheight;
 
-				ss.__set_num_displays(wm_get_num_displays());
+				ss.__set_numDisplays(wm_get_num_displays());
 				
 				wm_get_desktopsize(&dispwidth, &dispheight);
-				ss.__set_resolution_x(dispwidth);
-				ss.__set_resolution_y(dispheight);
+				ss.__set_resolutionX(dispwidth);
+				ss.__set_resolutionY(dispheight);
 			}
 			
 			wire::metadata::Metadata metadata;
@@ -966,6 +1003,27 @@ namespace usage {
 			
 			wire::data::Data data;
 			data.__set_sessionStart(ss);
+			msg->__set_data(data);
+			
+			BLI_thread_queue_push(messageQueue, msg);
+		}
+	}
+	
+	void Usage::queueEnd()
+	{
+		if (enabled) {
+			wire::Message *msg = getNewMessage();
+			wire::data::SessionEnd se;
+			
+			se.__set_sessionKey(sessionKey);
+			
+			wire::metadata::Metadata metadata;
+			wire::metadata::NoMetadata noMetadata;
+			metadata.__set_noMetadata(noMetadata);
+			msg->__set_metadata(metadata);
+			
+			wire::data::Data data;
+			data.__set_sessionEnd(se);
 			msg->__set_data(data);
 			
 			BLI_thread_queue_push(messageQueue, msg);
@@ -1012,6 +1070,7 @@ extern "C" {
 	
 	void BKE_usage_shutdown(void)
 	{
+		usage::Usage::getInstance().queueEnd();
 		usage::Usage::getInstance().free();
 	}
 }

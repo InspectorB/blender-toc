@@ -48,38 +48,40 @@ class NoData {
 void swap(NoData &a, NoData &b);
 
 typedef struct _SessionStart__isset {
-  _SessionStart__isset() : properties(false), blender_version(false), blender_subversion(false), os(false), os_version(false), resolution_x(false), resolution_y(false), gui(false), num_displays(false) {}
+  _SessionStart__isset() : properties(false), blenderVersion(false), blenderSubversion(false), os(false), osVersion(false), resolutionX(false), resolutionY(false), gui(false), numDisplays(false), sessionKey(false) {}
   bool properties;
-  bool blender_version;
-  bool blender_subversion;
+  bool blenderVersion;
+  bool blenderSubversion;
   bool os;
-  bool os_version;
-  bool resolution_x;
-  bool resolution_y;
+  bool osVersion;
+  bool resolutionX;
+  bool resolutionY;
   bool gui;
-  bool num_displays;
+  bool numDisplays;
+  bool sessionKey;
 } _SessionStart__isset;
 
 class SessionStart {
  public:
 
-  static const char* ascii_fingerprint; // = "5767EA2F8C9144D595D7B4793141F55B";
-  static const uint8_t binary_fingerprint[16]; // = {0x57,0x67,0xEA,0x2F,0x8C,0x91,0x44,0xD5,0x95,0xD7,0xB4,0x79,0x31,0x41,0xF5,0x5B};
+  static const char* ascii_fingerprint; // = "C0FEAB176D1BC788998B3568057292C6";
+  static const uint8_t binary_fingerprint[16]; // = {0xC0,0xFE,0xAB,0x17,0x6D,0x1B,0xC7,0x88,0x99,0x8B,0x35,0x68,0x05,0x72,0x92,0xC6};
 
-  SessionStart() : blender_version(0), blender_subversion(0), os(), os_version(), resolution_x(0), resolution_y(0), gui(0), num_displays(0) {
+  SessionStart() : blenderVersion(0), blenderSubversion(0), os(), osVersion(), resolutionX(0), resolutionY(0), gui(0), numDisplays(0), sessionKey() {
   }
 
   virtual ~SessionStart() throw() {}
 
   std::map<std::string, std::string>  properties;
-  int16_t blender_version;
-  int16_t blender_subversion;
+  int16_t blenderVersion;
+  int16_t blenderSubversion;
   std::string os;
-  std::string os_version;
-  int16_t resolution_x;
-  int16_t resolution_y;
+  std::string osVersion;
+  int16_t resolutionX;
+  int16_t resolutionY;
   bool gui;
-  int16_t num_displays;
+  int16_t numDisplays;
+  std::string sessionKey;
 
   _SessionStart__isset __isset;
 
@@ -88,14 +90,14 @@ class SessionStart {
     __isset.properties = true;
   }
 
-  void __set_blender_version(const int16_t val) {
-    blender_version = val;
-    __isset.blender_version = true;
+  void __set_blenderVersion(const int16_t val) {
+    blenderVersion = val;
+    __isset.blenderVersion = true;
   }
 
-  void __set_blender_subversion(const int16_t val) {
-    blender_subversion = val;
-    __isset.blender_subversion = true;
+  void __set_blenderSubversion(const int16_t val) {
+    blenderSubversion = val;
+    __isset.blenderSubversion = true;
   }
 
   void __set_os(const std::string& val) {
@@ -103,19 +105,19 @@ class SessionStart {
     __isset.os = true;
   }
 
-  void __set_os_version(const std::string& val) {
-    os_version = val;
-    __isset.os_version = true;
+  void __set_osVersion(const std::string& val) {
+    osVersion = val;
+    __isset.osVersion = true;
   }
 
-  void __set_resolution_x(const int16_t val) {
-    resolution_x = val;
-    __isset.resolution_x = true;
+  void __set_resolutionX(const int16_t val) {
+    resolutionX = val;
+    __isset.resolutionX = true;
   }
 
-  void __set_resolution_y(const int16_t val) {
-    resolution_y = val;
-    __isset.resolution_y = true;
+  void __set_resolutionY(const int16_t val) {
+    resolutionY = val;
+    __isset.resolutionY = true;
   }
 
   void __set_gui(const bool val) {
@@ -123,9 +125,14 @@ class SessionStart {
     __isset.gui = true;
   }
 
-  void __set_num_displays(const int16_t val) {
-    num_displays = val;
-    __isset.num_displays = true;
+  void __set_numDisplays(const int16_t val) {
+    numDisplays = val;
+    __isset.numDisplays = true;
+  }
+
+  void __set_sessionKey(const std::string& val) {
+    sessionKey = val;
+    __isset.sessionKey = true;
   }
 
   bool operator == (const SessionStart & rhs) const
@@ -134,37 +141,41 @@ class SessionStart {
       return false;
     else if (__isset.properties && !(properties == rhs.properties))
       return false;
-    if (__isset.blender_version != rhs.__isset.blender_version)
+    if (__isset.blenderVersion != rhs.__isset.blenderVersion)
       return false;
-    else if (__isset.blender_version && !(blender_version == rhs.blender_version))
+    else if (__isset.blenderVersion && !(blenderVersion == rhs.blenderVersion))
       return false;
-    if (__isset.blender_subversion != rhs.__isset.blender_subversion)
+    if (__isset.blenderSubversion != rhs.__isset.blenderSubversion)
       return false;
-    else if (__isset.blender_subversion && !(blender_subversion == rhs.blender_subversion))
+    else if (__isset.blenderSubversion && !(blenderSubversion == rhs.blenderSubversion))
       return false;
     if (__isset.os != rhs.__isset.os)
       return false;
     else if (__isset.os && !(os == rhs.os))
       return false;
-    if (__isset.os_version != rhs.__isset.os_version)
+    if (__isset.osVersion != rhs.__isset.osVersion)
       return false;
-    else if (__isset.os_version && !(os_version == rhs.os_version))
+    else if (__isset.osVersion && !(osVersion == rhs.osVersion))
       return false;
-    if (__isset.resolution_x != rhs.__isset.resolution_x)
+    if (__isset.resolutionX != rhs.__isset.resolutionX)
       return false;
-    else if (__isset.resolution_x && !(resolution_x == rhs.resolution_x))
+    else if (__isset.resolutionX && !(resolutionX == rhs.resolutionX))
       return false;
-    if (__isset.resolution_y != rhs.__isset.resolution_y)
+    if (__isset.resolutionY != rhs.__isset.resolutionY)
       return false;
-    else if (__isset.resolution_y && !(resolution_y == rhs.resolution_y))
+    else if (__isset.resolutionY && !(resolutionY == rhs.resolutionY))
       return false;
     if (__isset.gui != rhs.__isset.gui)
       return false;
     else if (__isset.gui && !(gui == rhs.gui))
       return false;
-    if (__isset.num_displays != rhs.__isset.num_displays)
+    if (__isset.numDisplays != rhs.__isset.numDisplays)
       return false;
-    else if (__isset.num_displays && !(num_displays == rhs.num_displays))
+    else if (__isset.numDisplays && !(numDisplays == rhs.numDisplays))
+      return false;
+    if (__isset.sessionKey != rhs.__isset.sessionKey)
+      return false;
+    else if (__isset.sessionKey && !(sessionKey == rhs.sessionKey))
       return false;
     return true;
   }
@@ -180,6 +191,52 @@ class SessionStart {
 };
 
 void swap(SessionStart &a, SessionStart &b);
+
+typedef struct _SessionEnd__isset {
+  _SessionEnd__isset() : sessionKey(false) {}
+  bool sessionKey;
+} _SessionEnd__isset;
+
+class SessionEnd {
+ public:
+
+  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
+  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+  SessionEnd() : sessionKey() {
+  }
+
+  virtual ~SessionEnd() throw() {}
+
+  std::string sessionKey;
+
+  _SessionEnd__isset __isset;
+
+  void __set_sessionKey(const std::string& val) {
+    sessionKey = val;
+    __isset.sessionKey = true;
+  }
+
+  bool operator == (const SessionEnd & rhs) const
+  {
+    if (__isset.sessionKey != rhs.__isset.sessionKey)
+      return false;
+    else if (__isset.sessionKey && !(sessionKey == rhs.sessionKey))
+      return false;
+    return true;
+  }
+  bool operator != (const SessionEnd &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const SessionEnd & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(SessionEnd &a, SessionEnd &b);
 
 typedef struct _RNAPropertyData__isset {
   _RNAPropertyData__isset() : valueBoolean(false), listBoolean(false), valueInt(false), listInt(false), valueDouble(false), listDouble(false), valueString(false), valueEnum(false), listEnum(false), valuePointer(false), collection(false) {}
@@ -1530,20 +1587,21 @@ class Assignment {
 void swap(Assignment &a, Assignment &b);
 
 typedef struct _Data__isset {
-  _Data__isset() : noData(false), sessionStart(false), wmOp(false), wmEv(false), butPress(false), assignment(false) {}
+  _Data__isset() : noData(false), sessionStart(false), wmOp(false), wmEv(false), butPress(false), assignment(false), sessionEnd(false) {}
   bool noData;
   bool sessionStart;
   bool wmOp;
   bool wmEv;
   bool butPress;
   bool assignment;
+  bool sessionEnd;
 } _Data__isset;
 
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "18AA87C9BEE1DE7ADEC80881D5962E52";
-  static const uint8_t binary_fingerprint[16]; // = {0x18,0xAA,0x87,0xC9,0xBE,0xE1,0xDE,0x7A,0xDE,0xC8,0x08,0x81,0xD5,0x96,0x2E,0x52};
+  static const char* ascii_fingerprint; // = "15EFC87A88FA714BE1146C9FC269A3B3";
+  static const uint8_t binary_fingerprint[16]; // = {0x15,0xEF,0xC8,0x7A,0x88,0xFA,0x71,0x4B,0xE1,0x14,0x6C,0x9F,0xC2,0x69,0xA3,0xB3};
 
   Data() {
   }
@@ -1556,6 +1614,7 @@ class Data {
   WmEv wmEv;
   ButPress butPress;
   Assignment assignment;
+  SessionEnd sessionEnd;
 
   _Data__isset __isset;
 
@@ -1595,6 +1654,12 @@ class Data {
     __isset.assignment = true;
   }
 
+  void __set_sessionEnd(const SessionEnd& val) {
+    sessionEnd = val;
+    __isset = _Data__isset();
+    __isset.sessionEnd = true;
+  }
+
   bool operator == (const Data & rhs) const
   {
     if (__isset.noData != rhs.__isset.noData)
@@ -1620,6 +1685,10 @@ class Data {
     if (__isset.assignment != rhs.__isset.assignment)
       return false;
     else if (__isset.assignment && !(assignment == rhs.assignment))
+      return false;
+    if (__isset.sessionEnd != rhs.__isset.sessionEnd)
+      return false;
+    else if (__isset.sessionEnd && !(sessionEnd == rhs.sessionEnd))
       return false;
     return true;
   }

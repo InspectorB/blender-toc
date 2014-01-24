@@ -76,6 +76,7 @@ namespace usage {
 		bool updateSettingsP;
 		wire::Message *sendingMessage;
 		ScreenshotQueueItem *sendingScreenshot;
+		std::string sessionKey;
 		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
@@ -90,6 +91,7 @@ namespace usage {
 		Usage(Usage const&);
 		void operator=(Usage const&);
 		
+		bool emptyQueues();
 		bool createConnection();
 		void teardownConnection();
 		void read_entire_file(const char *filepath, std::string &str);
@@ -98,6 +100,7 @@ namespace usage {
 		std::string p2s(void *p);
 		wire::data::Context *getNewContext(const struct bContext *C);
 		void setProperty(wire::data::RNAProperty *thriftProp, bContext *C, PointerRNA* ptr, PropertyRNA* prop);
+		std::string generateUUID();
 		
 		void handleQueue();
 		
@@ -113,6 +116,7 @@ namespace usage {
 		void queueButtonPress(bContext *C, uiBut *but);
 		void queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index);
 		void queueStart();
+		void queueEnd();
 		void free();
 	};
 	
