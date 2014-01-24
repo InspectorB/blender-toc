@@ -10,8 +10,8 @@
 
 namespace wire {
 
-const char* Message::ascii_fingerprint = "8C7733BE64AF1A058712892CB62B3453";
-const uint8_t Message::binary_fingerprint[16] = {0x8C,0x77,0x33,0xBE,0x64,0xAF,0x1A,0x05,0x87,0x12,0x89,0x2C,0xB6,0x2B,0x34,0x53};
+const char* Message::ascii_fingerprint = "584F59361718A2293A9485E9D9B45C44";
+const uint8_t Message::binary_fingerprint[16] = {0x58,0x4F,0x59,0x36,0x17,0x18,0xA2,0x29,0x3A,0x94,0x85,0xE9,0xD9,0xB4,0x5C,0x44};
 
 uint32_t Message::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -73,6 +73,14 @@ uint32_t Message::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 6:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->sessionKey);
+          this->__isset.sessionKey = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -114,6 +122,11 @@ uint32_t Message::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeString(this->token);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.sessionKey) {
+    xfer += oprot->writeFieldBegin("sessionKey", ::apache::thrift::protocol::T_STRING, 6);
+    xfer += oprot->writeString(this->sessionKey);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -126,6 +139,7 @@ void swap(Message &a, Message &b) {
   swap(a.user, b.user);
   swap(a.timestamp, b.timestamp);
   swap(a.token, b.token);
+  swap(a.sessionKey, b.sessionKey);
   swap(a.__isset, b.__isset);
 }
 

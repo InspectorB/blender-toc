@@ -443,6 +443,7 @@ namespace usage {
 	{
 		wire::Message *msg = new wire::Message();
 		msg->__set_timestamp(getTimestamp());
+		msg->__set_sessionKey(sessionKey);
 		return msg;
 	}
 	

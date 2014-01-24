@@ -20,21 +20,22 @@
 namespace wire {
 
 typedef struct _Message__isset {
-  _Message__isset() : metadata(false), data(false), user(false), timestamp(false), token(false) {}
+  _Message__isset() : metadata(false), data(false), user(false), timestamp(false), token(false), sessionKey(false) {}
   bool metadata;
   bool data;
   bool user;
   bool timestamp;
   bool token;
+  bool sessionKey;
 } _Message__isset;
 
 class Message {
  public:
 
-  static const char* ascii_fingerprint; // = "8C7733BE64AF1A058712892CB62B3453";
-  static const uint8_t binary_fingerprint[16]; // = {0x8C,0x77,0x33,0xBE,0x64,0xAF,0x1A,0x05,0x87,0x12,0x89,0x2C,0xB6,0x2B,0x34,0x53};
+  static const char* ascii_fingerprint; // = "584F59361718A2293A9485E9D9B45C44";
+  static const uint8_t binary_fingerprint[16]; // = {0x58,0x4F,0x59,0x36,0x17,0x18,0xA2,0x29,0x3A,0x94,0x85,0xE9,0xD9,0xB4,0x5C,0x44};
 
-  Message() : user(0), timestamp(0), token() {
+  Message() : user(0), timestamp(0), token(), sessionKey() {
   }
 
   virtual ~Message() throw() {}
@@ -44,6 +45,7 @@ class Message {
   int64_t user;
   int64_t timestamp;
   std::string token;
+  std::string sessionKey;
 
   _Message__isset __isset;
 
@@ -72,6 +74,11 @@ class Message {
     __isset.token = true;
   }
 
+  void __set_sessionKey(const std::string& val) {
+    sessionKey = val;
+    __isset.sessionKey = true;
+  }
+
   bool operator == (const Message & rhs) const
   {
     if (__isset.metadata != rhs.__isset.metadata)
@@ -93,6 +100,10 @@ class Message {
     if (__isset.token != rhs.__isset.token)
       return false;
     else if (__isset.token && !(token == rhs.token))
+      return false;
+    if (__isset.sessionKey != rhs.__isset.sessionKey)
+      return false;
+    else if (__isset.sessionKey && !(sessionKey == rhs.sessionKey))
       return false;
     return true;
   }
