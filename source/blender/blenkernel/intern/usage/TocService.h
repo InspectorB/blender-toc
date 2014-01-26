@@ -15,8 +15,8 @@ namespace wire {
 class TocServiceIf {
  public:
   virtual ~TocServiceIf() {}
-  virtual void sendMessage(const  ::wire::Message& message) = 0;
-  virtual void sendScreenshot(const  ::wire::Screenshot& screenshot) = 0;
+  virtual void sendMessage(const Message& message) = 0;
+  virtual void sendScreenshot(const Screenshot& screenshot) = 0;
   virtual void ping() = 0;
 };
 
@@ -47,10 +47,10 @@ class TocServiceIfSingletonFactory : virtual public TocServiceIfFactory {
 class TocServiceNull : virtual public TocServiceIf {
  public:
   virtual ~TocServiceNull() {}
-  void sendMessage(const  ::wire::Message& /* message */) {
+  void sendMessage(const Message& /* message */) {
     return;
   }
-  void sendScreenshot(const  ::wire::Screenshot& /* screenshot */) {
+  void sendScreenshot(const Screenshot& /* screenshot */) {
     return;
   }
   void ping() {
@@ -74,11 +74,11 @@ class TocService_sendMessage_args {
 
   virtual ~TocService_sendMessage_args() throw() {}
 
-   ::wire::Message message;
+  Message message;
 
   _TocService_sendMessage_args__isset __isset;
 
-  void __set_message(const  ::wire::Message& val) {
+  void __set_message(const Message& val) {
     message = val;
     __isset.message = true;
   }
@@ -110,7 +110,7 @@ class TocService_sendMessage_pargs {
 
   virtual ~TocService_sendMessage_pargs() throw() {}
 
-  const  ::wire::Message* message;
+  const Message* message;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -218,11 +218,11 @@ class TocService_sendScreenshot_args {
 
   virtual ~TocService_sendScreenshot_args() throw() {}
 
-   ::wire::Screenshot screenshot;
+  Screenshot screenshot;
 
   _TocService_sendScreenshot_args__isset __isset;
 
-  void __set_screenshot(const  ::wire::Screenshot& val) {
+  void __set_screenshot(const Screenshot& val) {
     screenshot = val;
     __isset.screenshot = true;
   }
@@ -254,7 +254,7 @@ class TocService_sendScreenshot_pargs {
 
   virtual ~TocService_sendScreenshot_pargs() throw() {}
 
-  const  ::wire::Screenshot* screenshot;
+  const Screenshot* screenshot;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -473,11 +473,11 @@ class TocServiceClient : virtual public TocServiceIf {
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
-  void sendMessage(const  ::wire::Message& message);
-  void send_sendMessage(const  ::wire::Message& message);
+  void sendMessage(const Message& message);
+  void send_sendMessage(const Message& message);
   void recv_sendMessage();
-  void sendScreenshot(const  ::wire::Screenshot& screenshot);
-  void send_sendScreenshot(const  ::wire::Screenshot& screenshot);
+  void sendScreenshot(const Screenshot& screenshot);
+  void send_sendScreenshot(const Screenshot& screenshot);
   void recv_sendScreenshot();
   void ping();
   void send_ping();
@@ -534,7 +534,7 @@ class TocServiceMultiface : virtual public TocServiceIf {
     ifaces_.push_back(iface);
   }
  public:
-  void sendMessage(const  ::wire::Message& message) {
+  void sendMessage(const Message& message) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
@@ -543,7 +543,7 @@ class TocServiceMultiface : virtual public TocServiceIf {
     ifaces_[i]->sendMessage(message);
   }
 
-  void sendScreenshot(const  ::wire::Screenshot& screenshot) {
+  void sendScreenshot(const Screenshot& screenshot) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {

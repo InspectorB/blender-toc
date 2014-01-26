@@ -457,10 +457,6 @@ if(WITH_USAGE)
 		intern/usage/data_constants.h
 		intern/usage/data_types.cpp
 		intern/usage/data_types.h
-		intern/usage/message_constants.cpp
-		intern/usage/message_constants.h
-		intern/usage/message_types.cpp
-		intern/usage/message_types.h
 		intern/usage/metadata_constants.cpp
 		intern/usage/metadata_constants.h
 		intern/usage/metadata_types.cpp

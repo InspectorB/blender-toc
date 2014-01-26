@@ -101,7 +101,6 @@ extern "C" {
 #include "usage/service_types.h"
 #include "usage/data_types.h"
 #include "usage/metadata_types.h"
-#include "usage/message_types.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -132,7 +131,7 @@ namespace usage {
 		sendingScreenshot = NULL;
 		client = NULL;
 		
-		/*
+		/* For JPEG
 		im_format.planes = R_IMF_PLANES_RGBA;
 		im_format.imtype = R_IMF_IMTYPE_JP2;
 		im_format.depth = R_IMF_CHAN_DEPTH_8;

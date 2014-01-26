@@ -45,7 +45,6 @@ extern "C" {
 
 #include <boost/uuid/uuid_generators.hpp>
 
-#include "intern/usage/message_types.h"
 #include "intern/usage/data_types.h"
 
 #include "intern/usage/TocService.h"

@@ -553,13 +553,13 @@ uint32_t TocService_ping_presult::read(::apache::thrift::protocol::TProtocol* ip
   return xfer;
 }
 
-void TocServiceClient::sendMessage(const  ::wire::Message& message)
+void TocServiceClient::sendMessage(const Message& message)
 {
   send_sendMessage(message);
   recv_sendMessage();
 }
 
-void TocServiceClient::send_sendMessage(const  ::wire::Message& message)
+void TocServiceClient::send_sendMessage(const Message& message)
 {
   int32_t cseqid = 0;
   oprot_->writeMessageBegin("sendMessage", ::apache::thrift::protocol::T_CALL, cseqid);
@@ -615,13 +615,13 @@ void TocServiceClient::recv_sendMessage()
   return;
 }
 
-void TocServiceClient::sendScreenshot(const  ::wire::Screenshot& screenshot)
+void TocServiceClient::sendScreenshot(const Screenshot& screenshot)
 {
   send_sendScreenshot(screenshot);
   recv_sendScreenshot();
 }
 
-void TocServiceClient::send_sendScreenshot(const  ::wire::Screenshot& screenshot)
+void TocServiceClient::send_sendScreenshot(const Screenshot& screenshot)
 {
   int32_t cseqid = 0;
   oprot_->writeMessageBegin("sendScreenshot", ::apache::thrift::protocol::T_CALL, cseqid);

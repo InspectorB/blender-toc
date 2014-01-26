@@ -22,12 +22,12 @@ class TocServiceHandler : virtual public TocServiceIf {
     // Your initialization goes here
   }
 
-  void sendMessage(const  ::wire::Message& message) {
+  void sendMessage(const Message& message) {
     // Your implementation goes here
     printf("sendMessage\n");
   }
 
-  void sendScreenshot(const  ::wire::Screenshot& screenshot) {
+  void sendScreenshot(const Screenshot& screenshot) {
     // Your implementation goes here
     printf("sendScreenshot\n");
   }
