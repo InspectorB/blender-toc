@@ -51,6 +51,9 @@
 #include "BKE_screen.h"
 #include "BKE_report.h"
 #include "BKE_global.h"
+#ifdef WITH_USAGE
+#include "BKE_usage.h"
+#endif
 
 #include "WM_api.h"
 #include "WM_types.h"
@@ -466,6 +469,11 @@ void wm_close_and_free_all(bContext *C, ListBase *wmlist)
 void WM_main(bContext *C)
 {
 	while (1) {
+		
+#ifdef WITH_USAGE
+		/* mark the start of the main loop */
+		BKE_usage_main_prepare();
+#endif
 		
 		/* get events from ghost, handle window events, add to window queues */
 		wm_window_process_events(C); 

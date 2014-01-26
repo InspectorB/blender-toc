@@ -55,7 +55,9 @@
 #include "BKE_report.h"
 #include "BKE_scene.h"
 #include "BKE_screen.h"
+#ifdef WITH_USAGE
 #include "BKE_usage.h"
+#endif
 
 #include "BKE_sound.h"
 

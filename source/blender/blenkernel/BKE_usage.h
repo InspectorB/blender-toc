@@ -77,6 +77,9 @@ namespace usage {
 		wire::Message *sendingMessage;
 		ScreenshotQueueItem *sendingScreenshot;
 		std::string sessionKey;
+		std::string frameUUID;
+		wmWindow *frameWin;
+		bool takeScreenshot;
 		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
@@ -104,13 +107,15 @@ namespace usage {
 		
 		void handleQueue();
 		
-		static ImBuf* take_screenshot(bContext *C, const bool crop);
+		ImBuf* take_screenshot(bContext *C, const bool crop);
 		
 	public:
 		static Usage& getInstance();
 		void updateSettings();
 		void ping();
 		void doThread();
+		void mainPrepare();
+		void mainTakeScreenshot(bContext *C);
 		void queueOperator(bContext *C, wmOperator *op, int retval, int repeat);
 		void queueEvent(bContext *C, const wmEvent *ev);
 		void queueButtonPress(bContext *C, uiBut *but);
@@ -134,6 +139,9 @@ extern "C" {
 	struct PointerRNA;
 	struct PropertyRNA;
 		
+	void BKE_usage_main_prepare(void);
+	void BKE_usage_main_take_screenshot(struct bContext *C);
+	
 	void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int retval, int repeat);
 	void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
 	void BKE_usage_queue_button(struct bContext *C, struct uiBut *but);

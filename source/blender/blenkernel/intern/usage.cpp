@@ -132,11 +132,18 @@ namespace usage {
 		sendingScreenshot = NULL;
 		client = NULL;
 		
+		/*
 		im_format.planes = R_IMF_PLANES_RGBA;
 		im_format.imtype = R_IMF_IMTYPE_JP2;
 		im_format.depth = R_IMF_CHAN_DEPTH_8;
 		im_format.jp2_codec = R_IMF_JP2_CODEC_JP2;
 		im_format.quality = 50;
+		 */
+		im_format.planes = R_IMF_PLANES_RGB;
+		im_format.imtype = R_IMF_IMTYPE_PNG;
+		im_format.depth = R_IMF_CHAN_DEPTH_8;
+		im_format.quality = 90;
+		im_format.compress = 15;
 		
 		sessionKey = generateUUID();
 		
@@ -175,7 +182,10 @@ namespace usage {
 		
 		while (BLI_thread_queue_size(screenshotQueue) > 0) {
 			ScreenshotQueueItem *sqi = (ScreenshotQueueItem*)BLI_thread_queue_pop(screenshotQueue);
-			IMB_freeImBuf(sqi->buf);
+			if (sqi->buf) {
+				if (sqi->buf->rect) MEM_freeN(sqi->buf->rect);
+				IMB_freeImBuf(sqi->buf);
+			}
 			delete sqi;
 		}
 		
@@ -238,6 +248,29 @@ namespace usage {
 				updateSettings();
 			}
 		}
+	}
+	
+	void Usage::mainPrepare()
+	{
+		frameUUID = generateUUID();
+	}
+	
+	void Usage::mainTakeScreenshot(bContext *C)
+	{
+		// N.B. make sure that we have the right window
+		if (takeScreenshot && frameWin == CTX_wm_window(C)) {
+			 ImBuf *ibuf;
+			 ScreenshotQueueItem *sqi;
+			 
+			 ibuf = take_screenshot(C, 0);
+			 sqi = new ScreenshotQueueItem;
+			 sqi->buf = ibuf;
+			 sqi->hash = frameUUID;
+			 sqi->timestamp = getTimestamp();
+			 BLI_thread_queue_push(screenshotQueue, sqi);
+		}
+		
+		takeScreenshot = false;
 	}
 	
 	bool Usage::emptyQueues()
@@ -303,6 +336,7 @@ namespace usage {
 					
 					client->sendScreenshot(sshot);
 					
+					if (sendingScreenshot->buf->rect) MEM_freeN(sendingScreenshot->buf->rect);
 					IMB_freeImBuf(sendingScreenshot->buf);
 					delete sendingScreenshot;
 					sendingScreenshot = NULL;
@@ -345,16 +379,12 @@ namespace usage {
 	
 	ImBuf* Usage::take_screenshot(bContext *C, const bool crop)
 	{
-		ScrArea *sa;
-		rcti cropRect;
 		unsigned int *dumprect = NULL;
 		int dumpsx, dumpsy;
 		
 		// copied from screenshot
 		wmWindow *win = CTX_wm_window(C);
 		int x = 0, y = 0;
-		
-		WM_redraw_windows(C);
 		
 		dumpsx = WM_window_pixels_x(win);
 		dumpsy = WM_window_pixels_y(win);
@@ -373,18 +403,19 @@ namespace usage {
 			glReadBuffer(GL_BACK);
 			
 			if (dumprect) {
-				sa = CTX_wm_area(C);
+				// We don't know what the area is at this point, so we can't crop
+				//ScrArea *sa = CTX_wm_area(C);
 				
-				ImBuf *ibuf; //, *ibufHalf;
+				ImBuf *ibuf;
 				
-				/* operator ensures the extension */
+				// operator ensures the extension
 				ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
 				ibuf->rect = dumprect;
 				
-				/* crop to show only single editor */
-				// copied from screenshot_crop
+				// crop to show only single editor, copied from screenshot_crop
+				/*
 				if (sa) {
-					cropRect = sa->totrct;
+					rcti cropRect = sa->totrct;
 					if (crop) {
 						unsigned int *to = ibuf->rect;
 						unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
@@ -401,8 +432,8 @@ namespace usage {
 						}
 					}
 				}
+				*/
 				
-				MEM_freeN(dumprect);
 				return ibuf;
 			}
 		}
@@ -731,20 +762,10 @@ namespace usage {
 			
 			// check if there's a window, otherwise opening a file crashes
 			if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
-				
-				std::string uuidStr = generateUUID();
-				
-				ImBuf *ibuf;
-				ScreenshotQueueItem *sqi;
-						
-				// take screenshot
-				ibuf = take_screenshot(C, 0);
-				sqi = new ScreenshotQueueItem;
-				sqi->buf = ibuf;
-				sqi->hash = uuidStr;
-				sqi->timestamp = msg->timestamp;
-				BLI_thread_queue_push(screenshotQueue, sqi);
-				thriftOp.__set_screenshotHash(uuidStr);
+				takeScreenshot = true;
+				frameWin = CTX_wm_window(C);
+				frameWin->screen->do_draw = TRUE;
+				thriftOp.__set_screenshotHash(frameUUID);
 			}
 			
 			// create op
@@ -1067,6 +1088,16 @@ extern "C" {
 	void BKE_usage_update_settings(void)
 	{
 		usage::Usage::getInstance().updateSettings();
+	}
+	
+	void BKE_usage_main_prepare(void)
+	{
+		usage::Usage::getInstance().mainPrepare();
+	}
+	
+	void BKE_usage_main_take_screenshot(struct bContext *C)
+	{
+		usage::Usage::getInstance().mainTakeScreenshot(C);
 	}
 	
 	void BKE_usage_shutdown(void)

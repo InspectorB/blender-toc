@@ -100,7 +100,9 @@
 #include "BKE_report.h"
 #include "BKE_sound.h"
 #include "BKE_image.h"
+#ifdef WITH_USAGE
 #include "BKE_usage.h"
+#endif
 
 #include "IMB_imbuf.h"  /* for IMB_init */
 
@@ -1713,7 +1715,9 @@ int main(int argc, const char **argv)
 	return 0; /* keep blender in background mode running */
 #endif
 
+#ifdef WITH_USAGE
 	BKE_usage_queue_start();
+#endif 
 	
 	if (G.background) {
 		/* actually incorrect, but works for now (ton) */

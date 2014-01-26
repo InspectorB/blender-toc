@@ -37,7 +37,9 @@
 
 #include "BKE_sound.h"
 #include "BKE_addon.h"
+#ifdef WITH_USAGE
 #include "BKE_usage.h"
+#endif
 
 #include "RNA_access.h"
 #include "RNA_define.h"

@@ -73,7 +73,9 @@
 #include "BKE_sequencer.h" /* free seq clipboard */
 #include "BKE_material.h" /* clear_matcopybuf */
 #include "BKE_tracking.h" /* free tracking clipboard */
+#ifdef WITH_USAGE
 #include "BKE_usage.h"
+#endif
 
 #include "RE_engine.h"
 #include "RE_pipeline.h"        /* RE_ free stuff */

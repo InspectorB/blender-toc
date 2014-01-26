@@ -50,6 +50,9 @@
 #include "BKE_context.h"
 #include "BKE_global.h"
 #include "BKE_screen.h"
+#ifdef WITH_USAGE
+#include "BKE_usage.h"
+#endif
 
 #include "GHOST_C-api.h"
 
@@ -853,6 +856,11 @@ void wm_draw_update(bContext *C)
 			win->screen->do_draw_drag = FALSE;
 		
 			wm_window_swap_buffers(win);
+			
+#ifdef WITH_USAGE
+			/* take usage screenshot after draw updates */
+			BKE_usage_main_take_screenshot(C);
+#endif
 
 			CTX_wm_window_set(C, NULL);
 		}
