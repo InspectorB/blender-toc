@@ -315,7 +315,7 @@ namespace usage {
 					
 					char filename[41];
 					char filepath[128];
-					BLI_snprintf(filename, sizeof(filename), "%s.jpg", sendingScreenshot->hash.c_str());
+					BLI_snprintf(filename, sizeof(filename), "%s.png", sendingScreenshot->hash.c_str());
 					BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
 
 					// half the image and write to disk
