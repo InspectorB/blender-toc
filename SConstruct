@@ -33,14 +33,6 @@
 # TODO: directory copy functions are far too complicated, see:
 #       http://wiki.blender.org/index.php/User:Ideasman42/SConsNotSimpleInstallingFiles
 
-import platform as pltfrm
-
-# Need a better way to do this. Automagical maybe is not the best thing, maybe it is.
-if pltfrm.architecture()[0] == '64bit':
-    bitness = 64
-else:
-    bitness = 32
-
 import sys
 import os
 import os.path
@@ -112,15 +104,9 @@ btools.print_targets(B.targets, B.bc)
 # handling cmd line arguments & config file
 
 # bitness stuff
-tempbitness = int(B.arguments.get('BF_BITNESS', bitness)) # default to bitness found as per starting python
-if tempbitness in (32, 64): # only set if 32 or 64 has been given
-    bitness = int(tempbitness)
-
-if bitness:
-    B.bitness = bitness
-else:
+tempbitness = int(B.arguments.get('BF_BITNESS', B.bitness)) # default to bitness found as per starting python
+if tempbitness in B.allowed_bitnesses.values() :
     B.bitness = tempbitness
-
 
 # first check cmdline for toolset and we create env to work on
 quickie = B.arguments.get('BF_QUICK', None)
@@ -149,7 +135,7 @@ if toolset:
         if env:
             btools.SetupSpawn(env)
 else:
-    if bitness==64 and platform=='win32':
+    if B.bitness==64 and platform=='win32':
         env = BlenderEnvironment(ENV = os.environ, MSVS_ARCH='amd64', TARGET_ARCH='x86_64', MSVC_VERSION=vcver)
     else:
         env = BlenderEnvironment(ENV = os.environ, TARGET_ARCH='x86', MSVC_VERSION=vcver)
@@ -167,9 +153,9 @@ if cxx:
 
 if sys.platform=='win32':
     if env['CC'] in ['cl', 'cl.exe']:
-        platform = 'win64-vc' if bitness == 64 else 'win32-vc'
+        platform = 'win64-vc' if B.bitness == 64 else 'win32-vc'
     elif env['CC'] in ['gcc']:
-        platform = 'win64-mingw' if bitness == 64 else 'win32-mingw'
+        platform = 'win64-mingw' if B.bitness == 64 else 'win32-mingw'
 
 if 'mingw' in platform:
     print "Setting custom spawn function"
@@ -219,7 +205,7 @@ opts = btools.read_opts(env, optfiles, B.arguments)
 opts.Update(env)
 
 if sys.platform=='win32':
-    if bitness==64:
+    if B.bitness==64:
         env.Append(CPPFLAGS=['-DWIN64']) # -DWIN32 needed too, as it's used all over to target Windows generally
 
 if not env['BF_FANCY']:
@@ -430,9 +416,6 @@ if env['OURPLATFORM']=='darwin':
         else:
             env['WITH_BF_OPENMP'] = 0
             print B.bc.OKGREEN + "Disabled OpenMP, not supported by compiler"
-            
-    if env['WITH_BF_CYCLES'] and env['WITH_CYCLES_OPTIMIZED_KERNEL_SSE41']:
-        print B.bc.OKGREEN + 'Using Cycles SSE 4.1 option'
 
     if env['WITH_BF_CYCLES_OSL'] == 1:
         OSX_OSL_LIBPATH = Dir(env.subst(env['BF_OSL_LIBPATH'])).abspath
@@ -489,6 +472,9 @@ if 'blenderplayer' in B.targets:
 
 if 'blendernogame' in B.targets:
     env['WITH_BF_GAMEENGINE'] = False
+
+if not env['WITH_BF_GAMEENGINE']:
+    env['WITH_BF_PLAYER'] = False
 
 # build without elbeem (fluidsim)?
 if env['WITH_BF_FLUID'] == 1:
@@ -650,6 +636,27 @@ def data_to_c_simple(FILE_FROM):
 	data_to_c(FILE_FROM, FILE_TO, VAR_NAME)
 
 
+def data_to_c_simple_icon(PATH_FROM):
+
+    # first handle import
+    import sys
+    path = "source/blender/datatoc"
+    if path not in sys.path:
+        sys.path.append(path)
+
+    # convert the pixmaps to a png
+    import datatoc_icon
+
+    filename_only = os.path.basename(PATH_FROM)
+    FILE_TO_PNG = os.path.join(env['DATA_SOURCES'], filename_only + ".png")
+    FILE_TO = FILE_TO_PNG + ".c"
+    argv = [PATH_FROM, FILE_TO_PNG]
+    datatoc_icon.main_ex(argv)
+
+    # then the png to a c file
+    data_to_c_simple(FILE_TO_PNG)
+
+
 if B.targets != ['cudakernels']:
     data_to_c("source/blender/compositor/operations/COM_OpenCLKernels.cl",
               B.root_build_dir + "data_headers/COM_OpenCLKernels.cl.h",
@@ -677,8 +684,12 @@ if B.targets != ['cudakernels']:
     data_to_c_simple("release/datafiles/bmonofont.ttf")
 
     data_to_c_simple("release/datafiles/splash.png")
-    data_to_c_simple("release/datafiles/blender_icons16.png")
-    data_to_c_simple("release/datafiles/blender_icons32.png")
+
+    # data_to_c_simple("release/datafiles/blender_icons16.png")
+    # data_to_c_simple("release/datafiles/blender_icons32.png")
+    data_to_c_simple_icon("release/datafiles/blender_icons16")
+    data_to_c_simple_icon("release/datafiles/blender_icons32")
+
     data_to_c_simple("release/datafiles/prvicons.png")
 
     data_to_c_simple("release/datafiles/brushicons/add.png")
@@ -878,6 +889,7 @@ if env['OURPLATFORM']!='darwin':
             source.remove('osl')
             source=['intern/cycles/kernel/'+s for s in source]
             source.append('intern/cycles/util/util_color.h')
+            source.append('intern/cycles/util/util_half.h')
             source.append('intern/cycles/util/util_math.h')
             source.append('intern/cycles/util/util_transform.h')
             source.append('intern/cycles/util/util_types.h')
@@ -1085,7 +1097,7 @@ if env['OURPLATFORM'] in ('win32-vc', 'win32-mingw', 'win64-vc', 'linuxcross'):
     # Since the thumb handler is loaded by Explorer, architecture is
     # strict: the x86 build fails on x64 Windows. We need to ship
     # both builds in x86 packages.
-    if bitness == 32:
+    if B.bitness == 32:
         dllsources.append('${LCGDIR}/thumbhandler/lib/BlendThumb.dll')
     dllsources.append('${LCGDIR}/thumbhandler/lib/BlendThumb64.dll')
 

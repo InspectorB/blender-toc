@@ -262,7 +262,9 @@ static bool get_item_destroyable(void *item_v)
 	 *
 	 * Such buffers are never to be freed.
 	 */
-	if (item->ibuf->userflags & IB_BITMAPDIRTY) {
+	if ((item->ibuf->userflags & IB_BITMAPDIRTY) ||
+	    (item->ibuf->userflags & IB_PERSISTENT))
+	{
 		return false;
 	}
 	return true;
@@ -382,10 +384,10 @@ void IMB_moviecache_put(MovieCache *cache, void *userkey, ImBuf *ibuf)
 	do_moviecache_put(cache, userkey, ibuf, TRUE);
 }
 
-int IMB_moviecache_put_if_possible(MovieCache *cache, void *userkey, ImBuf *ibuf)
+bool IMB_moviecache_put_if_possible(MovieCache *cache, void *userkey, ImBuf *ibuf)
 {
 	size_t mem_in_use, mem_limit, elem_size;
-	int result = FALSE;
+	bool result = false;
 
 	elem_size = IMB_get_size_in_memory(ibuf);
 	mem_limit = MEM_CacheLimiter_get_maximum();
@@ -427,7 +429,7 @@ ImBuf *IMB_moviecache_get(MovieCache *cache, void *userkey)
 	return NULL;
 }
 
-int IMB_moviecache_has_frame(MovieCache *cache, void *userkey)
+bool IMB_moviecache_has_frame(MovieCache *cache, void *userkey)
 {
 	MovieCacheKey key;
 	MovieCacheItem *item;

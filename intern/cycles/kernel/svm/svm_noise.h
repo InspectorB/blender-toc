@@ -32,28 +32,31 @@
 
 CCL_NAMESPACE_BEGIN
 
-#if defined(__KERNEL_SSE2__)
-#define FMA(a, b, c) _mm_add_ps(_mm_mul_ps((a), (b)), (c))
-#endif
-
+#ifndef __KERNEL_SSE2__
 ccl_device int quick_floor(float x)
 {
 	return float_to_int(x) - ((x < 0) ? 1 : 0);
 }
-
-#if defined(__KERNEL_SSE2__)
-ccl_device_inline __m128i quick_floor_sse(const __m128 *x)
+#else
+ccl_device_inline __m128i quick_floor_sse(const __m128& x)
 {
-    __m128i b = _mm_cvttps_epi32(*x);
-    __m128i isneg = _mm_castps_si128(_mm_cmplt_ps(*x, _mm_set1_ps(0.0f)));
-    return _mm_add_epi32(b, isneg); // unsaturated add 0xffffffff is the same as subtract -1
+	__m128i b = _mm_cvttps_epi32(x);
+	__m128i isneg = _mm_castps_si128(_mm_cmplt_ps(x, _mm_set1_ps(0.0f)));
+	return _mm_add_epi32(b, isneg); // unsaturated add 0xffffffff is the same as subtract -1
 }
 #endif
 
+#ifndef __KERNEL_SSE2__
 ccl_device float bits_to_01(uint bits)
 {
 	return bits * (1.0f/(float)0xFFFFFFFF);
 }
+#else
+ccl_device_inline __m128 bits_to_01_sse(const __m128i& bits)
+{
+	return _mm_mul_ps(uint32_to_float(bits), _mm_set1_ps(1.0f/(float)0xFFFFFFFF));
+}
+#endif
 
 ccl_device uint hash(uint kx, uint ky, uint kz)
 {
@@ -84,32 +87,33 @@ ccl_device uint hash(uint kx, uint ky, uint kz)
 #undef final
 }
 
-#if defined(__KERNEL_SSE2__)
-ccl_device_inline __m128i hash_sse(const __m128i *kx, const __m128i *ky, const __m128i *kz)
+#ifdef __KERNEL_SSE2__
+ccl_device_inline __m128i hash_sse(const __m128i& kx, const __m128i& ky, const __m128i& kz)
 {
 #define rot(x,k) _mm_or_si128(_mm_slli_epi32((x), (k)), _mm_srli_epi32((x), 32-(k)))
 #define xor_rot(a, b, c) do {a = _mm_xor_si128(a, b); a = _mm_sub_epi32(a, rot(b, c));} while(0)
 
-    uint len = 3;
-    __m128i magic = _mm_set1_epi32(0xdeadbeef + (len << 2) + 13);
-    __m128i a = _mm_add_epi32(magic, *kx);
-    __m128i b = _mm_add_epi32(magic, *ky);
-    __m128i c = _mm_add_epi32(magic, *kz);
-    
-    xor_rot(c, b, 14);
-    xor_rot(a, c, 11);
-    xor_rot(b, a, 25);
-    xor_rot(c, b, 16);
-    xor_rot(a, c, 4);
-    xor_rot(b, a, 14);
-    xor_rot(c, b, 24);
+	uint len = 3;
+	__m128i magic = _mm_set1_epi32(0xdeadbeef + (len << 2) + 13);
+	__m128i a = _mm_add_epi32(magic, kx);
+	__m128i b = _mm_add_epi32(magic, ky);
+	__m128i c = _mm_add_epi32(magic, kz);
 
-    return c;
+	xor_rot(c, b, 14);
+	xor_rot(a, c, 11);
+	xor_rot(b, a, 25);
+	xor_rot(c, b, 16);
+	xor_rot(a, c, 4);
+	xor_rot(b, a, 14);
+	xor_rot(c, b, 24);
+
+	return c;
 #undef rot
 #undef xor_rot
 }
 #endif
 
+#if 0 // unused
 ccl_device int imod(int a, int b)
 {
 	a %= b;
@@ -120,48 +124,50 @@ ccl_device uint phash(int kx, int ky, int kz, int3 p)
 {
 	return hash(imod(kx, p.x), imod(ky, p.y), imod(kz, p.z));
 }
+#endif
 
+#ifndef __KERNEL_SSE2__
 ccl_device float floorfrac(float x, int* i)
 {
 	*i = quick_floor(x);
 	return x - *i;
 }
-
-#if defined(__KERNEL_SSE2__)
-ccl_device_inline __m128 floorfrac_sse(const __m128 *x, __m128i *i)
+#else
+ccl_device_inline __m128 floorfrac_sse(const __m128& x, __m128i *i)
 {
-    *i = quick_floor_sse(x);
-    return _mm_sub_ps(*x, _mm_cvtepi32_ps(*i));
+	*i = quick_floor_sse(x);
+	return _mm_sub_ps(x, _mm_cvtepi32_ps(*i));
 }
 #endif
 
+#ifndef __KERNEL_SSE2__
 ccl_device float fade(float t)
 {
 	return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
 }
-
-#if defined(__KERNEL_SSE2__)
+#else
 ccl_device_inline __m128 fade_sse(const __m128 *t)
 {
-  __m128 a = FMA(*t, _mm_set1_ps(6.0f), _mm_set1_ps(-15.0f));
-  __m128 b = FMA(*t, a, _mm_set1_ps(10.0f));
-  return _mm_mul_ps(_mm_mul_ps(*t, *t), _mm_mul_ps(*t, b));
+	__m128 a = fma(*t, _mm_set1_ps(6.0f), _mm_set1_ps(-15.0f));
+	__m128 b = fma(*t, a, _mm_set1_ps(10.0f));
+	return _mm_mul_ps(_mm_mul_ps(*t, *t), _mm_mul_ps(*t, b));
 }
 #endif
 
+#ifndef __KERNEL_SSE2__
 ccl_device float nerp(float t, float a, float b)
 {
 	return (1.0f - t) * a + t * b;
 }
-
-#if defined(__KERNEL_SSE2__)
-ccl_device_inline __m128 nerp_sse(const __m128 *t, const __m128 *a, const __m128 *b)
+#else
+ccl_device_inline __m128 nerp_sse(const __m128& t, const __m128& a, const __m128& b)
 {
-    __m128 x1 = _mm_mul_ps(_mm_sub_ps(_mm_set1_ps(1.0f), *t), *a);
-    return FMA(*t, *b, x1);
+	__m128 x1 = _mm_mul_ps(_mm_sub_ps(_mm_set1_ps(1.0f), t), a);
+	return fma(t, b, x1);
 }
 #endif
 
+#ifndef __KERNEL_SSE2__
 ccl_device float grad(int hash, float x, float y, float z)
 {
 	// use vectors pointing to the edges of the cube
@@ -171,18 +177,17 @@ ccl_device float grad(int hash, float x, float y, float z)
 	float v = h < 4 ? y : vt;
 	return ((h&1) ? -u : u) + ((h&2) ? -v : v);
 }
-
-#if defined(__KERNEL_SSE2__)
-ccl_device_inline __m128 grad_sse(const __m128i *hash, const __m128 *x, const __m128 *y, const __m128 *z)
+#else
+ccl_device_inline __m128 grad_sse(const __m128i& hash, const __m128& x, const __m128& y, const __m128& z)
 {
 	__m128i c1 = _mm_set1_epi32(1);
 	__m128i c2 = _mm_set1_epi32(2);
 
-	__m128i h = _mm_and_si128(*hash, _mm_set1_epi32(15));          // h = hash & 15
+	__m128i h = _mm_and_si128(hash, _mm_set1_epi32(15));          // h = hash & 15
 
 	__m128i case_ux = _mm_cmplt_epi32(h, _mm_set1_epi32(8));       // 0xffffffff if h < 8 else 0
 
-	__m128 u = blend(_mm_castsi128_ps(case_ux), *x, *y);           // u = h<8 ? x : y
+	__m128 u = blend(_mm_castsi128_ps(case_ux), x, y);             // u = h<8 ? x : y
 
 	__m128i case_vy = _mm_cmplt_epi32(h, _mm_set1_epi32(4));       // 0xffffffff if h < 4 else 0
 
@@ -191,7 +196,7 @@ ccl_device_inline __m128 grad_sse(const __m128i *hash, const __m128 *x, const __
 
 	__m128i case_vx = _mm_or_si128(case_h12, case_h14);            // 0xffffffff if h == 12 or h == 14 else 0
 
-	__m128 v = blend(_mm_castsi128_ps(case_vy), *y, blend(_mm_castsi128_ps(case_vx), *x, *z)); // v = h<4 ? y : h == 12 || h == 14 ? x : z
+	__m128 v = blend(_mm_castsi128_ps(case_vy), y, blend(_mm_castsi128_ps(case_vx), x, z)); // v = h<4 ? y : h == 12 || h == 14 ? x : z
 
 	__m128i case_uneg = _mm_slli_epi32(_mm_and_si128(h, c1), 31);  // 1<<31 if h&1 else 0
 	__m128 case_uneg_mask = _mm_castsi128_ps(case_uneg);           // -0.0 if h&1 else +0.0
@@ -206,19 +211,19 @@ ccl_device_inline __m128 grad_sse(const __m128i *hash, const __m128 *x, const __
 }
 #endif
 
+#ifndef __KERNEL_SSE2__
 ccl_device float scale3(float result)
 {
 	return 0.9820f * result;
 }
-
-#if defined(__KERNEL_SSE2__)
-ccl_device_inline __m128 scale3_sse(const __m128 *result)
+#else
+ccl_device_inline __m128 scale3_sse(const __m128& result)
 {
-    return _mm_mul_ps(_mm_set1_ps(0.9820f), *result);
+	return _mm_mul_ps(_mm_set1_ps(0.9820f), result);
 }
 #endif
 
-#if !defined(__KERNEL_SSE2__)
+#ifndef __KERNEL_SSE2__
 ccl_device_noinline float perlin(float x, float y, float z)
 {
 	int X; float fx = floorfrac(x, &X);
@@ -247,48 +252,45 @@ ccl_device_noinline float perlin(float x, float y, float z)
 #else
 ccl_device_noinline float perlin(float x, float y, float z)
 {
-#define BROADCAST_I(vec, n) _mm_shuffle_epi32((vec), _MM_SHUFFLE((n), (n), (n), (n)))
-#define BROADCAST_F(vec, n) _mm_shuffle_ps((vec), (vec), _MM_SHUFFLE((n), (n), (n), (n)))
-    __m128 xyz = _mm_setr_ps(x, y, z, 0.0f);
-    __m128i XYZ;
+	__m128 xyz = _mm_setr_ps(x, y, z, 0.0f);
+	__m128i XYZ;
 
-    __m128 fxyz = floorfrac_sse(&xyz, &XYZ);
+	__m128 fxyz = floorfrac_sse(xyz, &XYZ);
 
-    __m128 uvw = fade_sse(&fxyz);
-    __m128 u = BROADCAST_F(uvw, 0), v = BROADCAST_F(uvw, 1), w = BROADCAST_F(uvw, 2);
+	__m128 uvw = fade_sse(&fxyz);
+	__m128 u = broadcast<0>(uvw), v = broadcast<1>(uvw), w = broadcast<2>(uvw);
 
-    __m128i ci[] = {_mm_setr_epi32(1, 1, 1, 1), _mm_setr_epi32(0, 0, 1, 1), _mm_setr_epi32(0, 1, 0, 1)};
-    __m128i vp[] = {BROADCAST_I(XYZ, 0), BROADCAST_I(XYZ, 1), BROADCAST_I(XYZ, 2)};
-    __m128i vd[] = {_mm_add_epi32(vp[0], ci[0]), _mm_add_epi32(vp[1], ci[1]), _mm_add_epi32(vp[2], ci[2])};
+	__m128i XYZ_ofc = _mm_add_epi32(XYZ, _mm_set1_epi32(1));
+	__m128i vdy = shuffle<1, 1, 1, 1>(XYZ, XYZ_ofc);                      // +0, +0, +1, +1
+	__m128i vdz = shuffle<0, 2, 0, 2>(shuffle<2, 2, 2, 2>(XYZ, XYZ_ofc)); // +0, +1, +0, +1
 
-    __m128i h1 = hash_sse(vp, vd+1, vd+2);         // hash directions 000, 001, 010, 011 (vp[0] is not a typo, because vp[0]+0 == vp[0])
-    __m128i h2 = hash_sse(vd, vd+1, vd+2);         // hash directions 100, 101, 110, 111
+	__m128i h1 = hash_sse(broadcast<0>(XYZ),     vdy, vdz);               // hash directions 000, 001, 010, 011
+	__m128i h2 = hash_sse(broadcast<0>(XYZ_ofc), vdy, vdz);               // hash directions 100, 101, 110, 111
 
-    __m128 cf[] = {_mm_setr_ps(1.0f, 1.0f, 1.0f, 1.0f), _mm_setr_ps(0.0f, 0.0f, 1.0f, 1.0f), _mm_setr_ps(0.0f, 1.0f, 0.0f, 1.0f)};
-    __m128 vf[] = {BROADCAST_F(fxyz, 0), BROADCAST_F(fxyz, 1),  BROADCAST_F(fxyz, 2)};
-    __m128 vfd[] = {_mm_sub_ps(vf[0], cf[0]), _mm_sub_ps(vf[1], cf[1]), _mm_sub_ps(vf[2], cf[2])};
+	__m128 fxyz_ofc = _mm_sub_ps(fxyz, _mm_set1_ps(1.0f));
+	__m128 vfy = shuffle<1, 1, 1, 1>(fxyz, fxyz_ofc);
+	__m128 vfz = shuffle<0, 2, 0, 2>(shuffle<2, 2, 2, 2>(fxyz, fxyz_ofc));
 
-    __m128 g1 = grad_sse(&h1, vf,  vfd+1, vfd+2);  // vf is not a typo (same as above)
-    __m128 g2 = grad_sse(&h2, vfd, vfd+1, vfd+2);
-    __m128 n1 = nerp_sse(&u, &g1, &g2);
+	__m128 g1 = grad_sse(h1, broadcast<0>(fxyz),     vfy, vfz);
+	__m128 g2 = grad_sse(h2, broadcast<0>(fxyz_ofc), vfy, vfz);
+	__m128 n1 = nerp_sse(u, g1, g2);
 
-    __m128 n1_half = _mm_movehl_ps(n1, n1);        // extract 2 floats to a separate vector
-    __m128 n2 = nerp_sse(&v, &n1, &n1_half);       // process nerp([a, b, _, _], [c, d, _, _]) -> [a', b', _, _]
+	__m128 n1_half = shuffle<2, 3, 2, 3>(n1);      // extract 2 floats to a separate vector
+	__m128 n2 = nerp_sse(v, n1, n1_half);          // process nerp([a, b, _, _], [c, d, _, _]) -> [a', b', _, _]
 
-    __m128 n2_second = BROADCAST_F(n2, 1);         // extract b to a separate vector
-    __m128 result = nerp_sse(&w, &n2, &n2_second); // process nerp([a', _, _, _], [b', _, _, _]) -> [a'', _, _, _]
+	__m128 n2_second = broadcast<1>(n2);           // extract b to a separate vector
+	__m128 result = nerp_sse(w, n2, n2_second);    // process nerp([a', _, _, _], [b', _, _, _]) -> [a'', _, _, _]
 
-    __m128 r = scale3_sse(&result);
+	__m128 r = scale3_sse(result);
 
-    __m128 infmask = _mm_castsi128_ps(_mm_set1_epi32(0x7f800000));
-    __m128 rinfmask = _mm_cmpeq_ps(_mm_and_ps(r, infmask), infmask); // 0xffffffff if r is inf/-inf/nan else 0
-    __m128 rfinite = _mm_andnot_ps(rinfmask, r);   // 0 if r is inf/-inf/nan else r
-    return _mm_cvtss_f32(rfinite);
-#undef BROADCAST_I
-#undef BROADCAST_F
+	__m128 infmask = _mm_castsi128_ps(_mm_set1_epi32(0x7f800000));
+	__m128 rinfmask = _mm_cmpeq_ps(_mm_and_ps(r, infmask), infmask); // 0xffffffff if r is inf/-inf/nan else 0
+	__m128 rfinite = _mm_andnot_ps(rinfmask, r);   // 0 if r is inf/-inf/nan else r
+	return _mm_cvtss_f32(rfinite);
 }
 #endif
 
+#if 0 // unused
 ccl_device_noinline float perlin_periodic(float x, float y, float z, float3 pperiod)
 {
 	int X; float fx = floorfrac(x, &X);
@@ -320,6 +322,7 @@ ccl_device_noinline float perlin_periodic(float x, float y, float z, float3 pper
 	/* can happen for big coordinates, things even out to 0.0 then anyway */
 	return (isfinite(r))? r: 0.0f;
 }
+#endif
 
 /* perlin noise in range 0..1 */
 ccl_device float noise(float3 p)
@@ -335,6 +338,7 @@ ccl_device float snoise(float3 p)
 }
 
 /* cell noise */
+#ifndef __KERNEL_SSE2__
 ccl_device_noinline float cellnoise(float3 p)
 {
 	uint ix = quick_floor(p.x);
@@ -352,7 +356,20 @@ ccl_device float3 cellnoise_color(float3 p)
 
 	return make_float3(r, g, b);
 }
+#else
+ccl_device float3 cellnoise_color(const float3& p)
+{
+	__m128i v_yxz = quick_floor_sse(_mm_setr_ps(p.y, p.x, p.z, 0.0f));
+	__m128i v_xyy = shuffle<1, 0, 0, 3>(v_yxz);
+	__m128i v_zzx = shuffle<2, 2, 1, 3>(v_yxz);
+	__m128 rgb = bits_to_01_sse(hash_sse(v_xyy, v_yxz, v_zzx));
 
+	float3 result = *(float3*)&rgb;
+	return result;
+}
+#endif
+
+#if 0 // unused
 /* periodic perlin noise in range 0..1 */
 ccl_device float pnoise(float3 p, float3 pperiod)
 {
@@ -365,6 +382,7 @@ ccl_device float psnoise(float3 p, float3 pperiod)
 {
 	return perlin_periodic(p.x, p.y, p.z, pperiod);
 }
+#endif
 
 CCL_NAMESPACE_END
 

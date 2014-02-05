@@ -458,7 +458,7 @@ void BKE_displist_fill(ListBase *dispbase, ListBase *to, const float normal_proj
 	DispList *dlnew = NULL, *dl;
 	float *f1;
 	int colnr = 0, charidx = 0, cont = 1, tot, a, *index, nextcol = 0;
-	intptr_t totvert;
+	int totvert;
 
 	if (dispbase == NULL)
 		return;
@@ -481,6 +481,9 @@ void BKE_displist_fill(ListBase *dispbase, ListBase *to, const float normal_proj
 					cont = 1;
 				else if (charidx == dl->charidx) { /* character with needed index */
 					if (colnr == dl->col) {
+
+						sf_ctx.poly_nr++;
+
 						/* make editverts and edges */
 						f1 = dl->verts;
 						a = dl->nr;
@@ -538,23 +541,22 @@ void BKE_displist_fill(ListBase *dispbase, ListBase *to, const float normal_proj
 					f1 += 3;
 
 					/* index number */
-					sf_vert->tmp.l = totvert;
+					sf_vert->tmp.i = totvert;
 					totvert++;
 				}
 
 				/* index data */
-				sf_tri = sf_ctx.fillfacebase.first;
+
 				index = dlnew->index;
-				while (sf_tri) {
-					index[0] = (intptr_t)sf_tri->v1->tmp.l;
-					index[1] = (intptr_t)sf_tri->v2->tmp.l;
-					index[2] = (intptr_t)sf_tri->v3->tmp.l;
+				for (sf_tri = sf_ctx.fillfacebase.first; sf_tri; sf_tri = sf_tri->next) {
+					index[0] = sf_tri->v1->tmp.i;
+					index[1] = sf_tri->v2->tmp.i;
+					index[2] = sf_tri->v3->tmp.i;
 
 					if (flipnormal)
 						SWAP(int, index[0], index[2]);
 
 					index += 3;
-					sf_tri = sf_tri->next;
 				}
 			}
 
@@ -1375,7 +1377,7 @@ static void do_makeDispListCurveTypes(Scene *scene, Object *ob, ListBase *dispba
 		ob->curve_cache->path = NULL;
 
 		if (ob->type == OB_FONT) {
-			BKE_vfont_to_curve_nubase(G.main, scene, ob, FO_EDIT, &nubase);
+			BKE_vfont_to_curve_nubase(G.main, ob, FO_EDIT, &nubase);
 		}
 		else {
 			BKE_nurbList_duplicate(&nubase, BKE_curve_nurbs_get(cu));
@@ -1566,8 +1568,13 @@ static void do_makeDispListCurveTypes(Scene *scene, Object *ob, ListBase *dispba
 			curve_to_filledpoly(cu, &nubase, dispbase);
 		}
 
-		if ((cu->flag & CU_PATH) && !forOrco)
-			calc_curvepath(ob, &nubase);
+		if (!forOrco) {
+			if ((cu->flag & CU_PATH) ||
+			    DAG_get_eval_flags_for_object(scene, ob) & DAG_EVAL_NEED_CURVE_PATH)
+			{
+				calc_curvepath(ob, &nubase);
+			}
+		}
 
 		if (!forOrco)
 			curve_calc_modifiers_post(scene, ob, &nubase, dispbase, derivedFinal, forRender, renderResolution);

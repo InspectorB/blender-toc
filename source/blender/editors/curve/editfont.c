@@ -248,7 +248,7 @@ static int insert_into_textbuf(Object *obedit, uintptr_t c)
 		return 0;
 }
 
-static void text_update_edited(bContext *C, Scene *scene, Object *obedit, const bool recalc, int mode)
+static void text_update_edited(bContext *C, Object *obedit, int mode)
 {
 	struct Main *bmain = CTX_data_main(C);
 	Curve *cu = obedit->data;
@@ -265,10 +265,14 @@ static void text_update_edited(bContext *C, Scene *scene, Object *obedit, const 
 		}
 	}
 
-	BKE_vfont_to_curve(bmain, scene, obedit, mode);
-
-	if (recalc)
+	if (mode == FO_EDIT) {
+		/* re-tesselllate */
 		DAG_id_tag_update(obedit->data, 0);
+	}
+	else {
+		/* depsgraph runs above, but since we're not tagging for update, call direct */
+		BKE_vfont_to_curve(bmain, obedit, mode);
+	}
 
 	WM_event_add_notifier(C, NC_GEOM | ND_DATA, obedit->data);
 }
@@ -392,7 +396,6 @@ static bool font_paste_utf8(bContext *C, const char *str, const size_t str_len)
 
 static int paste_from_file(bContext *C, ReportList *reports, const char *filename)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	FILE *fp;
 	char *strp;
@@ -438,7 +441,7 @@ static int paste_from_file(bContext *C, ReportList *reports, const char *filenam
 
 
 	if (strp && font_paste_utf8(C, strp, filelen)) {
-		text_update_edited(C, scene, obedit, 1, FO_EDIT);
+		text_update_edited(C, obedit, FO_EDIT);
 		retval = OPERATOR_FINISHED;
 
 	}
@@ -509,7 +512,6 @@ void FONT_OT_text_paste_from_file(wmOperatorType *ot)
 
 static int paste_from_clipboard(bContext *C, ReportList *reports)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	char *strp;
 	int filelen;
@@ -522,7 +524,7 @@ static int paste_from_clipboard(bContext *C, ReportList *reports)
 	}
 
 	if ((filelen <= MAXTEXT) && font_paste_utf8(C, strp, filelen)) {
-		text_update_edited(C, scene, obedit, 1, FO_EDIT);
+		text_update_edited(C, obedit, FO_EDIT);
 		retval = OPERATOR_FINISHED;
 	}
 	else {
@@ -633,7 +635,7 @@ static void txt_add_object(bContext *C, TextLine *firstline, int totline, const 
 	WM_event_add_notifier(C, NC_OBJECT | NA_ADDED, obedit);
 }
 
-void ED_text_to_object(bContext *C, Text *text, int split_lines)
+void ED_text_to_object(bContext *C, Text *text, const bool split_lines)
 {
 	RegionView3D *rv3d = CTX_wm_region_view3d(C);
 	TextLine *line;
@@ -806,7 +808,6 @@ void FONT_OT_style_toggle(wmOperatorType *ot)
 
 static int font_select_all_exec(bContext *C, wmOperator *UNUSED(op))
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -816,7 +817,7 @@ static int font_select_all_exec(bContext *C, wmOperator *UNUSED(op))
 		ef->selend = ef->len;
 		ef->pos = ef->len;
 
-		text_update_edited(C, scene, obedit, true, FO_SELCHANGE);
+		text_update_edited(C, obedit, FO_SELCHANGE);
 
 		return OPERATOR_FINISHED;
 	}
@@ -883,7 +884,6 @@ void FONT_OT_text_copy(wmOperatorType *ot)
 
 static int cut_text_exec(bContext *C, wmOperator *UNUSED(op))
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	int selstart, selend;
 
@@ -893,7 +893,7 @@ static int cut_text_exec(bContext *C, wmOperator *UNUSED(op))
 	copy_selection(obedit);
 	kill_selection(obedit, 0);
 
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
@@ -932,13 +932,12 @@ static bool paste_selection(Object *obedit, ReportList *reports)
 
 static int paste_text_exec(bContext *C, wmOperator *op)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 
 	if (!paste_selection(obedit, op->reports))
 		return OPERATOR_CANCELLED;
 
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
@@ -975,7 +974,6 @@ static EnumPropertyItem move_type_items[] = {
 
 static int move_cursor(bContext *C, int type, int select)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1068,14 +1066,14 @@ static int move_cursor(bContext *C, int type, int select)
 		if (ef->selstart) {
 			struct Main *bmain = CTX_data_main(C);
 			ef->selstart = ef->selend = 0;
-			BKE_vfont_to_curve(bmain, scene, obedit, FO_SELCHANGE);
+			BKE_vfont_to_curve(bmain, obedit, FO_SELCHANGE);
 		}
 	}
 
-	text_update_edited(C, scene, obedit, select, cursmove);
-
 	if (select)
 		ef->selend = ef->pos;
+
+	text_update_edited(C, obedit, cursmove);
 
 	return OPERATOR_FINISHED;
 }
@@ -1136,7 +1134,6 @@ void FONT_OT_move_select(wmOperatorType *ot)
 
 static int change_spacing_exec(bContext *C, wmOperator *op)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1151,7 +1148,7 @@ static int change_spacing_exec(bContext *C, wmOperator *op)
 
 	ef->textbufinfo[ef->pos - 1].kern = kern;
 
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
@@ -1178,7 +1175,6 @@ void FONT_OT_change_spacing(wmOperatorType *ot)
 
 static int change_character_exec(bContext *C, wmOperator *op)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1196,7 +1192,7 @@ static int change_character_exec(bContext *C, wmOperator *op)
 
 	ef->textbuf[ef->pos - 1] = character;
 
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
@@ -1223,7 +1219,6 @@ void FONT_OT_change_character(wmOperatorType *ot)
 
 static int line_break_exec(bContext *C, wmOperator *UNUSED(op))
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1232,7 +1227,7 @@ static int line_break_exec(bContext *C, wmOperator *UNUSED(op))
 
 	ef->selstart = ef->selend = 0;
 
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
@@ -1265,7 +1260,6 @@ static EnumPropertyItem delete_type_items[] = {
 
 static int delete_exec(bContext *C, wmOperator *op)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1319,7 +1313,7 @@ static int delete_exec(bContext *C, wmOperator *op)
 			return OPERATOR_CANCELLED;
 	}
 
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
@@ -1346,7 +1340,6 @@ void FONT_OT_delete(wmOperatorType *ot)
 
 static int insert_text_exec(bContext *C, wmOperator *op)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	char *inserted_utf8;
 	wchar_t *inserted_text;
@@ -1368,14 +1361,13 @@ static int insert_text_exec(bContext *C, wmOperator *op)
 	MEM_freeN(inserted_utf8);
 
 	kill_selection(obedit, 1);
-	text_update_edited(C, scene, obedit, 1, FO_EDIT);
+	text_update_edited(C, obedit, FO_EDIT);
 
 	return OPERATOR_FINISHED;
 }
 
 static int insert_text_invoke(bContext *C, wmOperator *op, const wmEvent *event)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1439,12 +1431,12 @@ static int insert_text_invoke(bContext *C, wmOperator *op, const wmEvent *event)
 			}
 			
 			kill_selection(obedit, 1);
-			text_update_edited(C, scene, obedit, 1, FO_EDIT);
+			text_update_edited(C, obedit, FO_EDIT);
 		}
 		else {
 			inserted_text[0] = ascii;
 			insert_into_textbuf(obedit, ascii);
-			text_update_edited(C, scene, obedit, 1, FO_EDIT);
+			text_update_edited(C, obedit, FO_EDIT);
 		}
 	}
 	else
@@ -1481,7 +1473,7 @@ void FONT_OT_text_insert(wmOperatorType *ot)
 	ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 
 	/* properties */
-	RNA_def_string(ot->srna, "text", "", 0, "Text", "Text to insert at the cursor position");
+	RNA_def_string(ot->srna, "text", NULL, 0, "Text", "Text to insert at the cursor position");
 	RNA_def_boolean(ot->srna, "accent", 0, "Accent mode", "Next typed character will strike through previous, for special character input");
 }
 
@@ -1643,7 +1635,6 @@ static EnumPropertyItem case_items[] = {
 
 static int set_case(bContext *C, int ccase)
 {
-	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Curve *cu = obedit->data;
 	EditFont *ef = cu->editfont;
@@ -1673,7 +1664,7 @@ static int set_case(bContext *C, int ccase)
 			}
 		}
 
-		text_update_edited(C, scene, obedit, 1, FO_EDIT);
+		text_update_edited(C, obedit, FO_EDIT);
 	}
 
 	return OPERATOR_FINISHED;

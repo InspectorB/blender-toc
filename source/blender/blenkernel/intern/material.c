@@ -84,7 +84,7 @@ void BKE_material_free(Material *ma)
 }
 
 /* not material itself */
-void BKE_material_free_ex(Material *ma, int do_id_user)
+void BKE_material_free_ex(Material *ma, bool do_id_user)
 {
 	MTex *mtex;
 	int a;
@@ -211,7 +211,7 @@ Material *BKE_material_add(Main *bmain, const char *name)
 {
 	Material *ma;
 
-	ma = BKE_libblock_alloc(&bmain->mat, ID_MA, name);
+	ma = BKE_libblock_alloc(bmain, ID_MA, name);
 	
 	init_material(ma);
 	
@@ -1113,7 +1113,7 @@ void end_render_materials(Main *bmain)
 			end_render_material(ma);
 }
 
-static int material_in_nodetree(bNodeTree *ntree, Material *mat)
+static bool material_in_nodetree(bNodeTree *ntree, Material *mat)
 {
 	bNode *node;
 

@@ -65,6 +65,7 @@
 #include "BKE_fcurve.h"
 #include "BKE_global.h"
 #include "BKE_group.h"
+#include "BKE_image.h"
 #include "BKE_key.h"
 #include "BKE_library.h"
 #include "BKE_main.h"
@@ -689,6 +690,8 @@ static void build_dag_object(DagForest *dag, DagNode *scenenode, Scene *scene, O
 			if (ob->type == OB_FONT) {
 				if (cu->textoncurve) {
 					node2 = dag_get_node(dag, cu->textoncurve);
+					/* Text on curve requires path to be evaluated for the target curve. */
+					node2->eval_flags |= DAG_EVAL_NEED_CURVE_PATH;
 					dag_add_relation(dag, node2, node, DAG_RL_DATA_DATA | DAG_RL_OB_DATA, "Texture On Curve");
 				}
 			}
@@ -1193,6 +1196,8 @@ static void dag_check_cycle(DagForest *dag)
 	DagNode *node;
 	DagAdjList *itA;
 
+	dag->is_acyclic = true;
+
 	/* debugging print */
 	if (dag_print_dependencies)
 		for (node = dag->DagNode.first; node; node = node->next)
@@ -1213,6 +1218,7 @@ static void dag_check_cycle(DagForest *dag)
 		for (itA = node->parent; itA; itA = itA->next) {
 			if (itA->node->ancestor_count > node->ancestor_count) {
 				if (node->ob && itA->node->ob) {
+					dag->is_acyclic = false;
 					printf("Dependency cycle detected:\n");
 					dag_node_print_dependency_cycle(dag, itA->node, node, itA->name);
 				}
@@ -1949,6 +1955,12 @@ static void dag_object_time_update_flags(Main *bmain, Scene *scene, Object *ob)
 			case OB_MBALL:
 				if (ob->transflag & OB_DUPLI) ob->recalc |= OB_RECALC_DATA;
 				break;
+			case OB_EMPTY:
+				/* update animated images */
+				if (ob->empty_drawtype == OB_EMPTY_IMAGE && ob->data)
+					if (BKE_image_is_animated(ob->data))
+						ob->recalc |= OB_RECALC_DATA;
+				break;
 		}
 		
 		if (animdata_use_time(adt)) {
@@ -1976,7 +1988,7 @@ static void dag_object_time_update_flags(Main *bmain, Scene *scene, Object *ob)
 }
 
 /* recursively update objects in groups, each group is done at most once */
-static void dag_group_update_flags(Main *bmain, Scene *scene, Group *group, const short do_time)
+static void dag_group_update_flags(Main *bmain, Scene *scene, Group *group, const bool do_time)
 {
 	GroupObject *go;
 
@@ -1995,7 +2007,7 @@ static void dag_group_update_flags(Main *bmain, Scene *scene, Group *group, cons
 
 /* flag all objects that need recalc, for changes in time for example */
 /* do_time: make this optional because undo resets objects to their animated locations without this */
-void DAG_scene_update_flags(Main *bmain, Scene *scene, unsigned int lay, const short do_time)
+void DAG_scene_update_flags(Main *bmain, Scene *scene, unsigned int lay, const bool do_time)
 {
 	Base *base;
 	Object *ob;
@@ -2031,7 +2043,7 @@ void DAG_scene_update_flags(Main *bmain, Scene *scene, unsigned int lay, const s
 		/* test: set time flag, to disable baked systems to update */
 		for (SETLOOPER(scene, sce_iter, base)) {
 			ob = base->object;
-			if (ob->recalc)
+			if (ob->recalc & OB_RECALC_ALL)
 				ob->recalc |= OB_RECALC_TIME;
 		}
 
@@ -2076,16 +2088,35 @@ static void dag_current_scene_layers(Main *bmain, ListBase *lb)
 		for (win = wm->windows.first; win; win = win->next) {
 			if (win->screen && win->screen->scene->theDag) {
 				Scene *scene = win->screen->scene;
-				
+				DagSceneLayer *dsl;
+
 				if (scene->id.flag & LIB_DOIT) {
-					DagSceneLayer *dsl = MEM_mallocN(sizeof(DagSceneLayer), "dag scene layer");
-					
+					dsl = MEM_mallocN(sizeof(DagSceneLayer), "dag scene layer");
+
 					BLI_addtail(lb, dsl);
-					
+
 					dsl->scene = scene;
 					dsl->layer = BKE_screen_visible_layers(win->screen, scene);
-					
+
 					scene->id.flag &= ~LIB_DOIT;
+				}
+				else {
+					/* It is possible that multiple windows shares the same scene
+					 * and have different layers visible.
+					 *
+					 * Here we deal with such cases by squashing layers bits from
+					 * multiple windoew to the DagSceneLayer.
+					 *
+					 * TODO(sergey): Such a lookup could be optimized perhaps,
+					 * however should be fine for now since we usually have only
+					 * few open windows.
+					 */
+					for (dsl = lb->first; dsl; dsl = dsl->next) {
+						if (dsl->scene == scene) {
+							dsl->layer |= BKE_screen_visible_layers(win->screen, scene);
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -2115,17 +2146,21 @@ static void dag_group_on_visible_update(Group *group)
 	group->id.flag |= LIB_DOIT;
 
 	for (go = group->gobject.first; go; go = go->next) {
-		if (ELEM6(go->ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT, OB_MBALL, OB_LATTICE))
+		if (ELEM6(go->ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT, OB_MBALL, OB_LATTICE)) {
 			go->ob->recalc |= OB_RECALC_DATA;
-		if (go->ob->proxy_from)
+			lib_id_recalc_tag(G.main, &go->ob->id);
+		}
+		if (go->ob->proxy_from) {
 			go->ob->recalc |= OB_RECALC_OB;
+			lib_id_recalc_tag(G.main, &go->ob->id);
+		}
 
 		if (go->ob->dup_group)
 			dag_group_on_visible_update(go->ob->dup_group);
 	}
 }
 
-void DAG_on_visible_update(Main *bmain, const short do_time)
+void DAG_on_visible_update(Main *bmain, const bool do_time)
 {
 	ListBase listbase;
 	DagSceneLayer *dsl;
@@ -2145,7 +2180,9 @@ void DAG_on_visible_update(Main *bmain, const short do_time)
 		 * remade, tag them so they get remade in the scene update loop,
 		 * note armature poses or object matrices are preserved and do not
 		 * require updates, so we skip those */
-		dag_scene_flush_layers(scene, lay);
+		for (sce_iter = scene; sce_iter; sce_iter = sce_iter->set)
+			dag_scene_flush_layers(sce_iter, lay);
+
 		BKE_main_id_tag_idcode(bmain, ID_GR, false);
 
 		for (SETLOOPER(scene, sce_iter, base)) {
@@ -2154,10 +2191,14 @@ void DAG_on_visible_update(Main *bmain, const short do_time)
 			oblay = (node) ? node->lay : ob->lay;
 
 			if ((oblay & lay) & ~scene->lay_updated) {
-				if (ELEM6(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT, OB_MBALL, OB_LATTICE))
+				if (ELEM6(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT, OB_MBALL, OB_LATTICE)) {
 					ob->recalc |= OB_RECALC_DATA;
-				if (ob->proxy && (ob->proxy_group == NULL))
+					lib_id_recalc_tag(bmain, &ob->id);
+				}
+				if (ob->proxy && (ob->proxy_group == NULL)) {
 					ob->proxy->recalc |= OB_RECALC_DATA;
+					lib_id_recalc_tag(bmain, &ob->id);
+				}
 				if (ob->dup_group) 
 					dag_group_on_visible_update(ob->dup_group);
 			}
@@ -2187,7 +2228,7 @@ void DAG_on_visible_update(Main *bmain, const short do_time)
 
 static void dag_id_flush_update__isDependentTexture(void *userData, Object *UNUSED(ob), ID **idpoin)
 {
-	struct { ID *id; int is_dependent; } *data = userData;
+	struct { ID *id; bool is_dependent; } *data = userData;
 	
 	if (*idpoin && GS((*idpoin)->name) == ID_TE) {
 		if (data->id == (*idpoin))
@@ -2207,6 +2248,13 @@ static void dag_id_flush_update(Main *bmain, Scene *sce, ID *id)
 	if (GS(id->name) == ID_OB) {
 		ob = (Object *)id;
 		BKE_ptcache_object_reset(sce, ob, PTCACHE_RESET_DEPSGRAPH);
+
+		/* So if someone tagged object recalc directly,
+		 * id_tag_update bit-field stays relevant
+		 */
+		if (ob->recalc & OB_RECALC_ALL) {
+			DAG_id_type_tag(bmain, GS(id->name));
+		}
 
 		if (ob->recalc & OB_RECALC_DATA) {
 			/* all users of this ob->data should be checked */
@@ -2238,7 +2286,7 @@ static void dag_id_flush_update(Main *bmain, Scene *sce, ID *id)
 		/* set flags based on textures - can influence depgraph via modifiers */
 		if (idtype == ID_TE) {
 			for (obt = bmain->object.first; obt; obt = obt->id.next) {
-				struct { ID *id; int is_dependent; } data;
+				struct { ID *id; bool is_dependent; } data;
 				data.id = id;
 				data.is_dependent = 0;
 
@@ -2309,6 +2357,7 @@ static void dag_id_flush_update(Main *bmain, Scene *sce, ID *id)
 					          CONSTRAINT_TYPE_OBJECTSOLVER))
 					{
 						obt->recalc |= OB_RECALC_OB;
+						lib_id_recalc_tag(bmain, &obt->id);
 						break;
 					}
 				}
@@ -2425,11 +2474,70 @@ void DAG_ids_check_recalc(Main *bmain, Scene *scene, int time)
 	dag_editors_scene_update(bmain, scene, (updated || time));
 }
 
+/* It is possible that scene_update_post and frame_update_post handlers
+ * will modify objects. The issue is that DAG_ids_clear_recalc is called
+ * just after callbacks, which leaves objects with recalc flags but no
+ * corresponding bit in ID recalc bitfield. This leads to some kind of
+ * regression when using ID type tag fields to check whether there objects
+ * to be updated internally comparing threaded DAG with legacy one.
+ *
+ * For now let's have a workaround which will preserve tag for ID_OB
+ * if there're objects with OB_RECALC_ALL bits. This keeps behavior
+ * unchanged comparing with 2.69 release.
+ *
+ * TODO(sergey): Need to get rid of such a workaround.
+ *
+ *                                                 - sergey -
+ */
+
+#define POST_UPDATE_HANDLER_WORKAROUND
+
 void DAG_ids_clear_recalc(Main *bmain)
 {
 	ListBase *lbarray[MAX_LIBARRAY];
 	bNodeTree *ntree;
 	int a;
+
+#ifdef POST_UPDATE_HANDLER_WORKAROUND
+	bool have_updated_objects = false;
+
+	if (DAG_id_type_tagged(bmain, ID_OB)) {
+		ListBase listbase;
+		DagSceneLayer *dsl;
+
+		/* We need to check all visible scenes, otherwise resetting
+		 * OB_ID changed flag will only work fine for first scene of
+		 * multiple visible and all the rest will skip update.
+		 *
+		 * This could also lead to wrong behavior scene update handlers
+		 * because of missing ID datablock changed flags.
+		 *
+		 * This is a bit of a bummer to allocate list here, but likely
+		 * it wouldn't become too much bad because it only happens when
+		 * objects were actually changed.
+		 */
+		dag_current_scene_layers(bmain, &listbase);
+
+		for (dsl = listbase.first; dsl; dsl = dsl->next) {
+			Scene *scene = dsl->scene;
+			DagNode *node;
+			for (node = scene->theDag->DagNode.first;
+			     node != NULL && have_updated_objects == false;
+			     node = node->next)
+			{
+				if (node->type == ID_OB) {
+					Object *object = (Object *) node->ob;
+					if (object->recalc & OB_RECALC_ALL) {
+						have_updated_objects = true;
+						break;
+					}
+				}
+			}
+		}
+
+		BLI_freelistN(&listbase);
+	}
+#endif
 
 	/* loop over all ID types */
 	a  = set_listbasepointers(bmain, lbarray);
@@ -2454,6 +2562,12 @@ void DAG_ids_clear_recalc(Main *bmain)
 	}
 
 	memset(bmain->id_tag_update, 0, sizeof(bmain->id_tag_update));
+
+#ifdef POST_UPDATE_HANDLER_WORKAROUND
+	if (have_updated_objects) {
+		DAG_id_type_tag(bmain, ID_OB);
+	}
+#endif
 }
 
 void DAG_id_tag_update_ex(Main *bmain, ID *id, short flag)
@@ -2819,74 +2933,7 @@ void DAG_print_dependencies(Main *bmain, Scene *scene, Object *ob)
 	dag_print_dependencies = 0;
 }
 
-/* ************************ DAG tagging and querying ********************* */
-
-void DAG_tag_clear_nodes(Scene *scene)
-{
-	DagNode *node;
-
-	for (node = scene->theDag->DagNode.first; node; node = node->next) {
-		node->tag = false;
-	}
-}
-
-void DAG_tag_node_for_object(Scene *scene, void *object)
-{
-	DagNode *node = dag_get_node(scene->theDag, object);
-
-	node->tag = true;
-}
-
-void DAG_tag_flush_nodes(Scene *scene)
-{
-	DagNodeQueue *node_queue;
-	DagNode *node, *root_node;
-
-	node_queue = queue_create(DAGQUEUEALLOC);
-
-	for (node = scene->theDag->DagNode.first; node; node = node->next) {
-		node->color = DAG_WHITE;
-	}
-
-	root_node = scene->theDag->DagNode.first;
-	root_node->color = DAG_GRAY;
-	push_stack(node_queue, root_node);
-
-	while (node_queue->count) {
-		DagAdjList *itA;
-		bool has_new_nodes = false;
-
-		node = get_top_node_queue(node_queue);
-
-		/* Schedule all child nodes. */
-		for (itA = node->child; itA; itA = itA->next) {
-			if (itA->node->color == DAG_WHITE) {
-				itA->node->color = DAG_GRAY;
-				push_stack(node_queue, itA->node);
-				has_new_nodes = true;
-			}
-		}
-
-		if (!has_new_nodes) {
-			node = pop_queue(node_queue);
-			if (node->ob == scene) {
-				break;
-			}
-
-			/* Flush tag from child to current node. */
-			for (itA = node->child; itA; itA = itA->next) {
-				if (itA->node->tag) {
-					node->tag = true;
-					break;
-				}
-			}
-
-			node->color = DAG_BLACK;
-		}
-	}
-
-	queue_delete(node_queue);
-}
+/* ************************ DAG querying ********************* */
 
 /* Will return Object ID if node represents Object,
  * and will return NULL otherwise.
@@ -2910,9 +2957,35 @@ const char *DAG_get_node_name(void *node_v)
 	return dag_node_name(node);
 }
 
-bool DAG_get_node_tag(void *node_v)
+short DAG_get_eval_flags_for_object(struct Scene *scene, void *object)
 {
-	DagNode *node = node_v;
+	DagNode *node;
 
-	return node->tag;
+	if (scene->theDag == NULL) {
+		/* Happens when converting objects to mesh from a python script
+		 * after modifying scene graph.
+		 *
+		 * Currently harmless because it's only called for temporary
+		 * objects which are out of the DAG anyway.
+		 */
+		return 0;
+	}
+
+	node = dag_find_node(scene->theDag, object);;
+
+	if (node) {
+		return node->eval_flags;
+	}
+	else {
+		/* Happens when external render engine exports temporary objects
+		 * which are not in the DAG.
+		 */
+		/* TODO(sergey): Doublecheck objects with Curve Deform exports all fine. */
+		return 0;
+	}
+}
+
+bool DAG_is_acyclic(Scene *scene)
+{
+	return scene->theDag->is_acyclic;
 }

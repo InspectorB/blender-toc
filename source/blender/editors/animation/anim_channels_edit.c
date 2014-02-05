@@ -659,7 +659,7 @@ typedef enum eReorderIslandFlag {
 
 /* Rearrange Methods --------------------------------------------- */
 
-static short rearrange_island_ok(tReorderChannelIsland *island)
+static bool rearrange_island_ok(tReorderChannelIsland *island)
 {
 	/* island must not be untouchable */
 	if (island->flag & REORDER_ISLAND_UNTOUCHABLE)
@@ -671,7 +671,7 @@ static short rearrange_island_ok(tReorderChannelIsland *island)
 
 /* ............................. */
 
-static short rearrange_island_top(ListBase *list, tReorderChannelIsland *island)
+static bool rearrange_island_top(ListBase *list, tReorderChannelIsland *island)
 {
 	if (rearrange_island_ok(island)) {
 		/* remove from current position */
@@ -686,7 +686,7 @@ static short rearrange_island_top(ListBase *list, tReorderChannelIsland *island)
 	return 0;
 }
 
-static short rearrange_island_up(ListBase *list, tReorderChannelIsland *island)
+static bool rearrange_island_up(ListBase *list, tReorderChannelIsland *island)
 {
 	if (rearrange_island_ok(island)) {
 		/* moving up = moving before the previous island, otherwise we're in the same place */
@@ -706,7 +706,7 @@ static short rearrange_island_up(ListBase *list, tReorderChannelIsland *island)
 	return 0;
 }
 
-static short rearrange_island_down(ListBase *list, tReorderChannelIsland *island)
+static bool rearrange_island_down(ListBase *list, tReorderChannelIsland *island)
 {
 	if (rearrange_island_ok(island)) {
 		/* moving down = moving after the next island, otherwise we're in the same place */
@@ -730,7 +730,7 @@ static short rearrange_island_down(ListBase *list, tReorderChannelIsland *island
 	return 0;
 }
 
-static short rearrange_island_bottom(ListBase *list, tReorderChannelIsland *island)
+static bool rearrange_island_bottom(ListBase *list, tReorderChannelIsland *island)
 {
 	if (rearrange_island_ok(island)) {
 		tReorderChannelIsland *last = list->last;
@@ -762,7 +762,7 @@ static short rearrange_island_bottom(ListBase *list, tReorderChannelIsland *isla
  * < island: island to be moved
  * > return[0]: whether operation was a success
  */
-typedef short (*AnimChanRearrangeFp)(ListBase *list, tReorderChannelIsland *island);
+typedef bool (*AnimChanRearrangeFp)(ListBase *list, tReorderChannelIsland *island);
 
 /* get rearranging function, given 'rearrange' mode */
 static AnimChanRearrangeFp rearrange_get_mode_func(short mode)
@@ -787,7 +787,7 @@ static AnimChanRearrangeFp rearrange_get_mode_func(short mode)
 static void rearrange_animchannel_add_to_islands(ListBase *islands, ListBase *srcList, Link *channel, short type)
 {
 	tReorderChannelIsland *island = islands->last;  /* always try to add to last island if possible */
-	short is_sel = 0, is_untouchable = 0;
+	bool is_sel = false, is_untouchable = false;
 	
 	/* get flags - selected and untouchable from the channel */
 	switch (type) {
@@ -859,7 +859,7 @@ static void rearrange_animchannel_flatten_islands(ListBase *islands, ListBase *s
 /* ............................. */
 
 /* performing rearranging of channels using islands */
-static short rearrange_animchannel_islands(ListBase *list, AnimChanRearrangeFp rearrange_func, short mode, short type)
+static bool rearrange_animchannel_islands(ListBase *list, AnimChanRearrangeFp rearrange_func, short mode, short type)
 {
 	ListBase islands = {NULL, NULL};
 	Link *channel, *chanNext = NULL;
@@ -1027,7 +1027,7 @@ static void join_groups_action_temp(bAction *act)
 static void rearrange_action_channels(bAnimContext *ac, bAction *act, short mode)
 {
 	bActionGroup tgrp;
-	short do_channels;
+	bool do_channels;
 	
 	/* get rearranging function */
 	AnimChanRearrangeFp rearrange_func = rearrange_get_mode_func(mode);

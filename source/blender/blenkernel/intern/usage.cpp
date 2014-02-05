@@ -200,6 +200,7 @@ namespace usage {
 			
 			ibuf = take_screenshot(C, 0);
 			sqi = new ScreenshotQueueItem;
+			
 			sqi->buf = ibuf;
 			sqi->hash = frameUUID;
 			sqi->timestamp = getTimestamp();
@@ -213,7 +214,6 @@ namespace usage {
 	
 	ImBuf* Usage::take_screenshot(bContext *C, const bool crop)
 	{
-		unsigned int *dumprect = NULL;
 		int dumpsx, dumpsy;
 		
 		// copied from screenshot
@@ -224,9 +224,8 @@ namespace usage {
 		dumpsy = WM_window_pixels_y(win);
 		
 		if (dumpsx && dumpsy) {
-			unsigned char *dumprectC;
-			dumprect = (unsigned int*)MEM_mallocN(sizeof(int) * (dumpsx) * (dumpsy), "dumprect");
-			dumprectC = (unsigned char*)dumprect;
+			unsigned int *dumprect = (unsigned int*)MEM_callocN(sizeof(int) * (dumpsx) * (dumpsy), "dumprect");
+			unsigned char *dumprectC = (unsigned char*)dumprect;
 			glReadBuffer(GL_FRONT);
 			// copied from screenshot_read_pixels
 			glReadPixels(x, y, dumpsx, dumpsy, GL_RGBA, GL_UNSIGNED_BYTE, dumprectC);
@@ -236,40 +235,40 @@ namespace usage {
 				*dumprectC = 255;
 			glReadBuffer(GL_BACK);
 			
-			if (dumprect) {
-				// We don't know what the area is at this point, so we can't crop
-				//ScrArea *sa = CTX_wm_area(C);
-				
-				ImBuf *ibuf;
-				
-				// operator ensures the extension
-				ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
-				ibuf->rect = dumprect;
-				
-				// crop to show only single editor, copied from screenshot_crop
-				/*
-				if (sa) {
-					rcti cropRect = sa->totrct;
-					if (crop) {
-						unsigned int *to = ibuf->rect;
-						unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
-						int crop_x = BLI_rcti_size_x(&cropRect);
-						int crop_y = BLI_rcti_size_y(&cropRect);
-						int y;
+			// We don't know what the area is at this point, so we can't crop
+			//ScrArea *sa = CTX_wm_area(C);
+			
+			ImBuf *ibuf = NULL;
+			
+			// operator ensures the extension
+			ibuf = IMB_allocImBuf(dumpsx, dumpsy, 24, 0);
+			ibuf->rect = dumprect;
+
+			ibuf->mall |= IB_rect;
+			ibuf->flags |= IB_rect;
+			
+			// crop to show only single editor, copied from screenshot_crop
+			/*
+			if (sa) {
+				rcti cropRect = sa->totrct;
+				if (crop) {
+					unsigned int *to = ibuf->rect;
+					unsigned int *from = ibuf->rect + cropRect.ymin * ibuf->x + cropRect.xmin;
+					int crop_x = BLI_rcti_size_x(&cropRect);
+					int crop_y = BLI_rcti_size_y(&cropRect);
+					int y;
+					
+					if (crop_x > 0 && crop_y > 0) {
+						for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
+							memmove(to, from, sizeof(unsigned int) * crop_x);
 						
-						if (crop_x > 0 && crop_y > 0) {
-							for (y = 0; y < crop_y; y++, to += crop_x, from += ibuf->x)
-								memmove(to, from, sizeof(unsigned int) * crop_x);
-							
-							ibuf->x = crop_x;
-							ibuf->y = crop_y;
-						}
+						ibuf->x = crop_x;
+						ibuf->y = crop_y;
 					}
 				}
-				*/
-				
-				return ibuf;
-			}
+			}*/
+			
+			return ibuf;
 		}
 		
 		return NULL;
@@ -1101,10 +1100,6 @@ namespace usage {
 			
 			client->sendScreenshot(sshot);
 			
-			if (sqi->buf && sqi->buf->rect) {
-				MEM_freeN(sqi->buf->rect);
-				sqi->buf->rect = NULL;
-			}
 			IMB_freeImBuf(sqi->buf);
 			sqi->buf = NULL;
 			delete sqi;
@@ -1121,10 +1116,6 @@ namespace usage {
 	{
 		ScreenshotQueueItem *sqi = (ScreenshotQueueItem*)obj;
 		if (sqi->buf) {
-			if (sqi->buf && sqi->buf->rect) {
-				MEM_freeN(sqi->buf->rect);
-				sqi->buf->rect = NULL;
-			}
 			IMB_freeImBuf(sqi->buf);
 		}
 		delete sqi;

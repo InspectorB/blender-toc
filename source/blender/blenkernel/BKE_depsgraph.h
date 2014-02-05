@@ -60,6 +60,15 @@ typedef struct EvaluationContext {
 	                     keep at false if update shall happen for the viewport. */
 } EvaluationContext;
 
+/* DagNode->eval_flags */
+enum {
+	/* Regardless to curve->path animation flag path is to be evaluated anyway,
+	 * to meet dependencies with such a things as curve modifier and other guys
+	 * who're using curve deform, where_on_path and so.
+	 */
+	DAG_EVAL_NEED_CURVE_PATH = 1,
+};
+
 /* Global initialization/deinitialization */
 void DAG_init(void);
 void DAG_exit(void);
@@ -97,8 +106,8 @@ void DAG_scene_free(struct Scene *sce);
  * not cause any updates but is used by external render engines to detect if for
  * example a datablock was removed. */
 
-void DAG_scene_update_flags(struct Main *bmain, struct Scene *sce, unsigned int lay, const short do_time);
-void DAG_on_visible_update(struct Main *bmain, const short do_time);
+void DAG_scene_update_flags(struct Main *bmain, struct Scene *sce, unsigned int lay, const bool do_time);
+void DAG_on_visible_update(struct Main *bmain, const bool do_time);
 
 void DAG_id_tag_update(struct ID *id, short flag);
 void DAG_id_tag_update_ex(struct Main *bmain, struct ID *id, short flag);
@@ -145,14 +154,12 @@ void DAG_threaded_update_handle_node_updated(void *node_v,
 
 void DAG_print_dependencies(struct Main *bmain, struct Scene *scene, struct Object *ob);
 
-/* Tagging and querying */
-void DAG_tag_clear_nodes(struct Scene *scene);
-void DAG_tag_node_for_object(struct Scene *scene, void *object);
-void DAG_tag_flush_nodes(struct Scene *scene);
+/* ************************ DAG querying ********************* */
 
 struct Object *DAG_get_node_object(void *node_v);
 const char *DAG_get_node_name(void *node_v);
-bool DAG_get_node_tag(void *node_v);
+short DAG_get_eval_flags_for_object(struct Scene *scene, void *object);
+bool DAG_is_acyclic(struct Scene *scene);
 
 #ifdef __cplusplus
 }

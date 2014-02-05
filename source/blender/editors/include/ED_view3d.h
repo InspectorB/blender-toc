@@ -200,6 +200,8 @@ eV3DProjStatus ED_view3d_project_float_object(const struct ARegion *ar, const fl
 float ED_view3d_calc_zfac(const struct RegionView3D *rv3d, const float co[3], bool *r_flip);
 bool ED_view3d_win_to_ray(const struct ARegion *ar, struct View3D *v3d, const float mval[2],
                           float ray_start[3], float ray_normal[3], const bool do_clip);
+bool ED_view3d_win_to_ray_ex(const struct ARegion *ar, struct View3D *v3d, const float mval[2],
+                             float r_ray_co[3], float r_ray_normal[3], float r_ray_start[3], bool do_clip);
 void ED_view3d_global_to_vector(const struct RegionView3D *rv3d, const float coord[3], float vec[3]);
 void ED_view3d_win_to_3d(const struct ARegion *ar, const float depth_pt[3], const float mval[2], float out[3]);
 void ED_view3d_win_to_3d_int(const struct ARegion *ar, const float depth_pt[3], const int mval[2], float out[3]);
@@ -310,6 +312,8 @@ bool ED_view3d_lock(struct RegionView3D *rv3d);
 
 uint64_t ED_view3d_datamask(struct Scene *scene, struct View3D *v3d);
 uint64_t ED_view3d_screen_datamask(struct bScreen *screen);
+
+bool ED_view3d_view_lock_check(struct View3D *v3d, struct RegionView3D *rv3d);
 
 bool ED_view3d_offset_lock_check(struct View3D *v3d, struct RegionView3D *rv3d);
 

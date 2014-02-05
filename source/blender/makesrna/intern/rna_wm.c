@@ -81,6 +81,8 @@ static EnumPropertyItem event_mouse_type_items[] = {
 	{RIGHTMOUSE, "RIGHTMOUSE", 0, "Right", ""},
 	{BUTTON4MOUSE, "BUTTON4MOUSE", 0, "Button4", ""},
 	{BUTTON5MOUSE, "BUTTON5MOUSE", 0, "Button5", ""},
+	{BUTTON6MOUSE, "BUTTON6MOUSE", 0, "Button6", ""},
+	{BUTTON7MOUSE, "BUTTON7MOUSE", 0, "Button7", ""},
 	{ACTIONMOUSE, "ACTIONMOUSE", 0, "Action", ""},
 	{SELECTMOUSE, "SELECTMOUSE", 0, "Select", ""},
 	{0, "", 0, NULL, NULL},
@@ -173,6 +175,8 @@ EnumPropertyItem event_type_items[] = {
 	{RIGHTMOUSE, "RIGHTMOUSE", 0, "Right Mouse", ""},
 	{BUTTON4MOUSE, "BUTTON4MOUSE", 0, "Button4 Mouse", ""},
 	{BUTTON5MOUSE, "BUTTON5MOUSE", 0, "Button5 Mouse", ""},
+	{BUTTON6MOUSE, "BUTTON6MOUSE", 0, "Button6 Mouse", ""},
+	{BUTTON7MOUSE, "BUTTON7MOUSE", 0, "Button7 Mouse", ""},
 	{ACTIONMOUSE, "ACTIONMOUSE", 0, "Action Mouse", ""},
 	{SELECTMOUSE, "SELECTMOUSE", 0, "Select Mouse", ""},
 	{0, "", 0, NULL, NULL},
@@ -883,7 +887,7 @@ static void rna_Operator_unregister(struct Main *bmain, StructRNA *type)
 	RNA_struct_free_extension(type, &ot->ext);
 
 	idname = ot->idname;
-	WM_operatortype_remove(ot->idname);
+	WM_operatortype_remove_ptr(ot);
 	MEM_freeN((void *)idname);
 
 	/* not to be confused with the RNA_struct_free that WM_operatortype_remove calls, they are 2 different srna's */

@@ -890,12 +890,6 @@ static void rna_def_path(BlenderRNA *UNUSED(brna), StructRNA *srna)
 	                         "Use the mesh bounds to clamp the deformation");
 	RNA_def_property_update(prop, 0, "rna_Curve_update_data");
 
-	prop = RNA_def_property(srna, "use_time_offset", PROP_BOOLEAN, PROP_NONE);
-	RNA_def_property_boolean_sdna(prop, NULL, "flag", CU_OFFS_PATHDIST);
-	RNA_def_property_ui_text(prop, "Offset Path Distance",
-	                         "Children will use TimeOffs value as path distance offset");
-	RNA_def_property_update(prop, 0, "rna_Curve_update_data");
-
 	prop = RNA_def_property(srna, "use_radius", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_sdna(prop, NULL, "flag", CU_PATH_RADIUS);
 	RNA_def_property_ui_text(prop, "Radius", "Option for paths and curve-deform: "
@@ -1012,7 +1006,7 @@ static void rna_def_font(BlenderRNA *UNUSED(brna), StructRNA *srna)
 	RNA_def_property_ui_text(prop, "Object Font",
 	                         "Use Objects as font characters (give font objects a common name "
 	                         "followed by the character they represent, eg. 'family_a', 'family_b', etc, "
-	                         "and set this to 'family_', turn on Vertex Duplication)");
+	                         "set this setting to 'family_', and turn on Vertex Duplication)");
 	RNA_def_property_update(prop, 0, "rna_Curve_update_data");
 	
 	prop = RNA_def_property(srna, "body", PROP_STRING, PROP_NONE);

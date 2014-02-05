@@ -257,12 +257,12 @@ void register_node_tree_type_cmp(void)
 
 void *COM_linker_hack = NULL;
 
-void ntreeCompositExecTree(bNodeTree *ntree, RenderData *rd, int rendering, int do_preview,
+void ntreeCompositExecTree(Scene *scene, bNodeTree *ntree, RenderData *rd, int rendering, int do_preview,
                            const ColorManagedViewSettings *view_settings,
                            const ColorManagedDisplaySettings *display_settings)
 {
 #ifdef WITH_COMPOSITOR
-	COM_execute(rd, ntree, rendering, view_settings, display_settings);
+	COM_execute(rd, scene, ntree, rendering, view_settings, display_settings);
 #else
 	(void)ntree, (void)rd, (void)rendering, (void)do_preview;
 	(void)view_settings, (void)display_settings;
@@ -366,7 +366,7 @@ int ntreeCompositTagAnimated(bNodeTree *ntree)
 		/* otherwise always tag these node types */
 		if (node->type == CMP_NODE_IMAGE) {
 			Image *ima = (Image *)node->id;
-			if (ima && ELEM(ima->source, IMA_SRC_MOVIE, IMA_SRC_SEQUENCE)) {
+			if (ima && BKE_image_is_animated(ima)) {
 				nodeUpdate(ntree, node);
 				tagged = 1;
 			}
@@ -377,7 +377,7 @@ int ntreeCompositTagAnimated(bNodeTree *ntree)
 		}
 		/* here was tag render layer, but this is called after a render, so re-composites fail */
 		else if (node->type == NODE_GROUP) {
-			if (ntreeCompositTagAnimated((bNodeTree *)node->id) ) {
+			if (ntreeCompositTagAnimated((bNodeTree *)node->id)) {
 				nodeUpdate(ntree, node);
 			}
 		}

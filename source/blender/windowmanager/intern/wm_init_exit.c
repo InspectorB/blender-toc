@@ -26,6 +26,8 @@
 
 /** \file blender/windowmanager/intern/wm_init_exit.c
  *  \ingroup wm
+ *
+ * Manage initializing resources and correctly shutting down.
  */
 
 #include <stdlib.h>
@@ -73,6 +75,8 @@
 #include "BKE_sequencer.h" /* free seq clipboard */
 #include "BKE_material.h" /* clear_matcopybuf */
 #include "BKE_tracking.h" /* free tracking clipboard */
+#include "BKE_mask.h" /* free mask clipboard */
+
 #ifdef WITH_USAGE
 #include "BKE_usage.h"
 #endif
@@ -450,6 +454,7 @@ void WM_exit_ext(bContext *C, const bool do_python)
 
 	BKE_sequencer_free_clipboard(); /* sequencer.c */
 	BKE_tracking_clipboard_free();
+	BKE_mask_clipboard_free();
 		
 #ifdef WITH_COMPOSITOR
 	COM_deinitialize();

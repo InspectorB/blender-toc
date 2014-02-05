@@ -107,6 +107,8 @@ class PARTICLE_PT_context_particles(ParticleButtonsPanel, Panel):
         if psys is None:
             part = particle_get_settings(context)
 
+            layout.operator("object.particle_system_add", icon='ZOOMIN', text="New")
+
             if part is None:
                 return
 
@@ -797,9 +799,11 @@ class PARTICLE_PT_render(ParticleButtonsPanel, Panel):
         psys = context.particle_system
         part = particle_get_settings(context)
 
-        row = layout.row()
-        row.prop(part, "material_slot", text="")
         if psys:
+            row = layout.row()
+            if part.render_type in {'OBJECT', 'GROUP'}:
+                row.enabled = False
+            row.prop(part, "material_slot", text="")
             row.prop(psys, "parent")
 
         split = layout.split()

@@ -184,7 +184,7 @@ static VFontData *vfont_get_data(Main *bmain, VFont *vfont)
 				printf("Font file doesn't exist: %s\n", vfont->name);
 
 				/* DON'T DO THIS
-				 * missing file shouldn't modifty path! - campbell */
+				 * missing file shouldn't modify path! - campbell */
 #if 0
 				strcpy(vfont->name, FO_BUILTIN_NAME);
 #endif
@@ -211,7 +211,7 @@ VFont *BKE_vfont_load(Main *bmain, const char *name)
 	VFont *vfont = NULL;
 	PackedFile *pf;
 	PackedFile *temp_pf = NULL;
-	int is_builtin;
+	bool is_builtin;
 	
 	if (STREQ(name, FO_BUILTIN_NAME)) {
 		BLI_strncpy(filename, name, sizeof(filename));
@@ -232,7 +232,7 @@ VFont *BKE_vfont_load(Main *bmain, const char *name)
 
 		vfd = BLI_vfontdata_from_freetypefont(pf);
 		if (vfd) {
-			vfont = BKE_libblock_alloc(&bmain->vfont, ID_VF, filename);
+			vfont = BKE_libblock_alloc(bmain, ID_VF, filename);
 			vfont->data = vfd;
 
 			/* if there's a font name, use it for the ID name */
@@ -520,8 +520,7 @@ static float char_width(Curve *cu, VChar *che, CharInfo *info)
 	}
 }
 
-bool BKE_vfont_to_curve_ex(Main *bmain, Scene *scene, Object *ob, int mode,
-                           ListBase *r_nubase,
+bool BKE_vfont_to_curve_ex(Main *bmain, Object *ob, int mode, ListBase *r_nubase,
                            const wchar_t **r_text, int *r_text_len, bool *r_text_free,
                            struct CharTrans **r_chartransdata)
 {
@@ -866,14 +865,7 @@ makebreak:
 	/* TEXT ON CURVE */
 	/* Note: Only OB_CURVE objects could have a path  */
 	if (cu->textoncurve && cu->textoncurve->type == OB_CURVE) {
-		Curve *cucu = cu->textoncurve->data;
-		int oldflag = cucu->flag;
-		
-		cucu->flag |= (CU_PATH + CU_FOLLOW);
-		
-		if (cu->textoncurve->curve_cache == NULL || cu->textoncurve->curve_cache->path == NULL) {
-			BKE_displist_make_curveTypes(scene, cu->textoncurve, 0);
-		}
+		BLI_assert(cu->textoncurve->curve_cache != NULL);
 		if (cu->textoncurve->curve_cache->path) {
 			float distfac, imat[4][4], imat3[3][3], cmat[3][3];
 			float minx, maxx, miny, maxy;
@@ -969,7 +961,6 @@ makebreak:
 				}
 				
 			}
-			cucu->flag = oldflag;
 		}
 	}
 
@@ -1135,21 +1126,17 @@ finally:
 }
 
 
-bool BKE_vfont_to_curve_nubase(Main *bmain, Scene *scene, Object *ob, int mode,
-                               ListBase *r_nubase)
+bool BKE_vfont_to_curve_nubase(Main *bmain, Object *ob, int mode, ListBase *r_nubase)
 {
 	BLI_assert(ob->type == OB_FONT);
 
-	return BKE_vfont_to_curve_ex(bmain, scene, ob, mode,
-	                             r_nubase,
+	return BKE_vfont_to_curve_ex(bmain, ob, mode, r_nubase,
 	                             NULL, NULL, NULL, NULL);
 }
 
-bool BKE_vfont_to_curve(Main *bmain, Scene *scene, Object *ob, int mode)
+bool BKE_vfont_to_curve(Main *bmain, Object *ob, int mode)
 {
 	Curve *cu = ob->data;
 
-	return BKE_vfont_to_curve_ex(bmain, scene, ob, mode,
-	                             &cu->nurb,
-	                             NULL, NULL, NULL, NULL);
+	return BKE_vfont_to_curve_ex(bmain, ob, mode, &cu->nurb, NULL, NULL, NULL, NULL);
 }

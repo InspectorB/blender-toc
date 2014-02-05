@@ -1254,8 +1254,8 @@ void RNA_property_enum_items_gettexted(bContext *C, PointerRNA *ptr, PropertyRNA
 	if (!(prop->flag & PROP_ENUM_NO_TRANSLATE)) {
 		int i;
 		/* Note: Only do those tests once, and then use BLF_pgettext. */
-		int do_iface = BLF_translate_iface();
-		int do_tooltip = BLF_translate_tooltips();
+		bool do_iface = BLF_translate_iface();
+		bool do_tooltip = BLF_translate_tooltips();
 		EnumPropertyItem *nitem;
 
 		if (!(do_iface || do_tooltip))
@@ -5249,13 +5249,14 @@ char *RNA_property_as_string(bContext *C, PointerRNA *ptr, PropertyRNA *prop, in
 			if (RNA_property_flag(prop) & PROP_ENUM_FLAG) {
 				/* represent as a python set */
 				if (val) {
-					EnumPropertyItem *item = NULL;
+					EnumPropertyItem *item_array;
 					bool free;
 
 					BLI_dynstr_append(dynstr, "{");
 
-					RNA_property_enum_items(C, ptr, prop, &item, NULL, &free);
-					if (item) {
+					RNA_property_enum_items(C, ptr, prop, &item_array, NULL, &free);
+					if (item_array) {
+						EnumPropertyItem *item = item_array;
 						bool is_first = true;
 						for (; item->identifier; item++) {
 							if (item->identifier[0] && item->value & val) {
@@ -5265,7 +5266,7 @@ char *RNA_property_as_string(bContext *C, PointerRNA *ptr, PropertyRNA *prop, in
 						}
 
 						if (free) {
-							MEM_freeN(item);
+							MEM_freeN(item_array);
 						}
 					}
 
@@ -6378,8 +6379,8 @@ bool RNA_property_equals(PointerRNA *a, PointerRNA *b, PropertyRNA *prop, eRNAEq
 				int *array_a, *array_b;
 				bool equals;
 
-				array_a = (len > 16) ? MEM_callocN(sizeof(int) * len, "RNA equals"): fixed_a;
-				array_b = (len > 16) ? MEM_callocN(sizeof(int) * len, "RNA equals"): fixed_b;
+				array_a = (len > 16) ? MEM_callocN(sizeof(int) * len, "RNA equals") : fixed_a;
+				array_b = (len > 16) ? MEM_callocN(sizeof(int) * len, "RNA equals") : fixed_b;
 
 				RNA_property_int_get_array(a, prop, array_a);
 				RNA_property_int_get_array(b, prop, array_b);

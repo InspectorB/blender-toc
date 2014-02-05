@@ -2655,4 +2655,49 @@ void blo_do_versions_260(FileData *fd, Library *UNUSED(lib), Main *main)
 			}
 		}
 	}
+	
+	if (!MAIN_VERSION_ATLEAST(main, 269, 9)) {
+		Object *ob;
+		
+		for (ob = main->object.first; ob; ob = ob->id.next) {
+			ModifierData *md;
+			for (md = ob->modifiers.first; md; md = md->next) {
+				if (md->type == eModifierType_Build) {
+					BuildModifierData *bmd = (BuildModifierData *)md;
+					if (bmd->randomize) {
+						bmd->flag |= MOD_BUILD_FLAG_RANDOMIZE;
+					}
+				}
+			}
+		}
+	}
+
+	if (!DNA_struct_elem_find(fd->filesdna, "BevelModifierData", "float", "profile")) {
+		Object *ob;
+
+		for (ob = main->object.first; ob; ob = ob->id.next) {
+			ModifierData *md;
+			for (md = ob->modifiers.first; md; md = md->next) {
+				if (md->type == eModifierType_Bevel) {
+					BevelModifierData *bmd = (BevelModifierData *)md;
+					bmd->profile = 0.5f;
+					bmd->val_flags = MOD_BEVEL_AMT_OFFSET;
+				}
+			}
+		}
+	}
+
+	{
+		/* nodes don't use fixed node->id any more, clean up */
+		FOREACH_NODETREE(main, ntree, id) {
+			if (ntree->type == NTREE_COMPOSIT) {
+				bNode *node;
+				for (node = ntree->nodes.first; node; node = node->next) {
+					if (ELEM(node->type, CMP_NODE_COMPOSITE, CMP_NODE_OUTPUT_FILE)) {
+						node->id = NULL;
+					}
+				}
+			}
+		} FOREACH_NODETREE_END
+	}
 }
