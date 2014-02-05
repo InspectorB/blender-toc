@@ -591,7 +591,6 @@ namespace usage {
 			PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
 			std::vector<wire::data::RNAProperty> thriftOpProperties;
 			
-			// TODO: enable
 			if (U.flag & USER_USAGE_SEND_SCREENSHOTS
 				&& !(op->type->flag & OPTYPE_NOSCREENSHOT)
 				&& CTX_wm_window(C))
