@@ -118,8 +118,71 @@ void swap(OnlyUser &a, OnlyUser &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Metadata::ascii_fingerprint = "9C63F070D776FB08873B5382A3AF4B1B";
-const uint8_t Metadata::binary_fingerprint[16] = {0x9C,0x63,0xF0,0x70,0xD7,0x76,0xFB,0x08,0x87,0x3B,0x53,0x82,0xA3,0xAF,0x4B,0x1B};
+const char* SessionKey::ascii_fingerprint = "66E694018C17E5B65A59AE8F55CCA3CD";
+const uint8_t SessionKey::binary_fingerprint[16] = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+uint32_t SessionKey::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->sessionKey);
+          this->__isset.sessionKey = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t SessionKey::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("SessionKey");
+
+  if (this->__isset.sessionKey) {
+    xfer += oprot->writeFieldBegin("sessionKey", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->sessionKey);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(SessionKey &a, SessionKey &b) {
+  using ::std::swap;
+  swap(a.sessionKey, b.sessionKey);
+  swap(a.__isset, b.__isset);
+}
+
+const char* Metadata::ascii_fingerprint = "BC6E462F30B0AE22ED9A244AB3806973";
+const uint8_t Metadata::binary_fingerprint[16] = {0xBC,0x6E,0x46,0x2F,0x30,0xB0,0xAE,0x22,0xED,0x9A,0x24,0x4A,0xB3,0x80,0x69,0x73};
 
 uint32_t Metadata::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -157,6 +220,14 @@ uint32_t Metadata::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->sessionKey.read(iprot);
+          this->__isset.sessionKey = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -183,6 +254,11 @@ uint32_t Metadata::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += this->onlyUser.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.sessionKey) {
+    xfer += oprot->writeFieldBegin("sessionKey", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->sessionKey.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -192,6 +268,7 @@ void swap(Metadata &a, Metadata &b) {
   using ::std::swap;
   swap(a.noMetadata, b.noMetadata);
   swap(a.onlyUser, b.onlyUser);
+  swap(a.sessionKey, b.sessionKey);
   swap(a.__isset, b.__isset);
 }
 

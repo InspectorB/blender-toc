@@ -93,17 +93,64 @@ class OnlyUser {
 
 void swap(OnlyUser &a, OnlyUser &b);
 
+typedef struct _SessionKey__isset {
+  _SessionKey__isset() : sessionKey(false) {}
+  bool sessionKey;
+} _SessionKey__isset;
+
+class SessionKey {
+ public:
+
+  static const char* ascii_fingerprint; // = "66E694018C17E5B65A59AE8F55CCA3CD";
+  static const uint8_t binary_fingerprint[16]; // = {0x66,0xE6,0x94,0x01,0x8C,0x17,0xE5,0xB6,0x5A,0x59,0xAE,0x8F,0x55,0xCC,0xA3,0xCD};
+
+  SessionKey() : sessionKey() {
+  }
+
+  virtual ~SessionKey() throw() {}
+
+  std::string sessionKey;
+
+  _SessionKey__isset __isset;
+
+  void __set_sessionKey(const std::string& val) {
+    sessionKey = val;
+    __isset.sessionKey = true;
+  }
+
+  bool operator == (const SessionKey & rhs) const
+  {
+    if (__isset.sessionKey != rhs.__isset.sessionKey)
+      return false;
+    else if (__isset.sessionKey && !(sessionKey == rhs.sessionKey))
+      return false;
+    return true;
+  }
+  bool operator != (const SessionKey &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const SessionKey & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(SessionKey &a, SessionKey &b);
+
 typedef struct _Metadata__isset {
-  _Metadata__isset() : noMetadata(false), onlyUser(false) {}
+  _Metadata__isset() : noMetadata(false), onlyUser(false), sessionKey(false) {}
   bool noMetadata;
   bool onlyUser;
+  bool sessionKey;
 } _Metadata__isset;
 
 class Metadata {
  public:
 
-  static const char* ascii_fingerprint; // = "9C63F070D776FB08873B5382A3AF4B1B";
-  static const uint8_t binary_fingerprint[16]; // = {0x9C,0x63,0xF0,0x70,0xD7,0x76,0xFB,0x08,0x87,0x3B,0x53,0x82,0xA3,0xAF,0x4B,0x1B};
+  static const char* ascii_fingerprint; // = "BC6E462F30B0AE22ED9A244AB3806973";
+  static const uint8_t binary_fingerprint[16]; // = {0xBC,0x6E,0x46,0x2F,0x30,0xB0,0xAE,0x22,0xED,0x9A,0x24,0x4A,0xB3,0x80,0x69,0x73};
 
   Metadata() {
   }
@@ -112,6 +159,7 @@ class Metadata {
 
   NoMetadata noMetadata;
   OnlyUser onlyUser;
+  SessionKey sessionKey;
 
   _Metadata__isset __isset;
 
@@ -127,6 +175,12 @@ class Metadata {
     __isset.onlyUser = true;
   }
 
+  void __set_sessionKey(const SessionKey& val) {
+    sessionKey = val;
+    __isset = _Metadata__isset();
+    __isset.sessionKey = true;
+  }
+
   bool operator == (const Metadata & rhs) const
   {
     if (__isset.noMetadata != rhs.__isset.noMetadata)
@@ -136,6 +190,10 @@ class Metadata {
     if (__isset.onlyUser != rhs.__isset.onlyUser)
       return false;
     else if (__isset.onlyUser && !(onlyUser == rhs.onlyUser))
+      return false;
+    if (__isset.sessionKey != rhs.__isset.sessionKey)
+      return false;
+    else if (__isset.sessionKey && !(sessionKey == rhs.sessionKey))
       return false;
     return true;
   }

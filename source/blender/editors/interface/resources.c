@@ -2353,6 +2353,9 @@ void init_userdef_do_versions(void)
 		if (U.usage_service_port == 0) {
 			U.usage_service_port = 9090;
 		}
+		if (U.usage_screenshot_subdivisions < USAGE_SCREENSHOT_SUBDIV_EIGHTH || U.usage_screenshot_subdivisions > USAGE_SCREENSHOT_SUBDIV_HALF) {
+			U.usage_screenshot_subdivisions = USAGE_SCREENSHOT_SUBDIV_HALF;
+		}
 	}
 	
 	if (U.pixelsize == 0.0f)

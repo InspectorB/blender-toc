@@ -39,92 +39,155 @@ extern "C" {
 #include "UI_interface.h"
 }
 
+#include <queue>
+
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/thread.hpp>
 
 #include "intern/usage/data_types.h"
 
 #include "intern/usage/TocService.h"
 
-//using namespace wire;
-//using namespace wire::data;
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
-// Used to put image screenshots in the queue with the right hash
-// scaling and conversion is then done in the sending thread
+/* 
+ * Used to put image screenshots in the queue with the right hash
+ * scaling and conversion is then done in the sending thread
+ */
 typedef struct ScreenshotQueueItem {
 	ImBuf *buf;
 	std::string hash;
 	long timestamp;
+	short subdivisions;
 } ScreenshotQueueItem;
 
 namespace usage {
-
-	class Usage {
+	
+	/*********************/
+	/**** Queue class ****/
+	/*********************/
+	class Queue {
 		
-	private:
-		ListBase threads;
-		ThreadQueue *messageQueue, *screenshotQueue;
-		bool shutdown;
-		bool enabled;
-		bool updateSettingsP;
-		wire::Message *sendingMessage;
-		ScreenshotQueueItem *sendingScreenshot;
-		std::string sessionKey;
-		std::string frameUUID;
-		wmWindow *frameWin;
-		bool takeScreenshot;
+	protected:
+		ThreadQueue* queue;
+		boost::thread thread;
 		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
 		boost::shared_ptr<TProtocol> protocol;
 		wire::TocServiceClient *client;
 		
-		boost::uuids::random_generator uuidGenerator;
+		void* sendingObj;
+		bool resetConnectionP;
+		bool shutdownP;
+		
+		bool createConnection();
+		void teardownConnection();
+		
+		void processQueue();
+		virtual bool processQueueH() = 0;
+		virtual void clearQueueItem(void *obj) = 0;
+		
+	public:
+		Queue();
+		~Queue();
+		void start();
+		void shutdown(long gracePeriodSeconds);
+		void push(void *obj);
+		bool empty();
+	};
+	
+	/****************************/
+	/**** MessageQueue class ****/
+	/****************************/
+	class MessageQueue: public Queue {
+	public:
+		bool processQueueH();
+		void clearQueueItem(void *obj);
+	};
+	
+	/*******************************/
+	/**** ScreenshotQueue class ****/
+	/*******************************/
+	class ScreenshotQueue: public Queue {
+	private:
 		ImageFormatData im_format;
+		void readEntireFile(const char *filepath, std::string &str);
+	public:
+		ScreenshotQueue();
+		bool processQueueH();
+		void clearQueueItem(void *obj);
+	};
+
+	
+	/*********************/
+	/**** Usage class ****/
+	/*********************/
+	class Usage {
+		
+	private:
+		
+		bool enabledP;
+		bool updateSettingsP;
+		bool takeScreenshotP;
+		
+		std::string sessionKey;
+		std::string frameUUID;
+		wmWindow *frameWin;
+		
+		boost::uuids::random_generator uuidGenerator;
+		
+		MessageQueue messageQueue;
+		ScreenshotQueue screenshotQueue;
 		
 		Usage();
 		~Usage();
 		Usage(Usage const&);
+		
 		void operator=(Usage const&);
 		
-		bool emptyQueues();
-		bool createConnection();
-		void teardownConnection();
+		ImBuf* take_screenshot(bContext *C, const bool crop);
 		void read_entire_file(const char *filepath, std::string &str);
-		long getTimestamp();
+		
 		wire::Message *getNewMessage();
 		std::string p2s(void *p);
+		
 		wire::data::Context *getNewContext(const struct bContext *C);
 		void setProperty(wire::data::RNAProperty *thriftProp, bContext *C, PointerRNA* ptr, PropertyRNA* prop);
 		std::string generateUUID();
 		
-		void handleQueue();
-		
-		ImBuf* take_screenshot(bContext *C, const bool crop);
-		
 	public:
 		static Usage& getInstance();
+		static long getTimestamp();
+		
+		bool isEnabled();
+		void disable();
 		void updateSettings();
-		void ping();
-		void doThread();
+		
 		void mainPrepare();
 		void mainTakeScreenshot(bContext *C);
+		
+		void ping();
 		void queueOperator(bContext *C, wmOperator *op, int retval, int repeat);
 		void queueEvent(bContext *C, const wmEvent *ev);
 		void queueButtonPress(bContext *C, uiBut *but);
 		void queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index);
 		void queueStart();
 		void queueEnd();
+		
 		void free();
 	};
 	
 } /* namespace */
+
+
+
 
 extern "C" {
 #else /* __cplusplus */

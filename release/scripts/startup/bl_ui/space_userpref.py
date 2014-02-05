@@ -509,6 +509,13 @@ class USERPREF_PT_system(Panel):
             sub.prop(system, "usage_service_host", text="IP Address")
             sub.prop(system, "usage_service_port", text="Port")
             sub.prop(system, "usage_service_token", text="Private Token")
+            row = column.row()
+            row.prop(system, "usage_send_screenshots")
+            row = column.row()
+            col = row.column()
+            col.active = system.usage_send_screenshots
+            col.label("Screenshot scaling:")
+            col.prop(system, "usage_screenshot_subdivisions", expand=True)
 
 
 class USERPREF_MT_interface_theme_presets(Menu):

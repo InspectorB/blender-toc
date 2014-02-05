@@ -20,22 +20,21 @@
 namespace wire {
 
 typedef struct _Message__isset {
-  _Message__isset() : metadata(false), data(false), user(false), timestamp(false), token(false), sessionKey(false) {}
+  _Message__isset() : metadata(false), data(false), user(false), timestamp(false), token(false) {}
   bool metadata;
   bool data;
   bool user;
   bool timestamp;
   bool token;
-  bool sessionKey;
 } _Message__isset;
 
 class Message {
  public:
 
-  static const char* ascii_fingerprint; // = "584F59361718A2293A9485E9D9B45C44";
-  static const uint8_t binary_fingerprint[16]; // = {0x58,0x4F,0x59,0x36,0x17,0x18,0xA2,0x29,0x3A,0x94,0x85,0xE9,0xD9,0xB4,0x5C,0x44};
+  static const char* ascii_fingerprint; // = "BB2CC6DAECAA3D70B1EC86CEA56F215E";
+  static const uint8_t binary_fingerprint[16]; // = {0xBB,0x2C,0xC6,0xDA,0xEC,0xAA,0x3D,0x70,0xB1,0xEC,0x86,0xCE,0xA5,0x6F,0x21,0x5E};
 
-  Message() : user(0), timestamp(0), token(), sessionKey() {
+  Message() : user(0), timestamp(0), token() {
   }
 
   virtual ~Message() throw() {}
@@ -45,7 +44,6 @@ class Message {
   int64_t user;
   int64_t timestamp;
   std::string token;
-  std::string sessionKey;
 
   _Message__isset __isset;
 
@@ -74,11 +72,6 @@ class Message {
     __isset.token = true;
   }
 
-  void __set_sessionKey(const std::string& val) {
-    sessionKey = val;
-    __isset.sessionKey = true;
-  }
-
   bool operator == (const Message & rhs) const
   {
     if (__isset.metadata != rhs.__isset.metadata)
@@ -101,10 +94,6 @@ class Message {
       return false;
     else if (__isset.token && !(token == rhs.token))
       return false;
-    if (__isset.sessionKey != rhs.__isset.sessionKey)
-      return false;
-    else if (__isset.sessionKey && !(sessionKey == rhs.sessionKey))
-      return false;
     return true;
   }
   bool operator != (const Message &rhs) const {
@@ -121,20 +110,21 @@ class Message {
 void swap(Message &a, Message &b);
 
 typedef struct _Screenshot__isset {
-  _Screenshot__isset() : token(false), hash(false), screenshot(false), timestamp(false) {}
+  _Screenshot__isset() : token(false), hash(false), screenshot(false), timestamp(false), subdivisions(false) {}
   bool token;
   bool hash;
   bool screenshot;
   bool timestamp;
+  bool subdivisions;
 } _Screenshot__isset;
 
 class Screenshot {
  public:
 
-  static const char* ascii_fingerprint; // = "EA56942314ECD5D27DC4278DCD614C8D";
-  static const uint8_t binary_fingerprint[16]; // = {0xEA,0x56,0x94,0x23,0x14,0xEC,0xD5,0xD2,0x7D,0xC4,0x27,0x8D,0xCD,0x61,0x4C,0x8D};
+  static const char* ascii_fingerprint; // = "EC500A9237B8225E8EEAAA066785F02E";
+  static const uint8_t binary_fingerprint[16]; // = {0xEC,0x50,0x0A,0x92,0x37,0xB8,0x22,0x5E,0x8E,0xEA,0xAA,0x06,0x67,0x85,0xF0,0x2E};
 
-  Screenshot() : token(), hash(), screenshot(), timestamp(0) {
+  Screenshot() : token(), hash(), screenshot(), timestamp(0), subdivisions(0) {
   }
 
   virtual ~Screenshot() throw() {}
@@ -143,6 +133,7 @@ class Screenshot {
   std::string hash;
   std::string screenshot;
   int64_t timestamp;
+  int16_t subdivisions;
 
   _Screenshot__isset __isset;
 
@@ -166,6 +157,11 @@ class Screenshot {
     __isset.timestamp = true;
   }
 
+  void __set_subdivisions(const int16_t val) {
+    subdivisions = val;
+    __isset.subdivisions = true;
+  }
+
   bool operator == (const Screenshot & rhs) const
   {
     if (__isset.token != rhs.__isset.token)
@@ -183,6 +179,10 @@ class Screenshot {
     if (__isset.timestamp != rhs.__isset.timestamp)
       return false;
     else if (__isset.timestamp && !(timestamp == rhs.timestamp))
+      return false;
+    if (__isset.subdivisions != rhs.__isset.subdivisions)
+      return false;
+    else if (__isset.subdivisions && !(subdivisions == rhs.subdivisions))
       return false;
     return true;
   }

@@ -97,6 +97,7 @@ extern "C" {
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/bind.hpp>
 
 #include "usage/service_types.h"
 #include "usage/data_types.h"
@@ -113,268 +114,102 @@ extern "C" {
 #endif
 
 extern "C" {
-	static void *usage_do_thread(void *callerdata)
-	{
-		usage::Usage::getInstance().doThread();
-		return NULL;
-	}
+//	static void *usage_start_message_queue(void *callerdata)
+//	{
+//		usage::Usage::getInstance().doThread();
+//		return NULL;
+//	}
+//	
+//	static void *usage_start_screenshot_queue(void *callerdata)
+//	{
+//		usage::Usage::getInstance().startThread();
+//		return NULL;
+//	}
 }
 
 namespace usage {
 
+	/*******************************/
+	/********* Usage class *********/
+	/*******************************/
+	
 	Usage::Usage()
 	{
-		enabled = false;
-		shutdown = false;
-		updateSettings();
-		sendingMessage = NULL;
-		sendingScreenshot = NULL;
-		client = NULL;
+		enabledP = false;
 		
-		/* For JPEG
-		im_format.planes = R_IMF_PLANES_RGBA;
-		im_format.imtype = R_IMF_IMTYPE_JP2;
-		im_format.depth = R_IMF_CHAN_DEPTH_8;
-		im_format.jp2_codec = R_IMF_JP2_CODEC_JP2;
-		im_format.quality = 50;
-		 */
-		im_format.planes = R_IMF_PLANES_RGB;
-		im_format.imtype = R_IMF_IMTYPE_PNG;
-		im_format.depth = R_IMF_CHAN_DEPTH_8;
-		im_format.quality = 90;
-		im_format.compress = 15;
+		updateSettings();
 		
 		sessionKey = generateUUID();
 		
-		messageQueue = BLI_thread_queue_init();
-		screenshotQueue = BLI_thread_queue_init();
-		BLI_init_threads(&threads, &usage_do_thread, 1);
-		BLI_insert_thread(&threads, NULL);
+		messageQueue.start();
+		screenshotQueue.start();
 	}
 	
 	Usage::~Usage()
 	{
 		// N.B. the singleton is cleaned up explicitly on shutdown
-		//free();
 	}
+	
+	
+	void Usage::updateSettings()
+	{
+		// Don't enable if the user chose to not enable collection or if the token hasn't
+		// been set.
+		enabledP = U.flag & USER_USAGE_ENABLED && U.usage_service_token[0] != 0;
+	}
+	
 	
 	void Usage::free()
 	{
-		// Give the queue some time to send last messages
-		if (enabled && !emptyQueues() && transport->isOpen()) {
-			long startTS = getTimestamp();
-			long currentTS = startTS;
-			while (currentTS - startTS < 60000 && !emptyQueues()) { // 1 minute
-				usleep(1000000); // 1 second
-				currentTS = getTimestamp();
-			}
-		}
-		
-		// Shut down
-		shutdown = true;
-		BLI_end_threads(&threads);
-		
-		while (BLI_thread_queue_size(messageQueue) > 0) {
-			wire::Message *msg = (wire::Message*)BLI_thread_queue_pop(messageQueue);
-			delete msg;
-		}
-		
-		while (BLI_thread_queue_size(screenshotQueue) > 0) {
-			ScreenshotQueueItem *sqi = (ScreenshotQueueItem*)BLI_thread_queue_pop(screenshotQueue);
-			if (sqi->buf) {
-				if (sqi->buf->rect) MEM_freeN(sqi->buf->rect);
-				IMB_freeImBuf(sqi->buf);
-			}
-			delete sqi;
-		}
-		
-		BLI_thread_queue_free(messageQueue);
-		BLI_thread_queue_free(screenshotQueue);
-		teardownConnection();
+		messageQueue.shutdown(60);
+		screenshotQueue.shutdown(60);
 	}
+	
 	
 	Usage& Usage::getInstance()
 	{
 		static Usage instance;
 		return instance;
 	}
+
 	
-	void Usage::updateSettings()
+	bool Usage::isEnabled()
 	{
-		// Don't enable if the user chose to not enable collection or if the token hasn't
-		// been set.
-		enabled = U.flag & USER_USAGE_ENABLED && U.usage_service_token[0] != 0;
-		updateSettingsP = true;
+		return enabledP;
 	}
 	
-	bool Usage::createConnection()
+	
+	void Usage::disable()
 	{
-		try {
-			// set up new connection
-			boost::shared_ptr<TSocket> newSocket(new TSocket(U.usage_service_host, U.usage_service_port));
-			boost::shared_ptr<TTransport> newTransport(new TFramedTransport(newSocket));
-			boost::shared_ptr<TProtocol> newProtocol(new TBinaryProtocol(newTransport));
-			newTransport->open();
-			if (!newTransport->isOpen()) throw TException("Can't open transport");
-			client = new wire::TocServiceClient(newProtocol);
-			// transfer ownership of pointers to the singleton
-			socket = newSocket;
-			transport = newTransport;
-			protocol = newProtocol;
-			return true;
-		}
-		catch (TException e) {
-			printf("%s\n", e.what());
-			updateSettings();
-			usleep(1000000);
-			return false;
-		}
+		enabledP = false;
 	}
 	
-	void Usage::teardownConnection()
-	{
-		if (transport.get() && transport->isOpen())
-			transport->close();
-	}
-	
-	void Usage::doThread()
-	{
-		while(!shutdown) {
-			try {
-				handleQueue();
-			}
-			catch (TTransportException) {
-				updateSettings();
-			}
-		}
-	}
 	
 	void Usage::mainPrepare()
 	{
 		frameUUID = generateUUID();
 	}
 	
+	
 	void Usage::mainTakeScreenshot(bContext *C)
 	{
 		// N.B. make sure that we have the right window
-		if (takeScreenshot && frameWin == CTX_wm_window(C)) {
-			 ImBuf *ibuf;
-			 ScreenshotQueueItem *sqi;
-			 
-			 ibuf = take_screenshot(C, 0);
-			 sqi = new ScreenshotQueueItem;
-			 sqi->buf = ibuf;
-			 sqi->hash = frameUUID;
-			 sqi->timestamp = getTimestamp();
-			 BLI_thread_queue_push(screenshotQueue, sqi);
+		if (takeScreenshotP && frameWin == CTX_wm_window(C)) {
+			ImBuf *ibuf;
+			ScreenshotQueueItem *sqi;
+			
+			ibuf = take_screenshot(C, 0);
+			sqi = new ScreenshotQueueItem;
+			sqi->buf = ibuf;
+			sqi->hash = frameUUID;
+			sqi->timestamp = getTimestamp();
+			sqi->subdivisions = U.usage_screenshot_subdivisions;
+			
+			screenshotQueue.push(sqi);
 		}
-		
-		takeScreenshot = false;
+		takeScreenshotP = false;
 	}
 	
-	bool Usage::emptyQueues()
-	{
-		return (BLI_thread_queue_size(messageQueue) == 0
-				&&
-				BLI_thread_queue_size(screenshotQueue) == 0);
-	}
-	
-	void Usage::handleQueue()
-	{
-		if (enabled) {
-			// Check to see if settings have changed
-			if (updateSettingsP) {
-				teardownConnection();
-				if (!createConnection())
-					return;
-				updateSettingsP = false;
-			}
-				
-			// Try and handle last message, or try and send the new message
-			try {
-				unsigned char sent = 0;
-				
-				if (sendingMessage == NULL)
-					sendingMessage = (wire::Message*)BLI_thread_queue_pop_timeout(messageQueue, 10);
-				if (sendingScreenshot == NULL)
-					sendingScreenshot = (ScreenshotQueueItem*)BLI_thread_queue_pop_timeout(screenshotQueue, 10);
-				
-				std::string token = U.usage_service_token;
-				
-				if (sendingMessage) {
-					sendingMessage->__set_token(token); // set token here so it can be updated
-					client->sendMessage(*sendingMessage);
-					delete sendingMessage; // message has been sent, delete it
-					sendingMessage = NULL;
-					sent++;
-				}
-				
-				if (sendingScreenshot) {
-					ImBuf *ibufHalf;
-					
-					char filename[41];
-					char filepath[128];
-					BLI_snprintf(filename, sizeof(filename), "%s.png", sendingScreenshot->hash.c_str());
-					BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
-
-					// half the image and write to disk
-					ibufHalf = IMB_onehalf(sendingScreenshot->buf);
-					BKE_imbuf_write(ibufHalf, filepath, &im_format);
-				
-					// load jpeg file into screenshot struct
-					std::string content;
-					read_entire_file(filepath, content);
-					BLI_delete(filepath, FALSE, FALSE);
-
-					std::string token = U.usage_service_token;
-					wire::Screenshot sshot;
-					sshot.__set_hash(sendingScreenshot->hash);
-					sshot.__set_token(token);
-					sshot.__set_screenshot(content);
-					sshot.__set_timestamp(sendingScreenshot->timestamp);
-					
-					client->sendScreenshot(sshot);
-					
-					if (sendingScreenshot->buf->rect) MEM_freeN(sendingScreenshot->buf->rect);
-					IMB_freeImBuf(sendingScreenshot->buf);
-					delete sendingScreenshot;
-					sendingScreenshot = NULL;
-					IMB_freeImBuf(ibufHalf);
-					sent++;
-				}
-				
-				if (!sent) usleep(100000);
-			}
-			catch (wire::UnknownToken e) {
-				enabled = false;
-				printf("TOKEN: %s\n", e.message.c_str());
-			}
-			catch (wire::Unavailable) {
-				printf("TODO: service unavailable\n");
-			}
-			catch (TApplicationException e) {
-				switch (e.getType()) {
-					case TApplicationException::INTERNAL_ERROR:
-						printf("INTERNAL_ERROR: %s\n", e.what());
-						break;
-					case TApplicationException::PROTOCOL_ERROR:
-						printf("PROTOCOL_ERROR: %s\n", e.what());
-						break;
-					default:
-						printf("OTHER (%i): %s\n", e.getType(), e.what());
-				}
-				// If an error occurred, let's reset the connection
-				updateSettings();
-			}
-			catch (TException e) {
-				printf("Scary town... %s.\n", e.what());
-				updateSettings();
-			}
-		} else {
-			updateSettings();
-			usleep(1000000);
-		}
-	}
 	
 	ImBuf* Usage::take_screenshot(bContext *C, const bool crop)
 	{
@@ -439,17 +274,6 @@ namespace usage {
 		
 		return NULL;
 	}
-	
-	void Usage::read_entire_file(const char *filepath, std::string &str)
-	{
-		std::ifstream in(filepath);
-		
-		in.seekg(0, std::ios::end);
-		str.reserve(in.tellg());
-		in.seekg(0, std::ios::beg);
-		
-		str.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-	}
 
 	// returns timestamp in milliseconds
 	long Usage::getTimestamp()
@@ -473,7 +297,16 @@ namespace usage {
 	{
 		wire::Message *msg = new wire::Message();
 		msg->__set_timestamp(getTimestamp());
-		msg->__set_sessionKey(sessionKey);
+		
+		// set enveloping message
+		wire::metadata::SessionKey mdSessionKey;
+		mdSessionKey.__set_sessionKey(sessionKey);
+		
+		wire::metadata::Metadata metadata;
+		metadata.__set_sessionKey(mdSessionKey);
+
+		msg->__set_metadata(metadata);
+
 		return msg;
 	}
 	
@@ -750,7 +583,7 @@ namespace usage {
 	void Usage::queueOperator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// TODO: perhaps filter out timer operations
-		if (enabled) {
+		if (enabledP) {
 			
 			wire::Message *msg = getNewMessage();
 			wire::data::WmOp thriftOp;
@@ -759,9 +592,12 @@ namespace usage {
 			PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
 			std::vector<wire::data::RNAProperty> thriftOpProperties;
 			
-			// check if there's a window, otherwise opening a file crashes
-			if (!(op->type->flag & OPTYPE_NOSCREENSHOT) && CTX_wm_window(C)) {
-				takeScreenshot = true;
+			// TODO: enable
+			if (U.flag & USER_USAGE_SEND_SCREENSHOTS
+				&& !(op->type->flag & OPTYPE_NOSCREENSHOT)
+				&& CTX_wm_window(C))
+			{
+				takeScreenshotP = true;
 				frameWin = CTX_wm_window(C);
 				frameWin->screen->do_draw = TRUE;
 				thriftOp.__set_screenshotHash(frameUUID);
@@ -811,24 +647,18 @@ namespace usage {
 			thriftOp.__set_context(*ctx);
 			delete ctx;
 			
-			// set enveloping message
-			wire::metadata::Metadata metadata;
-			wire::metadata::NoMetadata noMetadata;
-			metadata.__set_noMetadata(noMetadata);
-			msg->__set_metadata(metadata);
-
 			wire::data::Data data;
 			data.__set_wmOp(thriftOp);
 			msg->__set_data(data);
 
-			BLI_thread_queue_push(messageQueue, msg);
+			messageQueue.push(msg);
 		}
 	}
 	
 	void Usage::queueEvent(bContext *C, const wmEvent *event)
 	{
 		// TODO: might want to filter out simple mouse movements
-		if (enabled) {
+		if (enabledP) {
 		
 			wire::Message *msg = getNewMessage();
 			wire::data::WmEv ev;
@@ -866,42 +696,32 @@ namespace usage {
 			
 			// TODO: set tablet data
 			
-			wire::metadata::Metadata metadata;
-			wire::metadata::NoMetadata noMetadata;
-			metadata.__set_noMetadata(noMetadata);
-			msg->__set_metadata(metadata);
-			
 			wire::data::Data data;
 			data.__set_wmEv(ev);
 			msg->__set_data(data);
 			
-			BLI_thread_queue_push(messageQueue, msg);
+			messageQueue.push(msg);
 		}
 	}
 	
 	void Usage::queueButtonPress(bContext *C, uiBut *but)
 	{
-		if (enabled) {
+		if (enabledP) {
 			// just send an empty ButtonPress
 			wire::Message *msg = getNewMessage();
 			wire::data::ButPress bp;
-			
-			wire::metadata::Metadata metadata;
-			wire::metadata::NoMetadata noMetadata;
-			metadata.__set_noMetadata(noMetadata);
-			msg->__set_metadata(metadata);
 			
 			wire::data::Data data;
 			data.__set_butPress(bp);
 			msg->__set_data(data);
 			
-			BLI_thread_queue_push(messageQueue, msg);
+			messageQueue.push(msg);
 		}
 	}
 	
 	void Usage::queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index)
 	{
-		if (enabled) {
+		if (enabledP) {
 			wire::Message *msg = getNewMessage();
 			wire::data::Assignment as;
 			
@@ -919,22 +739,17 @@ namespace usage {
 			setProperty(&thriftProp, C, ptr, prop);
 			as.__set_property(thriftProp);
 			
-			wire::metadata::Metadata metadata;
-			wire::metadata::NoMetadata noMetadata;
-			metadata.__set_noMetadata(noMetadata);
-			msg->__set_metadata(metadata);
-			
 			wire::data::Data data;
 			data.__set_assignment(as);
 			msg->__set_data(data);
 			
-			BLI_thread_queue_push(messageQueue, msg);
+			messageQueue.push(msg);
 		}
 	}
 	
 	void Usage::queueStart()
 	{
-		if (enabled) {
+		if (enabledP) {
 			wire::Message *msg = getNewMessage();
 			wire::data::SessionStart ss;
 			
@@ -1017,38 +832,314 @@ namespace usage {
 				ss.__set_resolutionY(dispheight);
 			}
 			
-			wire::metadata::Metadata metadata;
-			wire::metadata::NoMetadata noMetadata;
-			metadata.__set_noMetadata(noMetadata);
-			msg->__set_metadata(metadata);
-			
 			wire::data::Data data;
 			data.__set_sessionStart(ss);
 			msg->__set_data(data);
 			
-			BLI_thread_queue_push(messageQueue, msg);
+			messageQueue.push(msg);
 		}
 	}
 	
 	void Usage::queueEnd()
 	{
-		if (enabled) {
+		if (enabledP) {
 			wire::Message *msg = getNewMessage();
 			wire::data::SessionEnd se;
 			
 			se.__set_sessionKey(sessionKey);
 			
-			wire::metadata::Metadata metadata;
-			wire::metadata::NoMetadata noMetadata;
-			metadata.__set_noMetadata(noMetadata);
-			msg->__set_metadata(metadata);
-			
 			wire::data::Data data;
 			data.__set_sessionEnd(se);
 			msg->__set_data(data);
 			
-			BLI_thread_queue_push(messageQueue, msg);
+			messageQueue.push(msg);
 		}
+	}
+	
+	/*******************************/
+	/********* Queue class *********/
+	/*******************************/
+	
+	Queue::Queue()
+	{
+		sendingObj = NULL;
+		client = NULL;
+		queue = NULL;
+		resetConnectionP = true;
+	}
+	
+	Queue::~Queue()
+	{
+		delete client;
+	}
+	
+	void Queue::start()
+	{
+		queue = BLI_thread_queue_init();
+		thread = boost::thread(boost::bind(&Queue::processQueue, this), 1);
+	}
+	
+	bool Queue::createConnection()
+	{
+		try {
+			// set up new connection
+			boost::shared_ptr<TSocket> newSocket(new TSocket(U.usage_service_host, U.usage_service_port));
+			boost::shared_ptr<TTransport> newTransport(new TFramedTransport(newSocket));
+			boost::shared_ptr<TProtocol> newProtocol(new TBinaryProtocol(newTransport));
+			
+			newTransport->open();
+			
+			if (!newTransport->isOpen()) throw TException("Can't open transport");
+			client = new wire::TocServiceClient(newProtocol);
+
+			// transfer ownership of pointers to the singleton
+			socket = newSocket;
+			transport = newTransport;
+			protocol = newProtocol;
+			
+			return true;
+		}
+		catch (TException e) {
+			printf("%s\n", e.what());
+			Usage::getInstance().updateSettings();
+			usleep(1000000);
+			return false;
+		}
+	}
+	
+	void Queue::teardownConnection()
+	{
+		if (transport.get() && transport->isOpen())
+			transport->close();
+	}
+	
+	bool Queue::empty()
+	{
+		return BLI_thread_queue_size(queue) == 0;
+	}
+	
+	void Queue::push(void *obj)
+	{
+		BLI_thread_queue_push(queue, obj);
+	}
+	
+	void Queue::shutdown(long gracePeriodSeconds)
+	{
+		// Give the queue some time to send last messages
+		if (Usage::getInstance().isEnabled() && !empty() && transport->isOpen()) {
+			long startTS = Usage::getTimestamp();
+			long currentTS = startTS;
+			while (currentTS - startTS < (gracePeriodSeconds * 1000) && !empty()) {
+				usleep(1000000); // 1 second
+				currentTS = Usage::getTimestamp();
+			}
+		}
+		
+		// Shut down
+		shutdownP = true;
+		thread.join();
+		
+		while (BLI_thread_queue_size(queue) > 0) {
+			clearQueueItem(BLI_thread_queue_pop(queue));
+		}
+		
+		BLI_thread_queue_free(queue);
+		teardownConnection();
+	}
+	
+	void Queue::processQueue()
+	{
+		while (!shutdownP) {
+			if (Usage::getInstance().isEnabled()) {
+				
+				// Check to see if settings have changed
+				if (resetConnectionP) {
+					Usage::getInstance().updateSettings();
+					teardownConnection();
+					if (!createConnection())
+						continue;
+					resetConnectionP = false;
+				}
+				
+				try {
+					// Do the thread type specific work
+					if (!processQueueH())
+						usleep(100000); // sleep 100 ms
+				}
+				catch (wire::UnknownToken e) {
+					Usage::getInstance().disable();
+					resetConnectionP = true;
+					printf("TOKEN: %s\n", e.message.c_str());
+				}
+				catch (wire::Unavailable) {
+					Usage::getInstance().disable();
+					resetConnectionP = true;
+					printf("TODO: service unavailable\n");
+				}
+				catch (TApplicationException e) {
+					switch (e.getType()) {
+						case TApplicationException::INTERNAL_ERROR:
+							printf("INTERNAL_ERROR: %s\n", e.what());
+							break;
+						case TApplicationException::PROTOCOL_ERROR:
+							printf("PROTOCOL_ERROR: %s\n", e.what());
+							break;
+						default:
+							printf("OTHER (%i): %s\n", e.getType(), e.what());
+					}
+					// If an error occurred, let's reset the connection
+					Usage::getInstance().disable();
+					resetConnectionP = true;
+				}
+				catch (TTransportException e) {
+					printf("TTransportException: %s\n", e.what());
+					resetConnectionP = true;
+				}
+				catch (TException e) {
+					printf("Scary town... %s.\n", e.what());
+					resetConnectionP = true;
+				}
+			} else { // not enabled
+				Usage::getInstance().updateSettings();
+				usleep(1000000); // sleep 1 second
+			}
+		}
+	}
+	
+	/**************************************/
+	/********* MessageQueue class *********/
+	/**************************************/
+	
+	bool MessageQueue::processQueueH()
+	{
+		wire::Message* msg = NULL;
+		std::string token = U.usage_service_token;
+		
+		// Try and handle last message, or try and send the new message
+		if (sendingObj == NULL) {
+			sendingObj = BLI_thread_queue_pop_timeout(queue, 10);
+//			sendingObj = BLI_thread_queue_pop(queue);
+		}
+		
+		msg = (wire::Message*)sendingObj;
+		
+		if (msg) {
+			msg->__set_token(token); // set token here so it can be updated
+			client->sendMessage(*msg);
+			delete msg; // message has been sent, delete it
+			sendingObj = NULL;
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
+	void MessageQueue::clearQueueItem(void *obj)
+	{
+		wire::Message *msg = (wire::Message*)obj;
+		delete msg;
+	}
+	
+	/*****************************************/
+	/********* ScreenshotQueue class *********/
+	/*****************************************/
+	
+	ScreenshotQueue::ScreenshotQueue()
+	{
+		/* For JPEG
+		 im_format.planes = R_IMF_PLANES_RGBA;
+		 im_format.imtype = R_IMF_IMTYPE_JP2;
+		 im_format.depth = R_IMF_CHAN_DEPTH_8;
+		 im_format.jp2_codec = R_IMF_JP2_CODEC_JP2;
+		 im_format.quality = 50;
+		 */
+		im_format.planes = R_IMF_PLANES_RGB;
+		im_format.imtype = R_IMF_IMTYPE_PNG;
+		im_format.depth = R_IMF_CHAN_DEPTH_8;
+		im_format.quality = 90;
+		im_format.compress = 15;
+	}
+	
+	bool ScreenshotQueue::processQueueH()
+	{
+		ScreenshotQueueItem* sqi = NULL;
+		std::string token = U.usage_service_token;
+		
+		if (sendingObj == NULL) {
+			sendingObj = BLI_thread_queue_pop_timeout(queue, 10);
+//			sendingObj = BLI_thread_queue_pop(queue);
+		}
+		
+		sqi = (ScreenshotQueueItem*)sendingObj;
+		
+		if (sqi) {
+			char filename[41];
+			char filepath[128];
+			BLI_snprintf(filename, sizeof(filename), "%s.png", sqi->hash.c_str());
+			BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
+			
+			// half the image and write to disk
+			int subdivs = pow(2, sqi->subdivisions);
+			IMB_scaleImBuf(sqi->buf,
+						   sqi->buf->x / subdivs,
+						   sqi->buf->y / subdivs);
+			BKE_imbuf_write(sqi->buf, filepath, &im_format);
+			
+			// load jpeg file into screenshot struct
+			std::string content;
+			readEntireFile(filepath, content);
+			BLI_delete(filepath, FALSE, FALSE);
+			
+			std::string token = U.usage_service_token;
+			wire::Screenshot sshot;
+			sshot.__set_hash(sqi->hash);
+			sshot.__set_token(token);
+			sshot.__set_screenshot(content);
+			sshot.__set_timestamp(sqi->timestamp);
+			sshot.__set_subdivisions(sqi->subdivisions);
+			
+			client->sendScreenshot(sshot);
+			
+			if (sqi->buf && sqi->buf->rect) {
+				MEM_freeN(sqi->buf->rect);
+				sqi->buf->rect = NULL;
+			}
+			IMB_freeImBuf(sqi->buf);
+			sqi->buf = NULL;
+			delete sqi;
+			sendingObj = NULL;
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
+	void ScreenshotQueue::clearQueueItem(void *obj)
+	{
+		ScreenshotQueueItem *sqi = (ScreenshotQueueItem*)obj;
+		if (sqi->buf) {
+			if (sqi->buf && sqi->buf->rect) {
+				MEM_freeN(sqi->buf->rect);
+				sqi->buf->rect = NULL;
+			}
+			IMB_freeImBuf(sqi->buf);
+		}
+		delete sqi;
+	}
+	
+	
+	void ScreenshotQueue::readEntireFile(const char *filepath, std::string &str)
+	{
+		std::ifstream in(filepath);
+		
+		in.seekg(0, std::ios::end);
+		str.reserve(in.tellg());
+		in.seekg(0, std::ios::beg);
+		
+		str.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 	}
 	
 } /* namespace */

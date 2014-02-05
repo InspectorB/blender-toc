@@ -3630,6 +3630,15 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 		{IMAGE_DRAW_METHOD_DRAWPIXELS, "DRAWPIXELS", 0, "DrawPixels", "Use CPU for display transform and draw image using DrawPixels"},
 		{0, NULL, 0, NULL, NULL}
 	};
+	
+#ifdef WITH_USAGE
+	static EnumPropertyItem usage_screenshot_subdivisions_items[] = {
+		{USAGE_SCREENSHOT_SUBDIV_HALF, "HALF", 0, "50%", ""},
+		{USAGE_SCREENSHOT_SUBDIV_QUARTER, "QUARTER", 0, "25%", ""},
+		{USAGE_SCREENSHOT_SUBDIV_EIGHTH, "EIGTH", 0, "12.5%", ""},
+		{0, NULL, 0, NULL, NULL}
+	};
+#endif
 
 	srna = RNA_def_struct(brna, "UserPreferencesSystem", NULL);
 	RNA_def_struct_sdna(srna, "UserDef");
@@ -3913,6 +3922,7 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	prop = RNA_def_property(srna, "usage_service_port", PROP_INT, PROP_NONE);
 	RNA_def_property_int_sdna(prop, NULL, "usage_service_port");
 	RNA_def_property_range(prop, 0, 32727);
+	RNA_def_property_int_default(prop, 9090);
 	RNA_def_property_ui_text(prop, "Usage Service Port", "Port for the usage data collection service");
 	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
 	
@@ -3920,6 +3930,19 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	RNA_def_property_string_sdna(prop, NULL, "usage_service_token");
 	RNA_def_property_string_maxlength(prop, 37);
 	RNA_def_property_ui_text(prop, "Usage Service Token", "Personal token for the usage data collection service");
+	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
+	
+	prop = RNA_def_property(srna, "usage_send_screenshots", PROP_BOOLEAN, PROP_NONE);
+	RNA_def_property_boolean_sdna(prop, NULL, "flag", USER_USAGE_SEND_SCREENSHOTS);
+	RNA_def_property_ui_text(prop, "Send screenshots", "Enable the collection of screenshots");
+	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
+	
+	prop = RNA_def_property(srna, "usage_screenshot_subdivisions", PROP_ENUM, PROP_NONE);
+	RNA_def_property_enum_sdna(prop, NULL, "usage_screenshot_subdivisions");
+	RNA_def_property_enum_items(prop, usage_screenshot_subdivisions_items);
+	RNA_def_property_enum_default(prop, USAGE_SCREENSHOT_SUBDIV_HALF);
+	RNA_def_property_ui_text(prop, "Screenshot scaling",
+							 "Scaling of the screenshot (saves bandwidth)");
 	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
 #endif
 }

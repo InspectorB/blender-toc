@@ -514,7 +514,10 @@ typedef struct UserDef {
 
 	char usage_service_host[64];
 	char usage_service_token[44];
-	int usage_service_port;
+	short usage_service_port;
+	short usage_screenshot_subdivisions;
+
+	//short pad2[2];
 } UserDef;
 
 extern UserDef U; /* from blenkernel blender.c */
@@ -562,6 +565,7 @@ typedef enum eUserPref_Flag {
 	USER_TXT_TABSTOSPACES_DISABLE	= (1 << 25),
 	USER_TOOLTIPS_PYTHON    = (1 << 26),
 	USER_USAGE_ENABLED		= (1 << 27),
+	USER_USAGE_SEND_SCREENSHOTS = (1 << 28),
 } eUserPref_Flag;
 
 /* flag */
@@ -817,6 +821,14 @@ typedef enum eImageDrawMethod {
 	IMAGE_DRAW_METHOD_2DTEXTURE = 2,
 	IMAGE_DRAW_METHOD_DRAWPIXELS = 3,
 } eImageDrawMethod;
+	
+#ifdef WITH_USAGE
+typedef enum eUsageScreenshotSubdivision {
+	USAGE_SCREENSHOT_SUBDIV_HALF = 1,
+	USAGE_SCREENSHOT_SUBDIV_QUARTER = 2,
+	USAGE_SCREENSHOT_SUBDIV_EIGHTH = 3,
+} eUsageScreenshotSubdivision;
+#endif
 
 #ifdef __cplusplus
 }
