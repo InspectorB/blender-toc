@@ -155,7 +155,9 @@ namespace usage {
 	{
 		// Don't enable if the user chose to not enable collection or if the token hasn't
 		// been set.
-		enabledP = U.flag & USER_USAGE_ENABLED && U.usage_service_token[0] != 0;
+		enabledP = U.flag & USER_USAGE_ENABLED
+					&& U.usage_service_token[0] != 0
+					&& !G.background;
 	}
 	
 	
@@ -1182,6 +1184,7 @@ extern "C" {
 	
 	void BKE_usage_shutdown(void)
 	{
+		// Only queue an end message
 		usage::Usage::getInstance().queueEnd();
 		usage::Usage::getInstance().free();
 	}

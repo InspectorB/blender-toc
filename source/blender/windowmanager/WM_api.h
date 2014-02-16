@@ -223,6 +223,11 @@ bool        WM_operatortype_remove(const char *idname);
 
 struct wmOperatorType *WM_operatortype_append_macro(const char *idname, const char *name, const char *description, int flag);
 struct wmOperatorTypeMacro *WM_operatortype_macro_define(struct wmOperatorType *ot, const char *idname);
+#ifdef WITH_ONTOLOGY
+void		WM_operatortypes_ontology_set_output(const char* path);
+void		WM_operatortypes_ontology_export(void);
+bool		WM_operatortypes_ontology_should_export(void);
+#endif
 
 
 int			WM_operator_poll		(struct bContext *C, struct wmOperatorType *ot);

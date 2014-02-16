@@ -299,6 +299,7 @@ option(WITH_BOOST					"Enable features depending on boost" ON)
 
 # Usage tracking
 option(WITH_USAGE					"Enable tracking of usage" ON)
+option(WITH_ONTOLOGY				"Enable exporting of ontological information" OFF)
 
 if(CMAKE_COMPILER_IS_GNUCC)
 	option(WITH_GCC_MUDFLAP			"Enable mudflap" OFF)
@@ -891,6 +892,23 @@ if(UNIX AND NOT APPLE)
 		set(THRIFT_INCLUDE_DIRS ${THRIFT}/include)
 		set(THRIFT_LIBPATH ${THRIFT}/lib)
 		set(THRIFT_LIBRARIES thrift)
+	endif()
+
+	if(WITH_ONTOLOGY)
+		set(REDLAND_LIBRDF /opt/lib/redland/librdf CACHE PATH "LibRDF Directory")
+		set(REDLAND_LIBRDF_INCLUDE_DIRS ${REDLAND_LIBRDF}/include)
+		set(REDLAND_LIBRDF_LIBPATH ${REDLAND_LIBRDF}/lib)
+		set(REDLAND_LIBRDF_LIBRARIES rdf ltdl)
+
+		set(REDLAND_RAPTOR /opt/lib/redland/raptor CACHE PATH "Raptor Directory")
+		set(REDLAND_RAPTOR_INCLUDE_DIRS ${REDLAND_RAPTOR}/include/raptor2)
+		set(REDLAND_RAPTOR_LIBPATH ${REDLAND_RAPTOR}/lib)
+		set(REDLAND_RAPTOR_LIBRARIES raptor2)
+		
+		set(REDLAND_RASQAL /opt/lib/redland/rasqal)
+		set(REDLAND_RASQAL_INCLUDE_DIRS ${REDLAND_RASQAL}/include/rasqal)
+		set(REDLAND_RASQAL_LIBPATH ${REDLAND_RASQAL}/lib)
+		set(REDLAND_RASQAL_LIBRARIES rasqal)
 	endif()
 
 	# OpenSuse needs lutil, ArchLinux not, for now keep, can avoid by using --as-needed
@@ -1854,6 +1872,23 @@ elseif(APPLE)
 		set(THRIFT_LIBRARIES thrift)
 	endif()
 
+	if(WITH_ONTOLOGY)
+		set(REDLAND_LIBRDF ${LIBDIR}/redland/librdf)
+		set(REDLAND_LIBRDF_INCLUDE_DIRS ${REDLAND_LIBRDF}/include)
+		set(REDLAND_LIBRDF_LIBPATH ${REDLAND_LIBRDF}/lib)
+		set(REDLAND_LIBRDF_LIBRARIES rdf ltdl)
+
+		set(REDLAND_RAPTOR ${LIBDIR}/redland/raptor)
+		set(REDLAND_RAPTOR_INCLUDE_DIRS ${REDLAND_RAPTOR}/include/raptor2)
+		set(REDLAND_RAPTOR_LIBPATH ${REDLAND_RAPTOR}/lib)
+		set(REDLAND_RAPTOR_LIBRARIES raptor2)
+		
+		set(REDLAND_RASQAL ${LIBDIR}/redland/rasqal)
+		set(REDLAND_RASQAL_INCLUDE_DIRS ${REDLAND_RASQAL}/include/rasqal)
+		set(REDLAND_RASQAL_LIBPATH ${REDLAND_RASQAL}/lib)
+		set(REDLAND_RASQAL_LIBRARIES rasqal)
+	endif()
+
 	set(EXETYPE MACOSX_BUNDLE)
 
 	set(CMAKE_C_FLAGS_DEBUG "-fno-strict-aliasing -g")
@@ -2344,6 +2379,7 @@ if(FIRST_RUN)
 	info_cfg_option(WITH_FREESTYLE)
 	info_cfg_option(WITH_OPENCOLORIO)
 	info_cfg_option(WITH_USAGE)
+	info_cfg_option(WITH_ONTOLOGY)
 
 	info_cfg_text("Compiler Options:")
 	info_cfg_option(WITH_BUILDINFO)

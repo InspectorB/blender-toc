@@ -146,4 +146,16 @@ if(WITH_USAGE)
 	)
 endif()
 
+if(WITH_ONTOLOGY)
+	add_definitions(-DWITH_ONTOLOGY)
+	list(APPEND INC_SYS
+		${REDLAND_LIBRDF_INCLUDE_DIRS}
+		${REDLAND_RAPTOR_INCLUDE_DIRS}
+		${REDLAND_RASQAL_INCLUDE_DIRS}
+	)
+	list(APPEND SRC
+		intern/wm_operators_ontology.c
+	)
+endif()
+
 blender_add_lib_nolist(bf_windowmanager "${SRC}" "${INC}" "${INC_SYS}")

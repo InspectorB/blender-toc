@@ -1124,6 +1124,21 @@ static int set_skip_frame(int argc, const char **argv, void *data)
 	}
 }
 
+#ifdef WITH_ONTOLOGY
+static int set_ontology_output(int argc, const char **argv, void *UNUSED(data))
+{
+	if (argc > 1) {
+		WM_operatortypes_ontology_set_output(argv[1]);
+		G.background = 1;
+		return 1;
+	}
+	else {
+		printf("\nError: you must specify a path after '--write-ontology'.\n");
+		return 0;
+	}
+}
+#endif
+
 /* macro for ugly context setup/reset */
 #ifdef WITH_PYTHON
 #define BPY_CTX_SETUP(_cmd)                                                   \
@@ -1420,6 +1435,11 @@ static void setupArguments(bContext *C, bArgs *ba, SYS_SystemHandle *syshandle)
 	BLI_argsAdd(ba, 1, NULL, "--env-system-datafiles",  "\n\tSet the "STRINGIFY_ARG (BLENDER_SYSTEM_DATAFILES)" environment variable", set_env, NULL);
 	BLI_argsAdd(ba, 1, NULL, "--env-system-scripts",    "\n\tSet the "STRINGIFY_ARG (BLENDER_SYSTEM_SCRIPTS)" environment variable", set_env, NULL);
 	BLI_argsAdd(ba, 1, NULL, "--env-system-python",     "\n\tSet the "STRINGIFY_ARG (BLENDER_SYSTEM_PYTHON)" environment variable", set_env, NULL);
+	
+	/* check to see if we should output ontological information */
+#ifdef WITH_ONTOLOGY
+	BLI_argsAdd(ba, 1, NULL, "--write-ontology", "<path>\n\tFile to write the ontology to", set_ontology_output, NULL);
+#endif
 
 	/* second pass: custom window stuff */
 	BLI_argsAdd(ba, 2, "-p", "--window-geometry", "<sx> <sy> <w> <h>\n\tOpen with lower left corner at <sx>, <sy> and width and height as <w>, <h>", prefsize, NULL);
@@ -1720,6 +1740,14 @@ int main(int argc, const char **argv)
 #ifdef WITH_USAGE
 	BKE_usage_queue_start();
 #endif 
+	
+#ifdef WITH_ONTOLOGY
+	// If the ontology output path has been set then export and quit
+	if (WM_operatortypes_ontology_should_export()) {
+		WM_operatortypes_ontology_export();
+		WM_exit(C);
+	}
+#endif
 	
 	if (G.background) {
 		/* actually incorrect, but works for now (ton) */

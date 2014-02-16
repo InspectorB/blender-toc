@@ -1079,6 +1079,15 @@ endif()
 			${BOOST_INCLUDE_DIR}
 		)
 	endif()
+	
+	if(WITH_ONTOLOGY)
+		add_definitions(-DWITH_ONTOLOGY)
+		list(APPEND INC_SYS
+			${REDLAND_LIBRDF_INCLUDE_DIRS}
+			${REDLAND_RAPTOR_INCLUDE_DIR}
+			${REDLAND_RASQAL_INCLUDE_DIRS}
+		)
+	endif()
 
 	foreach(SORTLIB ${BLENDER_SORTED_LIBS})
 		set(REMLIB ${SORTLIB})
