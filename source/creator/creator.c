@@ -1280,7 +1280,7 @@ static int load_file(int UNUSED(argc), const char **argv, void *data)
 			Main *bmain = CTX_data_main(C);
 
 			/* special case, 2.4x files */
-			if (wm == NULL && CTX_data_main(C)->wm.first == NULL) {
+			if (wm == NULL && BLI_listbase_is_empty(&bmain->wm)) {
 				extern void wm_add_default(bContext *C);
 
 				/* wm_add_default() needs the screen to be set. */
@@ -1781,7 +1781,7 @@ int main(int argc, const char **argv)
 #ifdef WITH_PYTHON_MODULE
 void main_python_exit(void)
 {
-	WM_exit((bContext *)evil_C);
+	WM_exit_ext((bContext *)evil_C, true);
 	evil_C = NULL;
 }
 #endif

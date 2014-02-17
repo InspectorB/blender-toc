@@ -2180,7 +2180,7 @@ void psys_make_temp_pointcache(Object *ob, ParticleSystem *psys)
 {
 	PointCache *cache = psys->pointcache;
 
-	if (cache->flag & PTCACHE_DISK_CACHE && cache->mem_cache.first == NULL) {
+	if (cache->flag & PTCACHE_DISK_CACHE && BLI_listbase_is_empty(&cache->mem_cache)) {
 		PTCacheID pid;
 		BKE_ptcache_id_from_particles(&pid, ob, psys);
 		cache->flag &= ~PTCACHE_DISK_CACHE;
@@ -2264,7 +2264,8 @@ void psys_update_particle_tree(ParticleSystem *psys, float cfra)
 static void psys_update_effectors(ParticleSimulationData *sim)
 {
 	pdEndEffectors(&sim->psys->effectors);
-	sim->psys->effectors = pdInitEffectors(sim->scene, sim->ob, sim->psys, sim->psys->part->effector_weights);
+	sim->psys->effectors = pdInitEffectors(sim->scene, sim->ob, sim->psys,
+	                                       sim->psys->part->effector_weights, true);
 	precalc_guides(sim, sim->psys->effectors);
 }
 
@@ -3597,7 +3598,7 @@ static int collision_detect(ParticleData *pa, ParticleCollision *col, BVHTreeRay
 	ColliderCache *coll;
 	float ray_dir[3];
 
-	if (colliders->first == NULL)
+	if (BLI_listbase_is_empty(colliders))
 		return 0;
 
 	sub_v3_v3v3(ray_dir, col->co2, col->co1);

@@ -2374,7 +2374,6 @@ cleanup:
 void flushTransNodes(TransInfo *t)
 {
 	const float dpi_fac = UI_DPI_FAC;
-	bool hidden_state;
 	int a;
 	TransData *td;
 	TransData2D *td2d;
@@ -2393,18 +2392,6 @@ void flushTransNodes(TransInfo *t)
 		node->locx = td2d->loc[0] / dpi_fac;
 		node->locy = td2d->loc[1] / dpi_fac;
 #endif
-		/* update node hidden state with transform data TD_HIDDEN + transformInfo T_TOGGLE_HIDDEN */
-		hidden_state = (td->flag & TD_HIDDEN) != 0;
-		if (t->state != TRANS_CANCEL) {
-			hidden_state ^= (t->flag & T_TOGGLE_HIDDEN) > 0;
-		}
-
-		if (hidden_state) {
-			node->flag |= NODE_HIDDEN;
-		}
-		else {
-			node->flag &= ~NODE_HIDDEN;
-		}
 	}
 	
 	/* handle intersection with noodles */
@@ -3051,11 +3038,11 @@ static void posttrans_gpd_clean(bGPdata *gpd)
 		}
 		
 		/* error checking: it is unlikely, but may be possible to have none selected */
-		if (sel_buffer.first == NULL)
+		if (BLI_listbase_is_empty(&sel_buffer))
 			continue;
 		
 		/* if all were selected (i.e. gpl->frames is empty), then just transfer sel-buf over */
-		if (gpl->frames.first == NULL) {
+		if (BLI_listbase_is_empty(&gpl->frames)) {
 			gpl->frames.first = sel_buffer.first;
 			gpl->frames.last = sel_buffer.last;
 			
@@ -3141,11 +3128,11 @@ static void posttrans_mask_clean(Mask *mask)
 		}
 
 		/* error checking: it is unlikely, but may be possible to have none selected */
-		if (sel_buffer.first == NULL)
+		if (BLI_listbase_is_empty(&sel_buffer))
 			continue;
 
 		/* if all were selected (i.e. masklay->splines_shapes is empty), then just transfer sel-buf over */
-		if (masklay->splines_shapes.first == NULL) {
+		if (BLI_listbase_is_empty(&masklay->splines_shapes)) {
 			masklay->splines_shapes.first = sel_buffer.first;
 			masklay->splines_shapes.last = sel_buffer.last;
 
@@ -6023,9 +6010,6 @@ static void NodeToTransData(TransData *td, TransData2D *td2d, bNode *node, const
 	td->ext = NULL; td->val = NULL;
 
 	td->flag |= TD_SELECTED;
-	if (node->flag & NODE_HIDDEN) {
-		td->flag |= TD_HIDDEN;
-	}
 	td->dist = 0.0;
 
 	unit_m3(td->mtx);
@@ -6060,8 +6044,6 @@ static void createTransNodeData(bContext *UNUSED(C), TransInfo *t)
 
 	/* nodes dont support PET and probably never will */
 	t->flag &= ~T_PROP_EDIT_ALL;
-	/* initial: do not toggle hidden */
-	t->flag &= ~T_TOGGLE_HIDDEN;
 
 	/* set transform flags on nodes */
 	for (node = snode->edittree->nodes.first; node; node = node->next) {
@@ -6781,6 +6763,14 @@ static void createTransMaskingData(bContext *C, TransInfo *t)
 	if (!mask)
 		return;
 
+	if (t->spacetype == SPACE_CLIP) {
+		SpaceClip *sc = t->sa->spacedata.first;
+		MovieClip *clip = ED_space_clip_get_clip(sc);
+		if (!clip) {
+			return;
+		}
+	}
+
 	/* count */
 	for (masklay = mask->masklayers.first; masklay; masklay = masklay->next) {
 		MaskSpline *spline;
@@ -6887,6 +6877,7 @@ void createTransData(bContext *C, TransInfo *t)
 	Scene *scene = t->scene;
 	Object *ob = OBACT;
 
+	/* if tests must match recalcData for correct updates */
 	if (t->options & CTX_TEXTURE) {
 		t->flag |= T_TEXTURE;
 		createTransTexspace(t);

@@ -3232,6 +3232,7 @@ static void def_sh_mapping(StructRNA *srna)
 	
 	prop = RNA_def_property(srna, "scale", PROP_FLOAT, PROP_XYZ);
 	RNA_def_property_float_sdna(prop, NULL, "size");
+	RNA_def_property_flag(prop, PROP_PROPORTIONAL);
 	RNA_def_property_ui_text(prop, "Scale", "");
 	RNA_def_property_update(prop, 0, "rna_Mapping_Node_update");
 	
@@ -6320,7 +6321,7 @@ static void rna_def_node_socket(BlenderRNA *brna)
 	/* registration */
 	prop = RNA_def_property(srna, "bl_idname", PROP_STRING, PROP_NONE);
 	RNA_def_property_string_sdna(prop, NULL, "typeinfo->idname");
-	RNA_def_property_flag(prop, PROP_REGISTER | PROP_NEVER_CLAMP);
+	RNA_def_property_flag(prop, PROP_REGISTER);
 	RNA_def_property_ui_text(prop, "ID Name", "");
 
 	/* draw socket */
@@ -6394,7 +6395,7 @@ static void rna_def_node_socket_interface(BlenderRNA *brna)
 	/* registration */
 	prop = RNA_def_property(srna, "bl_socket_idname", PROP_STRING, PROP_NONE);
 	RNA_def_property_string_sdna(prop, NULL, "typeinfo->idname");
-	RNA_def_property_flag(prop, PROP_REGISTER | PROP_NEVER_CLAMP);
+	RNA_def_property_flag(prop, PROP_REGISTER);
 	RNA_def_property_ui_text(prop, "ID Name", "");
 
 	func = RNA_def_function(srna, "draw", NULL);
@@ -7096,7 +7097,7 @@ static void rna_def_node(BlenderRNA *brna)
 	/* registration */
 	prop = RNA_def_property(srna, "bl_idname", PROP_STRING, PROP_NONE);
 	RNA_def_property_string_sdna(prop, NULL, "typeinfo->idname");
-	RNA_def_property_flag(prop, PROP_REGISTER | PROP_NEVER_CLAMP);
+	RNA_def_property_flag(prop, PROP_REGISTER);
 	RNA_def_property_ui_text(prop, "ID Name", "");
 
 	prop = RNA_def_property(srna, "bl_label", PROP_STRING, PROP_NONE);
@@ -7475,7 +7476,7 @@ static void rna_def_nodetree(BlenderRNA *brna)
 	/* registration */
 	prop = RNA_def_property(srna, "bl_idname", PROP_STRING, PROP_NONE);
 	RNA_def_property_string_sdna(prop, NULL, "typeinfo->idname");
-	RNA_def_property_flag(prop, PROP_REGISTER | PROP_NEVER_CLAMP);
+	RNA_def_property_flag(prop, PROP_REGISTER);
 	RNA_def_property_ui_text(prop, "ID Name", "");
 
 	prop = RNA_def_property(srna, "bl_label", PROP_STRING, PROP_NONE);
