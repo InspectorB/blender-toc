@@ -84,7 +84,8 @@ extern "C" {
 #include "UI_interface.h"
 	
 #include "wm_window.h"
-//#include "GHOST_C-api.h"
+
+#include "PIL_time.h"
 }
 
 #include "BKE_usage.h"
@@ -105,6 +106,8 @@ extern "C" {
 
 #ifdef _WIN32
 #include <windows.h>
+#include <sys/timeb.h>
+#include <sys/types.h>
 #endif
 #ifdef __APPLE__
 #include <CoreServices/CoreServices.h>
@@ -902,7 +905,7 @@ namespace usage {
 		catch (TException e) {
 			printf("%s\n", e.what());
 			Usage::getInstance().updateSettings();
-			usleep(1000000);
+			PIL_sleep_ms(1000);
 			return false;
 		}
 	}
@@ -930,7 +933,7 @@ namespace usage {
 			long startTS = Usage::getTimestamp();
 			long currentTS = startTS;
 			while (currentTS - startTS < (gracePeriodSeconds * 1000) && !empty()) {
-				usleep(1000000); // 1 second
+				PIL_sleep_ms(1000); // 1 second
 				currentTS = Usage::getTimestamp();
 			}
 		}
@@ -964,7 +967,7 @@ namespace usage {
 				try {
 					// Do the thread type specific work
 					if (!processQueueH())
-						usleep(100000); // sleep 100 ms
+						PIL_sleep_ms(100); // sleep 100 ms
 				}
 				catch (wire::UnknownToken e) {
 					Usage::getInstance().disable();
@@ -1001,7 +1004,7 @@ namespace usage {
 				}
 			} else { // not enabled
 				Usage::getInstance().updateSettings();
-				usleep(1000000); // sleep 1 second
+				PIL_sleep_ms(1000); // sleep 1 second
 			}
 		}
 	}

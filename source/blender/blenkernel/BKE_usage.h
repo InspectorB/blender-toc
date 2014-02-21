@@ -192,26 +192,31 @@ namespace usage {
 extern "C" {
 #else /* __cplusplus */
 	
+#include "BLI_threads.h"
+	
+#include "DNA_windowmanager_types.h"
+#include "UI_interface.h"
+	
 /* C interface */
 	
-	struct wmOperator;
-	struct bContext;
-	struct wmEvent;
-	struct uiBut;
-	struct PointerRNA;
-	struct PropertyRNA;
-		
-	void BKE_usage_main_prepare(void);
-	void BKE_usage_main_take_screenshot(struct bContext *C);
+struct wmOperator;
+struct bContext;
+struct wmEvent;
+struct uiBut;
+struct PointerRNA;
+struct PropertyRNA;
 	
-	void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int retval, int repeat);
-	void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
-	void BKE_usage_queue_button(struct bContext *C, struct uiBut *but);
-	void BKE_usage_queue_assignment(struct bContext *C, struct PointerRNA *ptr, struct PropertyRNA *prop, int index);
-	void BKE_usage_queue_start(void);
-	
-	void BKE_usage_update_settings(void);
-	void BKE_usage_shutdown();
+void BKE_usage_main_prepare(void);
+void BKE_usage_main_take_screenshot(struct bContext *C);
+
+void BKE_usage_queue_operator(struct bContext *C, struct wmOperator *op, int retval, int repeat);
+void BKE_usage_queue_event(struct bContext *C, const struct wmEvent *ev);
+void BKE_usage_queue_button(struct bContext *C, struct uiBut *but);
+void BKE_usage_queue_assignment(struct bContext *C, struct PointerRNA *ptr, struct PropertyRNA *prop, int index);
+void BKE_usage_queue_start(void);
+
+void BKE_usage_update_settings(void);
+void BKE_usage_shutdown(void);
 	
 #endif /* __cplusplus */
 #ifdef __cplusplus

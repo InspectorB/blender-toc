@@ -612,6 +612,9 @@ void FILE_OT_highlight(struct wmOperatorType *ot)
 	/* api callbacks */
 	ot->invoke = file_highlight_invoke;
 	ot->poll = ED_operator_file_active;
+	
+	/* doesn't need a screenshot */
+	ot->flag = OPTYPE_NOSCREENSHOT;
 }
 
 int file_cancel_exec(bContext *C, wmOperator *UNUSED(unused))

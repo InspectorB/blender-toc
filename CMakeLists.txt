@@ -1599,6 +1599,13 @@ elseif(WIN32)
 		endif()
 	endif()
 
+	if(WITH_USAGE)
+		set(THRIFT ${LIBDIR}/thrift)
+		set(THRIFT_INCLUDE_DIRS ${THRIFT}/include)
+		set(THRIFT_LIBPATH ${THRIFT}/lib)
+		set(THRIFT_LIBRARIES thrift)
+	endif()
+
 elseif(APPLE)
 
 	if(${CMAKE_OSX_DEPLOYMENT_TARGET} STREQUAL "10.5" OR ${CMAKE_OSX_DEPLOYMENT_TARGET} STRGREATER "10.5")
