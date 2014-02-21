@@ -114,6 +114,7 @@
 #include "RE_pipeline.h"
 
 #include "ED_datafiles.h"
+#include "ED_util.h"
 
 #include "WM_api.h"
 
@@ -1271,7 +1272,11 @@ static int load_file(int UNUSED(argc), const char **argv, void *data)
 	BLI_path_cwd(filename);
 
 	if (G.background) {
-		int retval = BKE_read_file(C, filename, NULL);
+		int retval;
+
+		BLI_callback_exec(CTX_data_main(C), NULL, BLI_CB_EVT_LOAD_PRE);
+
+		retval = BKE_read_file(C, filename, NULL);
 
 		/* we successfully loaded a blend file, get sure that
 		 * pointcache works */
@@ -1284,7 +1289,7 @@ static int load_file(int UNUSED(argc), const char **argv, void *data)
 				extern void wm_add_default(bContext *C);
 
 				/* wm_add_default() needs the screen to be set. */
-				CTX_wm_screen_set(C, CTX_data_main(C)->screen.first);
+				CTX_wm_screen_set(C, bmain->screen.first);
 				wm_add_default(C);
 			}
 
@@ -1293,6 +1298,8 @@ static int load_file(int UNUSED(argc), const char **argv, void *data)
 			G.relbase_valid = 1;
 			if (CTX_wm_manager(C) == NULL) CTX_wm_manager_set(C, wm);  /* reset wm */
 
+			/* WM_file_read would call normally */
+			ED_editors_init(C);
 			DAG_on_visible_update(bmain, TRUE);
 			BKE_scene_update_tagged(bmain->eval_ctx, bmain, CTX_data_scene(C));
 		}
@@ -1306,6 +1313,8 @@ static int load_file(int UNUSED(argc), const char **argv, void *data)
 		/* run any texts that were loaded in and flagged as modules */
 		BPY_python_reset(C);
 #endif
+
+		BLI_callback_exec(CTX_data_main(C), NULL, BLI_CB_EVT_LOAD_POST);
 
 		/* happens for the UI on file reading too (huh? (ton))*/
 		// XXX		BKE_reset_undo();

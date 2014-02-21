@@ -1647,9 +1647,12 @@ void BKE_curve_bevel_make(Scene *scene, Object *ob, ListBase *disp, int forRende
 				BKE_displist_make_curveTypes_forRender(scene, cu->bevobj, &bevdisp, NULL, 0, renderResolution);
 				dl = bevdisp.first;
 			}
+			else if (cu->bevobj->curve_cache) {
+				dl = cu->bevobj->curve_cache->disp.first;
+			}
 			else {
 				BLI_assert(cu->bevobj->curve_cache != NULL);
-				dl = cu->bevobj->curve_cache->disp.first;
+				dl = NULL;
 			}
 
 			while (dl) {
@@ -3564,6 +3567,8 @@ void BKE_nurb_direction_switch(Nurb *nu)
 				a = KNOTSU(nu);
 				fp1 = nu->knotsu;
 				fp2 = tempf = MEM_mallocN(sizeof(float) * a, "switchdirect");
+				a--;
+				fp2[a] = fp1[a];
 				while (a--) {
 					fp2[0] = fabs(fp1[1] - fp1[0]);
 					fp1++;
