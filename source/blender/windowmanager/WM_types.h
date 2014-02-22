@@ -137,6 +137,8 @@ struct ImBuf;
 #define OPTYPE_LOCK_BYPASS		128	/* Allow operator to run when interface is locked */
 #define OPTYPE_NOSCREENSHOT		256 /* operators that have this flag will not have
 									 * a screenshot taken for the log */
+#define OPTYPE_LAST_SCREENSHOT  512 /* operators that have this flag will only have a screenshot
+									 * taken on the last invocation in a sequence */
 
 /* context to call operator in for WM_operator_name_call */
 /* rna_ui.c contains EnumPropertyItem's of these, keep in sync */

@@ -1141,7 +1141,7 @@ void VIEW3D_OT_rotate(wmOperatorType *ot)
 	ot->cancel = viewrotate_cancel;
 
 	/* flags */
-	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER;
+	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER | OPTYPE_LAST_SCREENSHOT;
 }
 
 /* NDOF utility functions
@@ -1493,7 +1493,7 @@ void VIEW3D_OT_ndof_orbit(struct wmOperatorType *ot)
 	ot->poll = ED_operator_view3d_active;
 
 	/* flags */
-	ot->flag = 0;
+	ot->flag = OPTYPE_NOSCREENSHOT;
 }
 
 static int ndof_orbit_zoom_invoke(bContext *C, wmOperator *op, const wmEvent *event)
@@ -1587,7 +1587,7 @@ void VIEW3D_OT_ndof_orbit_zoom(struct wmOperatorType *ot)
 	ot->poll = ED_operator_view3d_active;
 
 	/* flags */
-	ot->flag = 0;
+	ot->flag = OPTYPE_NOSCREENSHOT;
 }
 
 /* -- "pan" navigation
@@ -1643,7 +1643,7 @@ void VIEW3D_OT_ndof_pan(struct wmOperatorType *ot)
 	ot->poll = ED_operator_view3d_active;
 
 	/* flags */
-	ot->flag = 0;
+	ot->flag = OPTYPE_NOSCREENSHOT;
 }
 
 
@@ -1710,7 +1710,7 @@ void VIEW3D_OT_ndof_all(struct wmOperatorType *ot)
 	ot->poll = ED_operator_view3d_active;
 
 	/* flags */
-	ot->flag = 0;
+	ot->flag = OPTYPE_NOSCREENSHOT;
 }
 
 /* ************************ viewmove ******************************** */
@@ -2268,7 +2268,7 @@ void VIEW3D_OT_zoom(wmOperatorType *ot)
 	ot->cancel = viewzoom_cancel;
 
 	/* flags */
-	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER;
+	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER | OPTYPE_LAST_SCREENSHOT;
 
 	RNA_def_int(ot->srna, "delta", 0, INT_MIN, INT_MAX, "Delta", "", INT_MIN, INT_MAX);
 	RNA_def_int(ot->srna, "mx", 0, 0, INT_MAX, "Zoom Position X", "", 0, INT_MAX);
