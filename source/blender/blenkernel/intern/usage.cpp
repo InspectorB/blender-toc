@@ -596,8 +596,13 @@ namespace usage {
 			PropertyRNA *iterprop = RNA_struct_iterator_property(op->ptr->type);
 			std::vector<wire::data::RNAProperty> thriftOpProperties;
 			
+			/* For now let's not send screenshots on OPTYPE_LAST_SCREENSHOT
+			 * This should be changed to sending a screenshot only on the last execution, but
+			 * this requires deferring sending till the next (different) operator execution.
+			 */
 			if (U.flag & USER_USAGE_SEND_SCREENSHOTS
 				&& !(op->type->flag & OPTYPE_NOSCREENSHOT)
+				&& !(op->type->flag & OPTYPE_LAST_SCREENSHOT)
 				&& CTX_wm_window(C))
 			{
 				takeScreenshotP = true;

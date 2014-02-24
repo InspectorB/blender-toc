@@ -1878,7 +1878,7 @@ void VIEW3D_OT_move(wmOperatorType *ot)
 	ot->cancel = viewmove_cancel;
 
 	/* flags */
-	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER;
+	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER | OPTYPE_LAST_SCREENSHOT;
 }
 
 /* ************************ viewzoom ******************************** */
@@ -2508,7 +2508,7 @@ void VIEW3D_OT_dolly(wmOperatorType *ot)
 	ot->cancel = viewdolly_cancel;
 
 	/* flags */
-	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER;
+	ot->flag = OPTYPE_BLOCKING | OPTYPE_GRAB_POINTER | OPTYPE_LAST_SCREENSHOT;
 
 	RNA_def_int(ot->srna, "delta", 0, INT_MIN, INT_MAX, "Delta", "", INT_MIN, INT_MAX);
 	RNA_def_int(ot->srna, "mx", 0, 0, INT_MAX, "Zoom Position X", "", 0, INT_MAX);
