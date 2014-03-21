@@ -1078,10 +1078,10 @@ static uiBlock *wm_enum_search_menu(bContext *C, ARegion *ar, void *arg_op)
 	uiBlockSetFlag(block, UI_BLOCK_LOOP | UI_BLOCK_MOVEMOUSE_QUIT | UI_BLOCK_SEARCH_MENU);
 
 #if 0 /* ok, this isn't so easy... */
-	uiDefBut(block, LABEL, 0, RNA_struct_ui_name(op->type->srna), 10, 10, 180, UI_UNIT_Y, NULL, 0.0, 0.0, 0, 0, "");
+	uiDefBut(block, LABEL, 0, RNA_struct_ui_name(op->type->srna), 10, 10, uiSearchBoxWidth(), UI_UNIT_Y, NULL, 0.0, 0.0, 0, 0, "");
 #endif
 	but = uiDefSearchButO_ptr(block, op->type, op->ptr->data, search, 0, ICON_VIEWZOOM, sizeof(search),
-	                          10, 10, 9 * UI_UNIT_X, UI_UNIT_Y, 0, 0, "");
+	                          10, 10, uiSearchBoxWidth(), UI_UNIT_Y, 0, 0, "");
 
 	/* fake button, it holds space for search items */
 	uiDefBut(block, LABEL, 0, "", 10, 10 - uiSearchBoxHeight(), uiSearchBoxWidth(), uiSearchBoxHeight(), NULL, 0, 0, 0, 0, NULL);
@@ -1413,7 +1413,6 @@ static uiBlock *wm_block_create_redo(bContext *C, ARegion *ar, void *arg_op)
 
 	if (op->type->flag & OPTYPE_MACRO) {
 		for (op = op->macro.first; op; op = op->next) {
-			uiItemL(layout, RNA_struct_ui_name(op->type->srna), ICON_NONE);
 			uiLayoutOperatorButs(C, layout, op, NULL, 'H', UI_LAYOUT_OP_SHOW_TITLE);
 		}
 	}
@@ -1813,7 +1812,26 @@ static uiBlock *wm_block_create_splash(bContext *C, ARegion *ar, void *UNUSED(ar
 	but = uiDefBut(block, BUT_IMAGE, 0, "", 0, 0.5f * U.widget_unit, U.pixelsize * 501, U.pixelsize * 282, ibuf, 0.0, 0.0, 0, 0, ""); /* button owns the imbuf now */
 	uiButSetFunc(but, wm_block_splash_close, block, NULL);
 	uiBlockSetFunc(block, wm_block_splash_refreshmenu, block, NULL);
-	
+
+	/* label for 'a' bugfix releases, or 'Release Candidate 1'...
+	 *  avoids recreating splash for version updates */
+	if (0) {
+		/* placed after the version number in the image,
+		 * placing y is tricky to match baseline */
+		int x = 260 - (2 * UI_DPI_WINDOW_FAC);
+		int y = 242 + (4 * UI_DPI_WINDOW_FAC);
+		int w = 240;
+
+		const char *version_suffix = "Release Candidate";
+
+		/* hack to have text draw 'text_sel' */
+		uiBlockSetEmboss(block, UI_EMBOSSN);
+		but = uiDefBut(block, LABEL, 0, version_suffix, x * U.pixelsize, y * U.pixelsize, w * U.pixelsize, UI_UNIT_Y, NULL, 0, 0, 0, 0, NULL);
+		/* XXX, set internal flag - UI_SELECT */
+		uiButSetFlag(but, 1);
+		uiBlockSetEmboss(block, UI_EMBOSS);
+	}
+
 #ifdef WITH_BUILDINFO
 	if (build_commit_timestamp != 0) {
 		uiDefBut(block, LABEL, 0, date_buf, U.pixelsize * 494 - date_width, U.pixelsize * 270, date_width, UI_UNIT_Y, NULL, 0, 0, 0, 0, NULL);
@@ -1850,6 +1868,8 @@ static uiBlock *wm_block_create_splash(bContext *C, ARegion *ar, void *UNUSED(ar
 	split = uiLayoutSplit(layout, 0.0f, FALSE);
 	col = uiLayoutColumn(split, FALSE);
 	uiItemL(col, IFACE_("Links"), ICON_NONE);
+	uiItemStringO(col, IFACE_("Support an Open Animation Movie"), ICON_URL, "WM_OT_url_open", "url",
+	              "http://cloud.blender.org/gooseberry");
 	uiItemStringO(col, IFACE_("Donations"), ICON_URL, "WM_OT_url_open", "url",
 	              "http://www.blender.org/foundation/donation-payment/");
 	uiItemStringO(col, IFACE_("Credits"), ICON_URL, "WM_OT_url_open", "url",
@@ -1859,8 +1879,6 @@ static uiBlock *wm_block_create_splash(bContext *C, ARegion *ar, void *UNUSED(ar
 	uiItemStringO(col, IFACE_("Manual"), ICON_URL, "WM_OT_url_open", "url",
 	              "http://wiki.blender.org/index.php/Doc:2.6/Manual");
 	uiItemStringO(col, IFACE_("Blender Website"), ICON_URL, "WM_OT_url_open", "url", "http://www.blender.org");
-	uiItemStringO(col, IFACE_("User Community"), ICON_URL, "WM_OT_url_open", "url",
-	              "http://www.blender.org/community/user-community");
 	if (STREQ(STRINGIFY(BLENDER_VERSION_CYCLE), "release")) {
 		BLI_snprintf(url, sizeof(url), "http://www.blender.org/documentation/blender_python_api_%d_%d"
 		                               STRINGIFY(BLENDER_VERSION_CHAR) "_release",
@@ -1929,7 +1947,7 @@ static uiBlock *wm_block_search_menu(bContext *C, ARegion *ar, void *UNUSED(arg_
 	block = uiBeginBlock(C, ar, "_popup", UI_EMBOSS);
 	uiBlockSetFlag(block, UI_BLOCK_LOOP | UI_BLOCK_MOVEMOUSE_QUIT | UI_BLOCK_SEARCH_MENU);
 	
-	but = uiDefSearchBut(block, search, 0, ICON_VIEWZOOM, sizeof(search), 10, 10, 9 * UI_UNIT_X, UI_UNIT_Y, 0, 0, "");
+	but = uiDefSearchBut(block, search, 0, ICON_VIEWZOOM, sizeof(search), 10, 10, uiSearchBoxWidth(), UI_UNIT_Y, 0, 0, "");
 	uiOperatorSearch_But(but);
 	
 	/* fake button, it holds space for search items */
@@ -3048,7 +3066,6 @@ int WM_border_select_modal(bContext *C, wmOperator *op, const wmEvent *event)
 				}
 				wm_gesture_end(C, op);
 				return OPERATOR_CANCELLED;
-				break;
 
 			case GESTURE_MODAL_CANCEL:
 				wm_gesture_end(C, op);
@@ -3569,7 +3586,6 @@ int WM_gesture_straightline_modal(bContext *C, wmOperator *op, const wmEvent *ev
 				}
 				wm_gesture_end(C, op);
 				return OPERATOR_CANCELLED;
-				break;
 				
 			case GESTURE_MODAL_CANCEL:
 				wm_gesture_end(C, op);

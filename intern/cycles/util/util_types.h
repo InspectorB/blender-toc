@@ -37,6 +37,7 @@
 #define ccl_device_noinline static
 #define ccl_global
 #define ccl_constant
+#define __KERNEL_WITH_SSE_ALIGN__
 
 #if defined(_WIN32) && !defined(FREE_WINDOWS)
 
@@ -45,6 +46,7 @@
 #ifdef __KERNEL_64_BIT__
 #define ccl_try_align(...) __declspec(align(__VA_ARGS__))
 #else
+#undef __KERNEL_WITH_SSE_ALIGN__
 #define ccl_try_align(...) /* not support for function arguments (error C2719) */
 #endif
 #define ccl_may_alias
@@ -63,8 +65,6 @@
 
 #endif
 
-#else
-#define ccl_align(...)
 #endif
 
 /* Standard Integer Types */
@@ -449,6 +449,16 @@ ccl_device_inline int4 make_int4(const float3& f)
 }
 
 #endif
+
+/* Interpolation types for textures
+ * cuda also use texture space to store other objects */
+enum InterpolationType {
+	INTERPOLATION_NONE = -1,
+	INTERPOLATION_LINEAR = 0,
+	INTERPOLATION_CLOSEST = 1,
+	INTERPOLATION_CUBIC = 2,
+	INTERPOLATION_SMART = 3,
+};
 
 CCL_NAMESPACE_END
 

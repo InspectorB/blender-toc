@@ -1919,14 +1919,14 @@ static void mesh_calc_modifiers(Scene *scene, Object *ob, float (*inputVertexCos
 	BLI_linklist_free((LinkNode *)datamasks, NULL);
 }
 
-float (*editbmesh_get_vertex_cos(BMEditMesh *em, int *numVerts_r))[3]
+float (*editbmesh_get_vertex_cos(BMEditMesh *em, int *r_numVerts))[3]
 {
 	BMIter iter;
 	BMVert *eve;
 	float (*cos)[3];
 	int i;
 
-	*numVerts_r = em->bm->totvert;
+	*r_numVerts = em->bm->totvert;
 
 	cos = MEM_mallocN(sizeof(float) * 3 * em->bm->totvert, "vertexcos");
 
@@ -2223,7 +2223,7 @@ static void mesh_build_data(Scene *scene, Object *ob, CustomDataMask dataMask,
                             int build_shapekey_layers)
 {
 	Object *obact = scene->basact ? scene->basact->object : NULL;
-	int editing = paint_facesel_test(ob);
+	bool editing = BKE_paint_select_face_test(ob);
 	/* weight paint and face select need original indices because of selection buffer drawing */
 	int needMapping = (ob == obact) && (editing || (ob->mode & (OB_MODE_WEIGHT_PAINT | OB_MODE_VERTEX_PAINT | OB_MODE_TEXTURE_PAINT)));
 
@@ -2256,18 +2256,7 @@ static void editbmesh_build_data(Scene *scene, Object *obedit, BMEditMesh *em, C
 	BKE_object_free_derived_caches(obedit);
 	BKE_object_sculpt_modifiers_changed(obedit);
 
-	if (em->derivedFinal) {
-		if (em->derivedFinal != em->derivedCage) {
-			em->derivedFinal->needsFree = 1;
-			em->derivedFinal->release(em->derivedFinal);
-		}
-		em->derivedFinal = NULL;
-	}
-	if (em->derivedCage) {
-		em->derivedCage->needsFree = 1;
-		em->derivedCage->release(em->derivedCage);
-		em->derivedCage = NULL;
-	}
+	BKE_editmesh_free_derivedmesh(em);
 
 	editbmesh_calc_modifiers(scene, obedit, em, &em->derivedCage, &em->derivedFinal, dataMask);
 	DM_set_object_boundbox(obedit, em->derivedFinal);
@@ -2286,7 +2275,7 @@ static CustomDataMask object_get_datamask(Scene *scene, Object *ob)
 
 	if (ob == actob) {
 		/* check if we need tfaces & mcols due to face select or texture paint */
-		if (paint_facesel_test(ob) || (ob->mode & OB_MODE_TEXTURE_PAINT)) {
+		if (BKE_paint_select_face_test(ob) || (ob->mode & OB_MODE_TEXTURE_PAINT)) {
 			mask |= CD_MASK_MTFACE | CD_MASK_MCOL;
 		}
 
@@ -2426,7 +2415,7 @@ DerivedMesh *mesh_create_derived_no_deform_render(Scene *scene, Object *ob,
 
 /***/
 
-DerivedMesh *editbmesh_get_derived_cage_and_final(Scene *scene, Object *obedit, BMEditMesh *em, DerivedMesh **final_r,
+DerivedMesh *editbmesh_get_derived_cage_and_final(Scene *scene, Object *obedit, BMEditMesh *em, DerivedMesh **r_final,
                                                   CustomDataMask dataMask)
 {
 	/* if there's no derived mesh or the last data mask used doesn't include
@@ -2440,7 +2429,7 @@ DerivedMesh *editbmesh_get_derived_cage_and_final(Scene *scene, Object *obedit, 
 		editbmesh_build_data(scene, obedit, em, dataMask);
 	}
 
-	*final_r = em->derivedFinal;
+	*r_final = em->derivedFinal;
 	if (em->derivedFinal) { BLI_assert(!(em->derivedFinal->dirty & DM_DIRTY_NORMALS)); }
 	return em->derivedCage;
 }

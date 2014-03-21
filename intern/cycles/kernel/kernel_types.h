@@ -66,7 +66,9 @@ CCL_NAMESPACE_BEGIN
 #ifdef __KERNEL_CUDA__
 #define __KERNEL_SHADING__
 #define __KERNEL_ADV_SHADING__
+#if __CUDA_ARCH__ != 300
 #define __BRANCHED_PATH__
+#endif
 //#define __VOLUME__
 #endif
 
@@ -220,7 +222,6 @@ enum PathRayFlag {
 	PATH_RAY_GLOSSY = 16,
 	PATH_RAY_SINGULAR = 32,
 	PATH_RAY_TRANSPARENT = 64,
-	PATH_RAY_VOLUME_SCATTER = 128,
 
 	PATH_RAY_SHADOW_OPAQUE = 128,
 	PATH_RAY_SHADOW_TRANSPARENT = 256,
@@ -228,16 +229,17 @@ enum PathRayFlag {
 
 	PATH_RAY_CURVE = 512, /* visibility flag to define curve segments*/
 
+	/* note that these can use maximum 12 bits, the other are for layers */
 	PATH_RAY_ALL_VISIBILITY = (1|2|4|8|16|32|64|128|256|512),
 
 	PATH_RAY_MIS_SKIP = 1024,
 	PATH_RAY_DIFFUSE_ANCESTOR = 2048,
 	PATH_RAY_GLOSSY_ANCESTOR = 4096,
 	PATH_RAY_BSSRDF_ANCESTOR = 8192,
-	PATH_RAY_SINGLE_PASS_DONE = 8192,
+	PATH_RAY_SINGLE_PASS_DONE = 16384,
+	PATH_RAY_VOLUME_SCATTER = 32768,
 
-	/* this gives collisions with localview bits
-	 * see: blender_util.h, grr - Campbell */
+	/* we need layer member flags to be the 20 upper bits */
 	PATH_RAY_LAYER_SHIFT = (32-20)
 };
 
@@ -834,7 +836,9 @@ typedef struct KernelIntegrator {
 	int ao_samples;
 	int mesh_light_samples;
 	int subsurface_samples;
-	
+	int sample_all_lights_direct;
+	int sample_all_lights_indirect;
+
 	/* mis */
 	int use_lamp_mis;
 
@@ -847,7 +851,6 @@ typedef struct KernelIntegrator {
 	int volume_max_steps;
 	float volume_step_size;
 	int volume_samples;
-	int pad1, pad2;
 } KernelIntegrator;
 
 typedef struct KernelBVH {

@@ -64,6 +64,7 @@
 #include "BLI_linklist_stack.h"
 #include "BLI_string.h"
 #include "BLI_rect.h"
+#include "BLI_bitmap.h"
 
 #include "BKE_DerivedMesh.h"
 #include "BKE_action.h"
@@ -1182,7 +1183,6 @@ static void createTransArmatureVerts(TransInfo *t)
 				}
 			}
 			else {
-				const float z_axis[3] = {0.0f, 0.0f, 1.0f};
 				if (ebo->flag & BONE_TIPSEL) {
 					copy_v3_v3(td->iloc, ebo->tail);
 					copy_v3_v3(td->center, (t->around == V3D_LOCAL) ? ebo->head : td->iloc);
@@ -1197,9 +1197,8 @@ static void createTransArmatureVerts(TransInfo *t)
 					ED_armature_ebone_to_mat3(ebo, td->axismtx);
 
 					if ((ebo->flag & BONE_ROOTSEL) == 0) {
-						/* To fix roll, see comments in transform_generic.c::recalcData_objects() */
 						td->extra = ebo;
-						td->ival = ebo->roll - ED_rollBoneToVector(ebo, z_axis, false);
+						td->ival = ebo->roll;
 					}
 
 					td->ext = NULL;
@@ -1221,9 +1220,8 @@ static void createTransArmatureVerts(TransInfo *t)
 
 					ED_armature_ebone_to_mat3(ebo, td->axismtx);
 
-					/* To fix roll, see comments in transform_generic.c::recalcData_objects() */
-					td->extra = ebo;
-					td->ival = ebo->roll - ED_rollBoneToVector(ebo, z_axis, false);
+					td->extra = ebo; /* to fix roll */
+					td->ival = ebo->roll;
 
 					td->ext = NULL;
 					td->val = NULL;
@@ -2255,7 +2253,7 @@ static void createTransEditVerts(TransInfo *t)
 		{
 			mappedcos = crazyspace_get_mapped_editverts(t->scene, t->obedit);
 			quats = MEM_mallocN(em->bm->totvert * sizeof(*quats), "crazy quats");
-			crazyspace_set_quats_editmesh(em, defcos, mappedcos, quats);
+			crazyspace_set_quats_editmesh(em, defcos, mappedcos, quats, !propmode);
 			if (mappedcos)
 				MEM_freeN(mappedcos);
 		}
@@ -2428,7 +2426,7 @@ BLI_INLINE void trans_update_seq(Scene *sce, Sequence *seq, int old_start, int s
 
 void flushTransSeq(TransInfo *t)
 {
-	ListBase *seqbasep = BKE_sequencer_editing_get(t->scene, FALSE)->seqbasep; /* Editing null check already done */
+	ListBase *seqbasep = BKE_sequencer_editing_get(t->scene, false)->seqbasep; /* Editing null check already done */
 	int a, new_frame;
 	TransData *td = NULL;
 	TransData2D *td2d = NULL;
@@ -2591,10 +2589,10 @@ static void createTransUVs(bContext *C, TransInfo *t)
 	BMLoop *l;
 	BMIter iter, liter;
 	UvElementMap *elementmap = NULL;
-	char *island_enabled = NULL;
+	BLI_bitmap *island_enabled = NULL;
 	int count = 0, countsel = 0, count_rejected = 0;
-	int propmode = t->flag & T_PROP_EDIT;
-	int propconnected = t->flag & T_PROP_CONNECTED;
+	const bool propmode = (t->flag & T_PROP_EDIT) != 0;
+	const bool propconnected = (t->flag & T_PROP_CONNECTED) != 0;
 
 	const int cd_loop_uv_offset = CustomData_get_offset(&em->bm->ldata, CD_MLOOPUV);
 
@@ -2609,7 +2607,7 @@ static void createTransUVs(bContext *C, TransInfo *t)
 		else {
 			elementmap = BM_uv_element_map_create(em->bm, true, true);
 		}
-		island_enabled = MEM_callocN(sizeof(*island_enabled) * elementmap->totalIslands, "TransIslandData(UV Editing)");
+		island_enabled = BLI_BITMAP_NEW(elementmap->totalIslands, "TransIslandData(UV Editing)");
 	}
 
 	BM_ITER_MESH (efa, &iter, em->bm, BM_FACES_OF_MESH) {
@@ -2627,7 +2625,7 @@ static void createTransUVs(bContext *C, TransInfo *t)
 
 				if (propconnected) {
 					UvElement *element = BM_uv_element_get(elementmap, efa, l);
-					island_enabled[element->island] = TRUE;
+					BLI_BITMAP_SET(island_enabled, element->island);
 				}
 
 			}
@@ -2639,7 +2637,12 @@ static void createTransUVs(bContext *C, TransInfo *t)
 	}
 
 	/* note: in prop mode we need at least 1 selected */
-	if (countsel == 0) return;
+	if (countsel == 0) {
+		if (propconnected) {
+			MEM_freeN(island_enabled);
+		}
+		return;
+	}
 
 	t->total = (propmode) ? count : countsel;
 	t->data = MEM_callocN(t->total * sizeof(TransData), "TransObData(UV Editing)");
@@ -2663,7 +2666,7 @@ static void createTransUVs(bContext *C, TransInfo *t)
 
 			if (propconnected) {
 				UvElement *element = BM_uv_element_get(elementmap, efa, l);
-				if (!island_enabled[element->island]) {
+				if (!BLI_BITMAP_GET(island_enabled, element->island)) {
 					count_rejected++;
 					continue;
 				}
@@ -2999,6 +3002,40 @@ static void createTransNlaData(bContext *C, TransInfo *t)
 
 /* ********************* ACTION EDITOR ****************** */
 
+static int gpf_cmp_frame(void *thunk, void *a, void *b)
+{
+	bGPDframe *frame_a = a;
+	bGPDframe *frame_b = b;
+
+	if (frame_a->framenum < frame_b->framenum) return -1;
+	if (frame_a->framenum > frame_b->framenum) return  1;
+	*((bool *)thunk) = true;
+	/* selected last */
+	if ((frame_a->flag & GP_FRAME_SELECT) &&
+	    ((frame_b->flag & GP_FRAME_SELECT) == 0))
+	{
+		return  1;
+	}
+	return 0;
+}
+
+static int masklay_shape_cmp_frame(void *thunk, void *a, void *b)
+{
+	MaskLayerShape *frame_a = a;
+	MaskLayerShape *frame_b = b;
+
+	if (frame_a->frame < frame_b->frame) return -1;
+	if (frame_a->frame > frame_b->frame) return  1;
+	*((bool *)thunk) = true;
+	/* selected last */
+	if ((frame_a->flag & MASK_SHAPE_SELECT) &&
+	    ((frame_b->flag & MASK_SHAPE_SELECT) == 0))
+	{
+		return 1;
+	}
+	return 0;
+}
+
 /* Called by special_aftertrans_update to make sure selected gp-frames replace
  * any other gp-frames which may reside on that frame (that are not selected).
  * It also makes sure gp-frames are still stored in chronological order after
@@ -3009,175 +3046,52 @@ static void posttrans_gpd_clean(bGPdata *gpd)
 	bGPDlayer *gpl;
 	
 	for (gpl = gpd->layers.first; gpl; gpl = gpl->next) {
-		ListBase sel_buffer = {NULL, NULL};
 		bGPDframe *gpf, *gpfn;
-		bGPDframe *gfs, *gfsn;
-		
-		/* loop 1: loop through and isolate selected gp-frames to buffer
-		 * (these need to be sorted as they are isolated)
-		 */
-		for (gpf = gpl->frames.first; gpf; gpf = gpfn) {
-			short added = 0;
-			gpfn = gpf->next;
-			
-			if (gpf->flag & GP_FRAME_SELECT) {
-				BLI_remlink(&gpl->frames, gpf);
-				
-				/* find place to add them in buffer
-				 * - go backwards as most frames will still be in order,
-				 *   so doing it this way will be faster
-				 */
-				for (gfs = sel_buffer.last; gfs; gfs = gfs->prev) {
-					/* if current (gpf) occurs after this one in buffer, add! */
-					if (gfs->framenum < gpf->framenum) {
-						BLI_insertlinkafter(&sel_buffer, gfs, gpf);
-						added = 1;
-						break;
-					}
-				}
-				if (added == 0)
-					BLI_addhead(&sel_buffer, gpf);
-			}
-		}
-		
-		/* error checking: it is unlikely, but may be possible to have none selected */
-		if (BLI_listbase_is_empty(&sel_buffer))
-			continue;
-		
-		/* if all were selected (i.e. gpl->frames is empty), then just transfer sel-buf over */
-		if (BLI_listbase_is_empty(&gpl->frames)) {
-			gpl->frames.first = sel_buffer.first;
-			gpl->frames.last = sel_buffer.last;
-			
-			continue;
-		}
-		
-		/* loop 2: remove duplicates of frames in buffers */
-		for (gpf = gpl->frames.first; gpf && sel_buffer.first; gpf = gpfn) {
-			gpfn = gpf->next;
-			
-			/* loop through sel_buffer, emptying stuff from front of buffer if ok */
-			for (gfs = sel_buffer.first; gfs && gpf; gfs = gfsn) {
-				gfsn = gfs->next;
-				
-				/* if this buffer frame needs to go before current, add it! */
-				if (gfs->framenum < gpf->framenum) {
-					/* transfer buffer frame to frames list (before current) */
-					BLI_remlink(&sel_buffer, gfs);
-					BLI_insertlinkbefore(&gpl->frames, gpf, gfs);
-				}
-				/* if this buffer frame is on same frame, replace current with it and stop */
-				else if (gfs->framenum == gpf->framenum) {
-					/* transfer buffer frame to frames list (before current) */
-					BLI_remlink(&sel_buffer, gfs);
-					BLI_insertlinkbefore(&gpl->frames, gpf, gfs);
-					
-					/* get rid of current frame */
+		bool is_double = false;
+
+		BLI_sortlist_r(&gpl->frames, &is_double, gpf_cmp_frame);
+
+		if (is_double) {
+			for (gpf = gpl->frames.first; gpf; gpf = gpfn) {
+				gpfn = gpf->next;
+				if (gpfn && gpf->framenum == gpfn->framenum) {
 					gpencil_layer_delframe(gpl, gpf);
 				}
 			}
 		}
-		
-		/* if anything is still in buffer, append to end */
-		for (gfs = sel_buffer.first; gfs; gfs = gfsn) {
-			gfsn = gfs->next;
-			
-			BLI_remlink(&sel_buffer, gfs);
-			BLI_addtail(&gpl->frames, gfs);
+
+#ifdef DEBUG
+		for (gpf = gpl->frames.first; gpf; gpf = gpf->next) {
+			BLI_assert(!gpf->next || gpf->framenum < gpf->next->framenum);
 		}
+#endif
 	}
 }
 
-
-/* Called by special_aftertrans_update to make sure selected gp-frames replace
- * any other gp-frames which may reside on that frame (that are not selected).
- * It also makes sure sorted are still stored in chronological order after
- * transform.
- */
 static void posttrans_mask_clean(Mask *mask)
 {
 	MaskLayer *masklay;
 
 	for (masklay = mask->masklayers.first; masklay; masklay = masklay->next) {
-		ListBase sel_buffer = {NULL, NULL};
-		MaskLayerShape *masklay_shape, *masklay_shape_new;
-		MaskLayerShape *masklay_shape_sort, *masklay_shape_sort_new;
+		MaskLayerShape *masklay_shape, *masklay_shape_next;
+		bool is_double = false;
 
-		/* loop 1: loop through and isolate selected gp-frames to buffer
-		 * (these need to be sorted as they are isolated)
-		 */
-		for (masklay_shape = masklay->splines_shapes.first; masklay_shape; masklay_shape = masklay_shape_new) {
-			short added = 0;
-			masklay_shape_new = masklay_shape->next;
+		BLI_sortlist_r(&masklay->splines_shapes, &is_double, masklay_shape_cmp_frame);
 
-			if (masklay_shape->flag & MASK_SHAPE_SELECT) {
-				BLI_remlink(&masklay->splines_shapes, masklay_shape);
-
-				/* find place to add them in buffer
-				 * - go backwards as most frames will still be in order,
-				 *   so doing it this way will be faster
-				 */
-				for (masklay_shape_sort = sel_buffer.last; masklay_shape_sort; masklay_shape_sort = masklay_shape_sort->prev) {
-					/* if current (masklay_shape) occurs after this one in buffer, add! */
-					if (masklay_shape_sort->frame < masklay_shape->frame) {
-						BLI_insertlinkafter(&sel_buffer, masklay_shape_sort, masklay_shape);
-						added = 1;
-						break;
-					}
-				}
-				if (added == 0)
-					BLI_addhead(&sel_buffer, masklay_shape);
-			}
-		}
-
-		/* error checking: it is unlikely, but may be possible to have none selected */
-		if (BLI_listbase_is_empty(&sel_buffer))
-			continue;
-
-		/* if all were selected (i.e. masklay->splines_shapes is empty), then just transfer sel-buf over */
-		if (BLI_listbase_is_empty(&masklay->splines_shapes)) {
-			masklay->splines_shapes.first = sel_buffer.first;
-			masklay->splines_shapes.last = sel_buffer.last;
-
-			continue;
-		}
-
-		/* loop 2: remove duplicates of splines_shapes in buffers */
-		for (masklay_shape = masklay->splines_shapes.first; masklay_shape && sel_buffer.first; masklay_shape = masklay_shape_new) {
-			masklay_shape_new = masklay_shape->next;
-
-			/* loop through sel_buffer, emptying stuff from front of buffer if ok */
-			for (masklay_shape_sort = sel_buffer.first; masklay_shape_sort && masklay_shape; masklay_shape_sort = masklay_shape_sort_new) {
-				masklay_shape_sort_new = masklay_shape_sort->next;
-
-				/* if this buffer frame needs to go before current, add it! */
-				if (masklay_shape_sort->frame < masklay_shape->frame) {
-					/* transfer buffer frame to splines_shapes list (before current) */
-					BLI_remlink(&sel_buffer, masklay_shape_sort);
-					BLI_insertlinkbefore(&masklay->splines_shapes, masklay_shape, masklay_shape_sort);
-				}
-				/* if this buffer frame is on same frame, replace current with it and stop */
-				else if (masklay_shape_sort->frame == masklay_shape->frame) {
-					/* transfer buffer frame to splines_shapes list (before current) */
-					BLI_remlink(&sel_buffer, masklay_shape_sort);
-					BLI_insertlinkbefore(&masklay->splines_shapes, masklay_shape, masklay_shape_sort);
-
-					/* get rid of current frame */
+		if (is_double) {
+			for (masklay_shape = masklay->splines_shapes.first; masklay_shape; masklay_shape = masklay_shape_next) {
+				masklay_shape_next = masklay_shape->next;
+				if (masklay_shape_next && masklay_shape->frame == masklay_shape_next->frame) {
 					BKE_mask_layer_shape_unlink(masklay, masklay_shape);
 				}
 			}
 		}
 
-		/* if anything is still in buffer, append to end */
-		for (masklay_shape_sort = sel_buffer.first; masklay_shape_sort; masklay_shape_sort = masklay_shape_sort_new) {
-			masklay_shape_sort_new = masklay_shape_sort->next;
-
-			BLI_remlink(&sel_buffer, masklay_shape_sort);
-			BLI_addtail(&masklay->splines_shapes, masklay_shape_sort);
+#ifdef DEBUG
+		for (masklay_shape = masklay->splines_shapes.first; masklay_shape; masklay_shape = masklay_shape->next) {
+			BLI_assert(!masklay_shape->next || masklay_shape->frame < masklay_shape->next->frame);
 		}
-
-		/* NOTE: this is the only difference to grease pencil code above */
-		BKE_mask_layer_shape_sort(masklay);
+#endif
 	}
 }
 
@@ -3938,13 +3852,13 @@ static void createTransGraphEditData(bContext *C, TransInfo *t)
 					
 				}
 				/* special hack (must be done after initTransDataCurveHandles(), as that stores handle settings to restore...):
-				 *	- Check if we've got entire BezTriple selected and we're scaling/rotating that point,
+				 *	- Check if we've got entire BezTriple selected and we're rotating that point,
 				 *	  then check if we're using auto-handles.
 				 *	- If so, change them auto-handles to aligned handles so that handles get affected too
 				 */
-				if (ELEM(bezt->h1, HD_AUTO, HD_AUTO_ANIM) &&
-				    ELEM(bezt->h2, HD_AUTO, HD_AUTO_ANIM) &&
-				    ELEM(t->mode, TFM_ROTATION, TFM_RESIZE))
+				if ((t->mode == TFM_ROTATION) &&
+				    ELEM(bezt->h1, HD_AUTO, HD_AUTO_ANIM) &&
+				    ELEM(bezt->h2, HD_AUTO, HD_AUTO_ANIM))
 				{
 					if (hdata && (sel1) && (sel3)) {
 						bezt->h1 = HD_ALIGN;
@@ -4242,8 +4156,8 @@ static void SeqTransInfo(TransInfo *t, Sequence *seq, int *recursive, int *count
 
 		Scene *scene = t->scene;
 		int cfra = CFRA;
-		int left = BKE_sequence_tx_get_final_left(seq, 1);
-		int right = BKE_sequence_tx_get_final_right(seq, 1);
+		int left = BKE_sequence_tx_get_final_left(seq, true);
+		int right = BKE_sequence_tx_get_final_right(seq, true);
 
 		if (seq->depth == 0 && ((seq->flag & SELECT) == 0 || (seq->flag & SEQ_LOCK))) {
 			*recursive = FALSE;
@@ -4378,16 +4292,16 @@ static TransData *SeqToTransData(TransData *td, TransData2D *td2d, TransDataSeq 
 			/* Use seq_tx_get_final_left() and an offset here
 			 * so transform has the left hand location of the strip.
 			 * tdsq->start_offset is used when flushing the tx data back */
-			start_left = BKE_sequence_tx_get_final_left(seq, 0);
+			start_left = BKE_sequence_tx_get_final_left(seq, false);
 			td2d->loc[0] = start_left;
 			tdsq->start_offset = start_left - seq->start; /* use to apply the original location */
 			break;
 		case SEQ_LEFTSEL:
-			start_left = BKE_sequence_tx_get_final_left(seq, 0);
+			start_left = BKE_sequence_tx_get_final_left(seq, false);
 			td2d->loc[0] = start_left;
 			break;
 		case SEQ_RIGHTSEL:
-			td2d->loc[0] = BKE_sequence_tx_get_final_right(seq, 0);
+			td2d->loc[0] = BKE_sequence_tx_get_final_right(seq, false);
 			break;
 	}
 
@@ -4474,7 +4388,7 @@ static int SeqToTransData_Recursive(TransInfo *t, ListBase *seqbase, TransData *
 
 static void freeSeqData(TransInfo *t)
 {
-	Editing *ed = BKE_sequencer_editing_get(t->scene, FALSE);
+	Editing *ed = BKE_sequencer_editing_get(t->scene, false);
 
 	if (ed != NULL) {
 		ListBase *seqbasep = ed->seqbasep;
@@ -4649,7 +4563,7 @@ static void createTransSeqData(bContext *C, TransInfo *t)
 
 	View2D *v2d = UI_view2d_fromcontext(C);
 	Scene *scene = t->scene;
-	Editing *ed = BKE_sequencer_editing_get(t->scene, FALSE);
+	Editing *ed = BKE_sequencer_editing_get(t->scene, false);
 	TransData *td = NULL;
 	TransData2D *td2d = NULL;
 	TransDataSeq *tdsq = NULL;
@@ -4779,7 +4693,8 @@ static bool constraints_list_needinv(TransInfo *t, ListBase *list)
 }
 
 /* transcribe given object into TransData for Transforming */
-static void ObjectToTransData(TransInfo *t, TransData *td, Object *ob)
+static void ObjectToTransData(TransInfo *t, TransData *td, Object *ob,
+                              const Object *ob_act)
 {
 	Scene *scene = t->scene;
 	bool constinv;
@@ -4905,7 +4820,7 @@ static void ObjectToTransData(TransInfo *t, TransData *td, Object *ob)
 	}
 
 	/* set active flag */
-	if (ob == OBACT) {
+	if (ob == ob_act) {
 		td->flag |= TD_ACTIVE;
 	}
 }
@@ -5344,7 +5259,11 @@ static void special_aftertrans_update__movieclip(bContext *C, TransInfo *t)
 	{
 		bool do_update = false;
 
-		do_update |= (plane_track->flag & SELECT) != 0;
+		if (plane_track->flag & PLANE_TRACK_HIDDEN) {
+			continue;
+		}
+
+		do_update |= PLANE_TRACK_VIEW_SELECTED(plane_track) != 0;
 		if (do_update == false) {
 			if ((plane_track->flag & PLANE_TRACK_AUTOKEY) == 0) {
 				int i;
@@ -5774,7 +5693,7 @@ void special_aftertrans_update(bContext *C, TransInfo *t)
 		if (t->obedit->type == OB_MESH) {
 			BMEditMesh *em = BKE_editmesh_from_object(t->obedit);
 			/* table needs to be created for each edit command, since vertices can move etc */
-			mesh_octree_table(t->obedit, em, NULL, 'e');
+			ED_mesh_mirror_spatial_table(t->obedit, em, NULL, 'e');
 		}
 	}
 	else if ((t->flag & T_POSE) && (t->poseobj)) {
@@ -5910,6 +5829,9 @@ int special_transform_moving(TransInfo *t)
 
 static void createTransObject(bContext *C, TransInfo *t)
 {
+	Scene *scene = t->scene;
+	const Object *ob_act = OBACT;
+
 	TransData *td = NULL;
 	TransDataExtension *tx;
 	int propmode = t->flag & T_PROP_EDIT;
@@ -5951,7 +5873,7 @@ static void createTransObject(bContext *C, TransInfo *t)
 			td->flag |= TD_SKIP;
 		}
 		
-		ObjectToTransData(t, td, ob);
+		ObjectToTransData(t, td, ob, ob_act);
 		td->val = NULL;
 		td++;
 		tx++;
@@ -5959,7 +5881,6 @@ static void createTransObject(bContext *C, TransInfo *t)
 	CTX_DATA_END;
 	
 	if (propmode) {
-		Scene *scene = t->scene;
 		View3D *v3d = t->view;
 		Base *base;
 
@@ -5974,7 +5895,7 @@ static void createTransObject(bContext *C, TransInfo *t)
 				td->ext = tx;
 				td->ext->rotOrder = ob->rotmode;
 				
-				ObjectToTransData(t, td, ob);
+				ObjectToTransData(t, td, ob, ob_act);
 				td->val = NULL;
 				td++;
 				tx++;
@@ -6296,7 +6217,7 @@ static void createTransTrackingTracksData(bContext *C, TransInfo *t)
 	     plane_track;
 	     plane_track = plane_track->next)
 	{
-		if (plane_track->flag & SELECT) {
+		if (PLANE_TRACK_VIEW_SELECTED(plane_track)) {
 			t->total += 4;
 		}
 	}
@@ -6349,7 +6270,7 @@ static void createTransTrackingTracksData(bContext *C, TransInfo *t)
 	     plane_track;
 	     plane_track = plane_track->next)
 	{
-		if (plane_track->flag & SELECT) {
+		if (PLANE_TRACK_VIEW_SELECTED(plane_track)) {
 			planeTrackToTransData(framenr, td, td2d, tdt, plane_track, aspx, aspy);
 			td += 4;
 			td2d += 4;
@@ -6678,7 +6599,7 @@ static void MaskPointToTransData(Scene *scene, MaskSplinePoint *point,
 
 			td->flag = 0;
 			td->loc = td2d->loc;
-			copy_v3_v3(td->center, bezt->vec[1]);
+			mul_v2_m3v2(td->center, parent_matrix, bezt->vec[1]);
 			copy_v3_v3(td->iloc, td->loc);
 
 			memset(td->axismtx, 0, sizeof(td->axismtx));
@@ -6726,7 +6647,7 @@ static void MaskPointToTransData(Scene *scene, MaskSplinePoint *point,
 
 		td->flag = 0;
 		td->loc = td2d->loc;
-		copy_v3_v3(td->center, bezt->vec[1]);
+		mul_v2_m3v2(td->center, parent_matrix, bezt->vec[1]);
 		copy_v3_v3(td->iloc, td->loc);
 
 		memset(td->axismtx, 0, sizeof(td->axismtx));
@@ -7055,11 +6976,15 @@ void createTransData(bContext *C, TransInfo *t)
 			sort_trans_data_dist(t);
 		}
 
+		/* Check if we're transforming the camera from the camera */
 		if ((t->spacetype == SPACE_VIEW3D) && (t->ar->regiontype == RGN_TYPE_WINDOW)) {
 			View3D *v3d = t->view;
-			RegionView3D *rv3d = CTX_wm_region_view3d(C);
-			if (rv3d && (t->flag & T_OBJECT) && v3d->camera == OBACT && rv3d->persp == RV3D_CAMOB) {
-				t->flag |= T_CAMERA;
+			RegionView3D *rv3d = t->ar->regiondata;
+			if ((rv3d->persp == RV3D_CAMOB) && v3d->camera) {
+				/* we could have a flag to easily check an object is being transformed */
+				if (v3d->camera->recalc) {
+					t->flag |= T_CAMERA;
+				}
 			}
 		}
 	}

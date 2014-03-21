@@ -230,8 +230,9 @@ static int unset_property_button_exec(bContext *C, wmOperator *UNUSED(op))
 	uiContextActiveProperty(C, &ptr, &prop, &index);
 
 	/* if there is a valid property that is editable... */
-	if (ptr.data && prop && RNA_property_editable(&ptr, prop)
-	    /*&& RNA_property_is_idprop(prop)*/ && RNA_property_is_set(&ptr, prop))
+	if (ptr.data && prop && RNA_property_editable(&ptr, prop) &&
+	    /* RNA_property_is_idprop(prop) && */
+	    RNA_property_is_set(&ptr, prop))
 	{
 		RNA_property_unset(&ptr, prop);
 		return operator_button_property_finish(C, &ptr, prop);
@@ -333,7 +334,7 @@ static int copy_to_selected_button_exec(bContext *C, wmOperator *op)
 {
 	PointerRNA ptr, lptr, idptr;
 	PropertyRNA *prop, *lprop;
-	int success = 0;
+	bool success = false;
 	int index;
 	const bool all = RNA_boolean_get(op->ptr, "all");
 
@@ -348,7 +349,7 @@ static int copy_to_selected_button_exec(bContext *C, wmOperator *op)
 		ListBase lb;
 
 		if (!copy_to_selected_list(C, &ptr, &lb, &use_path))
-			return success;
+			return OPERATOR_CANCELLED;
 
 		if (!use_path || (path = RNA_path_from_ID_to_property(&ptr, prop))) {
 			for (link = lb.first; link; link = link->next) {
@@ -367,7 +368,7 @@ static int copy_to_selected_button_exec(bContext *C, wmOperator *op)
 						if (RNA_property_editable(&lptr, lprop)) {
 							if (RNA_property_copy(&lptr, &ptr, prop, (all) ? -1 : index)) {
 								RNA_property_update(C, &lptr, prop);
-								success = 1;
+								success = true;
 							}
 						}
 					}

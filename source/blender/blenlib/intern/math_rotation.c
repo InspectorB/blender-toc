@@ -404,13 +404,29 @@ float normalize_qt_qt(float r[4], const float q[4])
 void rotation_between_vecs_to_quat(float q[4], const float v1[3], const float v2[3])
 {
 	float axis[3];
-	float angle;
 
 	cross_v3_v3v3(axis, v1, v2);
 
-	angle = angle_normalized_v3v3(v1, v2);
+	if (normalize_v3(axis) > FLT_EPSILON) {
+		float angle;
 
-	axis_angle_to_quat(q, axis, angle);
+		angle = angle_normalized_v3v3(v1, v2);
+
+		axis_angle_normalized_to_quat(q, axis, angle);
+	}
+	else {
+		/* degenerate case */
+
+		if (dot_v3v3(v1, v2) > 0.0f) {
+			/* Same vectors, zero rotation... */
+			unit_qt(q);
+		}
+		else {
+			/* Colinear but opposed vectors, 180 rotation... */
+			ortho_v3_v3(axis, v1);
+			axis_angle_to_quat(q, axis, (float)M_PI);
+		}
+	}
 }
 
 void rotation_between_quats_to_quat(float q[4], const float q1[4], const float q2[4])
@@ -422,6 +438,44 @@ void rotation_between_quats_to_quat(float q[4], const float q1[4], const float q
 	mul_qt_fl(tquat, 1.0f / dot_qtqt(tquat, tquat));
 
 	mul_qt_qtqt(q, tquat, q2);
+}
+
+
+float angle_normalized_qt(const float q[4])
+{
+	BLI_ASSERT_UNIT_QUAT(q);
+	return 2.0f * saacos(q[0]);
+}
+
+float angle_qt(const float q[4])
+{
+	float tquat[4];
+
+	normalize_qt_qt(tquat, q);
+
+	return angle_normalized_qt(tquat);
+}
+
+float angle_normalized_qtqt(const float q1[4], const float q2[4])
+{
+	float qdelta[4];
+
+	BLI_ASSERT_UNIT_QUAT(q1);
+	BLI_ASSERT_UNIT_QUAT(q2);
+
+	rotation_between_quats_to_quat(qdelta, q1, q2);
+
+	return angle_normalized_qt(qdelta);
+}
+
+float angle_qtqt(const float q1[4], const float q2[4])
+{
+	float quat1[4], quat2[4];
+
+	normalize_qt_qt(quat1, q1);
+	normalize_qt_qt(quat2, q2);
+
+	return angle_normalized_qtqt(quat1, quat2);
 }
 
 void vec_to_quat(float q[4], const float vec[3], short axis, const short upflag)
@@ -663,11 +717,17 @@ void tri_to_quat_ex(float quat[4], const float v1[3], const float v2[3], const f
 	mul_qt_qtqt(quat, q1, q2);
 }
 
-void tri_to_quat(float quat[4], const float v1[3], const float v2[3], const float v3[3])
+/**
+ * \return the length of the normal, use to test for degenerate triangles.
+ */
+float tri_to_quat(float quat[4], const float v1[3], const float v2[3], const float v3[3])
 {
 	float vec[3];
-	normal_tri_v3(vec, v1, v2, v3);
+	float len;
+
+	len = normal_tri_v3(vec, v1, v2, v3);
 	tri_to_quat_ex(quat, v1, v2, v3, vec);
+	return len;
 }
 
 void print_qt(const char *str, const float q[4])

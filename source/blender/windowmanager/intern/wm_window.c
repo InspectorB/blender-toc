@@ -380,9 +380,20 @@ static void wm_window_add_ghostwindow(const char *title, wmWindow *win)
 		if (win->eventstate == NULL)
 			win->eventstate = MEM_callocN(sizeof(wmEvent), "window event state");
 		
-		/* set the state */
+#ifdef __APPLE__
+		/* set the state here, else OSX would not recognize changed screen resolution */
 		GHOST_SetWindowState(ghostwin, (GHOST_TWindowState)win->windowstate);
-
+#endif
+		/* store actual window size in blender window */
+		bounds = GHOST_GetClientBounds(win->ghostwin);
+		win->sizex = GHOST_GetWidthRectangle(bounds);
+		win->sizey = GHOST_GetHeightRectangle(bounds);
+		GHOST_DisposeRectangle(bounds);
+		
+#ifndef __APPLE__
+		/* set the state here, so minimized state comes up correct on windows */
+		GHOST_SetWindowState(ghostwin, (GHOST_TWindowState)win->windowstate);
+#endif
 		/* until screens get drawn, make it nice gray */
 		glClearColor(0.55, 0.55, 0.55, 0.0);
 		/* Crash on OSS ATI: bugs.launchpad.net/ubuntu/+source/mesa/+bug/656100 */
@@ -394,13 +405,6 @@ static void wm_window_add_ghostwindow(const char *title, wmWindow *win)
 		/* needed here, because it's used before it reads userdef */
 		U.pixelsize = GHOST_GetNativePixelSize(win->ghostwin);
 		BKE_userdef_state();
-		
-		/* store actual window size in blender window */
-		bounds = GHOST_GetClientBounds(win->ghostwin);
-		win->sizex = GHOST_GetWidthRectangle(bounds);
-		win->sizey = GHOST_GetHeightRectangle(bounds);
-		GHOST_DisposeRectangle(bounds);
-
 		
 		wm_window_swap_buffers(win);
 		
@@ -1448,3 +1452,9 @@ int WM_window_pixels_y(wmWindow *win)
 	return (int)(f * (float)win->sizey);
 	
 }
+
+bool WM_window_is_fullscreen(wmWindow *win)
+{
+	return win->windowstate == GHOST_kWindowStateFullScreen;
+}
+

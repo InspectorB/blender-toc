@@ -542,6 +542,8 @@ Scene *BKE_scene_add(Main *bmain, const char *name)
 
 	sce->toolsettings->proportional_size = 1.0f;
 
+	sce->toolsettings->imapaint.paint.flags |= PAINT_SHOW_BRUSH;
+
 	sce->physics_settings.gravity[0] = 0.0f;
 	sce->physics_settings.gravity[1] = 0.0f;
 	sce->physics_settings.gravity[2] = -9.81f;
@@ -1537,9 +1539,6 @@ static void scene_update_tagged_recursive(EvaluationContext *eval_ctx, Main *bma
 	/* scene drivers... */
 	scene_update_drivers(bmain, scene);
 
-	/* update sound system animation */
-	sound_update_scene(scene);
-
 	/* update masking curves */
 	BKE_mask_update_scene(bmain, scene);
 	
@@ -1573,6 +1572,8 @@ void BKE_scene_update_tagged(EvaluationContext *eval_ctx, Main *bmain, Scene *sc
 	 * in the future this should handle updates for all datablocks, not
 	 * only objects and scenes. - brecht */
 	scene_update_tagged_recursive(eval_ctx, bmain, scene, scene);
+	/* update sound system animation (TODO, move to depsgraph) */
+	sound_update_scene(bmain, scene);
 
 	/* extra call here to recalc scene animation (for sequencer) */
 	{
@@ -1613,6 +1614,11 @@ void BKE_scene_update_tagged(EvaluationContext *eval_ctx, Main *bmain, Scene *sc
 /* applies changes right away, does all sets too */
 void BKE_scene_update_for_newframe(EvaluationContext *eval_ctx, Main *bmain, Scene *sce, unsigned int lay)
 {
+	BKE_scene_update_for_newframe_ex(eval_ctx, bmain, sce, lay, false);
+}
+
+void BKE_scene_update_for_newframe_ex(EvaluationContext *eval_ctx, Main *bmain, Scene *sce, unsigned int lay, bool do_invisible_flush)
+{
 	float ctime = BKE_scene_frame_get(sce);
 	Scene *sce_iter;
 #ifdef DETAILED_ANALYSIS_OUTPUT
@@ -1648,7 +1654,7 @@ void BKE_scene_update_for_newframe(EvaluationContext *eval_ctx, Main *bmain, Sce
 
 	/* Following 2 functions are recursive
 	 * so don't call within 'scene_update_tagged_recursive' */
-	DAG_scene_update_flags(bmain, sce, lay, TRUE);   // only stuff that moves or needs display still
+	DAG_scene_update_flags(bmain, sce, lay, true, do_invisible_flush);   // only stuff that moves or needs display still
 
 	BKE_mask_evaluate_all_masks(bmain, ctime, true);
 
@@ -1673,6 +1679,8 @@ void BKE_scene_update_for_newframe(EvaluationContext *eval_ctx, Main *bmain, Sce
 
 	/* BKE_object_handle_update() on all objects, groups and sets */
 	scene_update_tagged_recursive(eval_ctx, bmain, sce, sce);
+	/* update sound system animation (TODO, move to depsgraph) */
+	sound_update_scene(bmain, sce);
 
 	scene_depsgraph_hack(eval_ctx, sce, sce);
 

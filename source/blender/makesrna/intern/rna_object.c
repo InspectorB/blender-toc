@@ -2310,7 +2310,7 @@ static void rna_def_object(BlenderRNA *brna)
 	prop = RNA_def_property(srna, "dimensions", PROP_FLOAT, PROP_XYZ_LENGTH);
 	RNA_def_property_array(prop, 3);
 	RNA_def_property_float_funcs(prop, "rna_Object_dimensions_get", "rna_Object_dimensions_set", NULL);
-	RNA_def_property_ui_range(prop, -FLT_MAX, FLT_MAX, 1, 3);
+	RNA_def_property_ui_range(prop, 0.0f, FLT_MAX, 1, 3);
 	RNA_def_property_ui_text(prop, "Dimensions", "Absolute bounding box dimensions of the object");
 	RNA_def_property_update(prop, NC_OBJECT | ND_TRANSFORM, "rna_Object_internal_update");
 	
@@ -2646,7 +2646,7 @@ static void rna_def_object(BlenderRNA *brna)
 	RNA_def_property_enum_sdna(prop, NULL, "dt");
 	RNA_def_property_enum_items(prop, drawtype_items);
 	RNA_def_property_ui_text(prop, "Maximum Draw Type",  "Maximum draw type to display object with in viewport");
-	RNA_def_property_update(prop, NC_OBJECT | ND_DRAW, NULL);
+	RNA_def_property_update(prop, NC_OBJECT | ND_DRAW, "rna_Object_internal_update");
 
 	prop = RNA_def_property(srna, "show_bounds", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_sdna(prop, NULL, "dtx", OB_DRAWBOUNDOX);

@@ -203,7 +203,6 @@ void OSLShaderManager::shading_system_init()
 			"glossy",			/* PATH_RAY_GLOSSY */
 			"singular",			/* PATH_RAY_SINGULAR */
 			"transparent",		/* PATH_RAY_TRANSPARENT */
-			"volume_scatter",	/* PATH_RAY_VOLUME_SCATTER */
 			"shadow",			/* PATH_RAY_SHADOW_OPAQUE */
 			"shadow",			/* PATH_RAY_SHADOW_TRANSPARENT */
 
@@ -212,6 +211,8 @@ void OSLShaderManager::shading_system_init()
 			"diffuse_ancestor", /* PATH_RAY_DIFFUSE_ANCESTOR */
 			"glossy_ancestor",  /* PATH_RAY_GLOSSY_ANCESTOR */
 			"bssrdf_ancestor",  /* PATH_RAY_BSSRDF_ANCESTOR */
+			"__unused__",		/* PATH_RAY_SINGLE_PASS_DONE */
+			"volume_scatter",	/* PATH_RAY_VOLUME_SCATTER */
 		};
 
 		const int nraytypes = sizeof(raytypes)/sizeof(raytypes[0]);
@@ -512,16 +513,14 @@ void OSLCompiler::add(ShaderNode *node, const char *name, bool isfilepath)
 		}
 	}
 
-	/* create shader of the appropriate type. we pass "surface" to all shaders,
-	 * because "volume" and "displacement" don't work yet in OSL. the shaders
-	 * work fine, but presumably these values would be used for more strict
-	 * checking, so when that is fixed, we should update the code here too. */
+	/* create shader of the appropriate type. OSL only distinguishes between "surface"
+	 * and "displacement" atm */
 	if(current_type == SHADER_TYPE_SURFACE)
 		ss->Shader("surface", name, id(node).c_str());
 	else if(current_type == SHADER_TYPE_VOLUME)
 		ss->Shader("surface", name, id(node).c_str());
 	else if(current_type == SHADER_TYPE_DISPLACEMENT)
-		ss->Shader("surface", name, id(node).c_str());
+		ss->Shader("displacement", name, id(node).c_str());
 	else
 		assert(0);
 	

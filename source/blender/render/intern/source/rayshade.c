@@ -42,7 +42,6 @@
 
 #include "BLI_blenlib.h"
 #include "BLI_cpu.h"
-#include "BLI_jitter.h"
 #include "BLI_math.h"
 #include "BLI_rand.h"
 #include "BLI_utildefines.h"
@@ -563,6 +562,7 @@ void shade_ray(Isect *is, ShadeInput *shi, ShadeResult *shr)
 		
 		/* raytrace likes to separate the spec color */
 		sub_v3_v3v3(shr->diff, shr->combined, shr->spec);
+		copy_v3_v3(shr->diffshad, shr->diff);
 	}
 
 }

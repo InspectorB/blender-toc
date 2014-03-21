@@ -1452,6 +1452,11 @@ static void rna_def_userdef_theme_space_view3d(BlenderRNA *brna)
 	RNA_def_property_ui_text(prop, "Camera", "");
 	RNA_def_property_update(prop, 0, "rna_userdef_update");
 
+	prop = RNA_def_property(srna, "view_overlay", PROP_FLOAT, PROP_COLOR_GAMMA);
+	RNA_def_property_array(prop, 3);
+	RNA_def_property_ui_text(prop, "View Overlay", "");
+	RNA_def_property_update(prop, 0, "rna_userdef_update");
+
 	prop = RNA_def_property(srna, "empty", PROP_FLOAT, PROP_COLOR_GAMMA);
 	RNA_def_property_array(prop, 3);
 	RNA_def_property_ui_text(prop, "Empty", "");
@@ -3644,7 +3649,8 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	};
 	
 	static EnumPropertyItem color_picker_types[] = {
-		{USER_CP_CIRCLE, "CIRCLE", 0, "Circle", "A circular Hue/Saturation color wheel, with Value slider"},
+		{USER_CP_CIRCLE_HSV, "CIRCLE_HSV", 0, "Circle (HSV)", "A circular Hue/Saturation color wheel, with Value slider"},
+		{USER_CP_CIRCLE_HSL, "CIRCLE_HSL", 0, "Circle (HSL)", "A circular Hue/Saturation color wheel, with Lightness slider"},
 		{USER_CP_SQUARE_SV, "SQUARE_SV", 0, "Square (SV + H)", "A square showing Saturation/Value, with Hue slider"},
 		{USER_CP_SQUARE_HS, "SQUARE_HS", 0, "Square (HS + V)", "A square showing Hue/Saturation, with Value slider"},
 		{USER_CP_SQUARE_HV, "SQUARE_HV", 0, "Square (HV + S)", "A square showing Hue/Value, with Saturation slider"},
@@ -3912,12 +3918,12 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 
 	prop = RNA_def_property(srna, "screencast_fps", PROP_INT, PROP_NONE);
 	RNA_def_property_int_sdna(prop, NULL, "scrcastfps");
-	RNA_def_property_range(prop, 10, 50);
+	RNA_def_property_range(prop, 10, 100);
 	RNA_def_property_ui_text(prop, "FPS", "Frame rate for the screencast to be played back");
 
 	prop = RNA_def_property(srna, "screencast_wait_time", PROP_INT, PROP_NONE);
 	RNA_def_property_int_sdna(prop, NULL, "scrcastwait");
-	RNA_def_property_range(prop, 50, 1000);
+	RNA_def_property_range(prop, 10, 1000);
 	RNA_def_property_ui_text(prop, "Wait Timer (ms)",
 	                         "Time in milliseconds between each frame recorded for screencast");
 

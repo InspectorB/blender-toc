@@ -1795,6 +1795,21 @@ int ui_get_but_string_max_length(uiBut *but)
 		return UI_MAX_DRAW_STR;
 }
 
+uiBut *ui_get_but_drag_multi_edit(uiBut *but)
+{
+	uiBut *but_iter;
+
+	BLI_assert(but->flag & UI_BUT_DRAG_MULTI);
+
+	for (but_iter = but->block->buttons.first; but_iter; but_iter = but_iter->next) {
+		if (but_iter->editstr) {
+			break;
+		}
+	}
+
+	return but_iter;
+}
+
 static double ui_get_but_scale_unit(uiBut *but, double value)
 {
 	UnitSettings *unit = but->block->unit;
@@ -1886,7 +1901,7 @@ static float ui_get_but_step_unit(uiBut *but, float step_default)
 }
 
 /**
- * \param float_precision  For number buttons the precission to use or -1 to fallback to the button default.
+ * \param float_precision  For number buttons the precision to use or -1 to fallback to the button default.
  */
 void ui_get_but_string_ex(uiBut *but, char *str, const size_t maxlen, const int float_precision)
 {
@@ -2656,9 +2671,17 @@ void uiBlockBeginAlign(uiBlock *block)
 static bool buts_are_horiz(uiBut *but1, uiBut *but2)
 {
 	float dx, dy;
-	
-	dx = fabs(but1->rect.xmax - but2->rect.xmin);
-	dy = fabs(but1->rect.ymin - but2->rect.ymax);
+
+	/* simple case which can fail if buttons shift apart
+	 * with proportional layouts, see: [#38602] */
+	if ((but1->rect.ymin == but2->rect.ymin) &&
+	    (but1->rect.xmin != but2->rect.xmin))
+	{
+		return true;
+	}
+
+	dx = fabsf(but1->rect.xmax - but2->rect.xmin);
+	dy = fabsf(but1->rect.ymin - but2->rect.ymax);
 	
 	return (dx <= dy);
 }
@@ -3141,59 +3164,58 @@ static uiBut *ui_def_but_rna(uiBlock *block, int type, int retval, const char *s
 	}
 
 	/* use rna values if parameters are not specified */
-	if (!str) {
-		if (type == MENU && proptype == PROP_ENUM) {
-			EnumPropertyItem *item;
-			int totitem, value;
-			bool free;
-			int i;
+	if ((proptype == PROP_ENUM) && ELEM3(type, MENU, ROW, LISTROW)) {
+		/* MENU is handled a little differently here */
+		EnumPropertyItem *item;
+		int value;
+		bool free;
+		int i;
 
-			RNA_property_enum_items(block->evil_C, ptr, prop, &item, &totitem, &free);
+		RNA_property_enum_items(block->evil_C, ptr, prop, &item, NULL, &free);
+
+		if (type == MENU) {
 			value = RNA_property_enum_get(ptr, prop);
-			i = RNA_enum_from_value(item, value);
-			if (i != -1) {
-				str = item[i].name;
-				icon = item[i].icon;
-			}
-			else {
-				str = "";
-			}
-
-			if (free) {
-				MEM_freeN(item);
-			}
-
-#ifdef WITH_INTERNATIONAL
-			str = CTX_IFACE_(RNA_property_translation_context(prop), str);
-#endif
-
-			func = ui_def_but_rna__menu;
-		}
-		else if (ELEM(type, ROW, LISTROW) && proptype == PROP_ENUM) {
-			EnumPropertyItem *item, *item_array = NULL;
-			bool free;
-
-			/* get untranslated, then translate the single string we need */
-			RNA_property_enum_items(block->evil_C, ptr, prop, &item_array, NULL, &free);
-			for (item = item_array; item->identifier; item++) {
-				if (item->identifier[0] && item->value == (int)max) {
-					str = CTX_IFACE_(RNA_property_translation_context(prop), item->name);
-					icon = item->icon;
-					break;
-				}
-			}
-
-			if (!str) {
-				str = RNA_property_ui_name(prop);
-			}
-			if (free) {
-				MEM_freeN(item_array);
-			}
 		}
 		else {
-			str = RNA_property_ui_name(prop);
-			icon = RNA_property_ui_icon(prop);
+			value = (int)max;
 		}
+
+		i = RNA_enum_from_value(item, value);
+		if (i != -1) {
+
+			if (!str) {
+				str = item[i].name;
+#ifdef WITH_INTERNATIONAL
+				str = CTX_IFACE_(RNA_property_translation_context(prop), str);
+#endif
+			}
+
+			icon = item[i].icon;
+		}
+		else {
+			if (!str) {
+				if (type == MENU) {
+					str = "";
+				}
+				else {
+					str = RNA_property_ui_name(prop);
+				}
+			}
+		}
+
+		if (type == MENU) {
+			func = ui_def_but_rna__menu;
+		}
+
+		if (free) {
+			MEM_freeN(item);
+		}
+	}
+	else {
+		if (!str) {
+			str = RNA_property_ui_name(prop);
+		}
+		icon = RNA_property_ui_icon(prop);
 	}
 
 	if (!tip && proptype != PROP_ENUM)
@@ -3252,7 +3274,9 @@ static uiBut *ui_def_but_rna(uiBlock *block, int type, int retval, const char *s
 	if (icon) {
 		but->icon = (BIFIconID)icon;
 		but->flag |= UI_HAS_ICON;
-		but->drawflag |= UI_BUT_ICON_LEFT;
+		if (str[0]) {
+			but->drawflag |= UI_BUT_ICON_LEFT;
+		}
 	}
 	
 	if ((type == MENU) && (but->dt == UI_EMBOSSP)) {

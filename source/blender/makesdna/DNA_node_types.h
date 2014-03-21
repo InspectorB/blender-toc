@@ -131,16 +131,17 @@ typedef struct bNodeSocket {
 } bNodeSocket;
 
 /* sock->type */
-#define SOCK_CUSTOM			-1	/* socket has no integer type */
-#define SOCK_FLOAT			0
-#define SOCK_VECTOR			1
-#define SOCK_RGBA			2
-#define SOCK_SHADER			3
-#define SOCK_BOOLEAN		4
-#define __SOCK_MESH			5	/* deprecated */
-#define SOCK_INT			6
-#define SOCK_STRING			7
-#define NUM_SOCKET_TYPES	8	/* must be last! */
+typedef enum eNodeSocketDatatype {
+	SOCK_CUSTOM			= -1,	/* socket has no integer type */
+	SOCK_FLOAT			= 0,
+	SOCK_VECTOR			= 1,
+	SOCK_RGBA			= 2,
+	SOCK_SHADER			= 3,
+	SOCK_BOOLEAN		= 4,
+	__SOCK_MESH			= 5,	/* deprecated */
+	SOCK_INT			= 6,
+	SOCK_STRING			= 7
+} eNodeSocketDatatype;
 
 /* socket side (input/output) */
 typedef enum eNodeSocketInOut {
@@ -157,7 +158,8 @@ typedef enum eNodeSocketFlag {
 	// SOCK_INTERNAL = 32,				/* DEPRECATED  group socket should not be exposed */
 	SOCK_COLLAPSED = 64,				/* socket collapsed in UI */
 	SOCK_HIDE_VALUE = 128,				/* hide socket value, if it gets auto default */
-	SOCK_AUTO_HIDDEN__DEPRECATED = 256	/* socket hidden automatically, to distinguish from manually hidden */
+	SOCK_AUTO_HIDDEN__DEPRECATED = 256,	/* socket hidden automatically, to distinguish from manually hidden */
+	SOCK_NO_INTERNAL_LINK = 512
 } eNodeSocketFlag;
 
 /* limit data in bNode to what we want to see saved? */
@@ -722,7 +724,7 @@ typedef struct NodeTexImage {
 	int color_space;
 	int projection;
 	float projection_blend;
-	int pad;
+	int interpolation;
 } NodeTexImage;
 
 typedef struct NodeTexChecker {
@@ -948,6 +950,12 @@ typedef struct NodeShaderNormalMap {
 /* image texture */
 #define SHD_PROJ_FLAT				0
 #define SHD_PROJ_BOX				1
+
+/* image texture interpolation */
+#define SHD_INTERP_LINEAR		0
+#define SHD_INTERP_CLOSEST		1
+#define SHD_INTERP_CUBIC			2
+#define SHD_INTERP_SMART			3
 
 /* tangent */
 #define SHD_TANGENT_RADIAL			0

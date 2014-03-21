@@ -821,7 +821,9 @@ static EnumPropertyItem *rna_EnumProperty_default_itemf(bContext *C, PointerRNA 
 	    (ptr->type == &RNA_EnumProperty) ||
 	    (C == NULL))
 	{
-		return eprop->item;
+		if (eprop->item) {
+			return eprop->item;
+		}
 	}
 
 	return eprop->itemf(C, ptr, prop, r_free);
@@ -1086,7 +1088,7 @@ static void rna_def_property(BlenderRNA *brna)
 	static EnumPropertyItem subtype_items[] = {
 		{PROP_NONE, "NONE", 0, "None", ""},
 		{PROP_FILEPATH, "FILE_PATH", 0, "File Path", ""},
-		{PROP_DIRPATH, "DIRECTORY_PATH", 0, "Directory Path", ""},
+		{PROP_DIRPATH, "DIR_PATH", 0, "Directory Path", ""},
 		{PROP_PIXEL, "PIXEL", 0, "Pixel", ""},
 		{PROP_UNSIGNED, "UNSIGNED", 0, "Unsigned Number", ""},
 		{PROP_PERCENTAGE, "PERCENTAGE", 0, "Percentage", ""},

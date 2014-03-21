@@ -100,6 +100,8 @@
 #include "BKE_report.h"
 #include "BKE_sound.h"
 #include "BKE_image.h"
+#include "BKE_particle.h"
+
 #ifdef WITH_USAGE
 #include "BKE_usage.h"
 #endif
@@ -1654,6 +1656,7 @@ int main(int argc, const char **argv)
 
 	RE_engines_init();
 	init_nodesystem();
+	psys_init_rng();
 	/* end second init */
 
 

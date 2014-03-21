@@ -105,10 +105,10 @@ ListBase *get_active_constraints(Object *ob)
 }
 
 /* Find the list that a given constraint belongs to, and/or also get the posechannel this is from (if applicable) */
-ListBase *get_constraint_lb(Object *ob, bConstraint *con, bPoseChannel **pchan_r)
+ListBase *get_constraint_lb(Object *ob, bConstraint *con, bPoseChannel **r_pchan)
 {
-	if (pchan_r)
-		*pchan_r = NULL;
+	if (r_pchan)
+		*r_pchan = NULL;
 	
 	if (ELEM(NULL, ob, con))
 		return NULL;
@@ -128,8 +128,8 @@ ListBase *get_constraint_lb(Object *ob, bConstraint *con, bPoseChannel **pchan_r
 		for (pchan = ob->pose->chanbase.first; pchan; pchan = pchan->next) {
 			if ((BLI_findindex(&pchan->constraints, con) != -1)) {
 				
-				if (pchan_r)
-					*pchan_r = pchan;
+				if (r_pchan)
+					*r_pchan = pchan;
 				
 				return &pchan->constraints;
 			}
@@ -542,7 +542,7 @@ static int edit_constraint_poll_generic(bContext *C, StructRNA *rna_type)
 	PointerRNA ptr = CTX_data_pointer_get_type(C, "constraint", rna_type);
 	Object *ob = (ptr.id.data) ? ptr.id.data : ED_object_active_context(C);
 
-	if (!ob || ob->id.lib) return 0;
+	if (!ptr.data || !ob || ob->id.lib) return 0;
 	if (ptr.id.data && ((ID *)ptr.id.data)->lib) return 0;
 
 	return 1;

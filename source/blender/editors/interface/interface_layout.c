@@ -222,18 +222,25 @@ static int ui_layout_vary_direction(uiLayout *layout)
 }
 
 /* estimated size of text + icon */
-static int ui_text_icon_width(uiLayout *layout, const char *name, int icon, int compact)
+static int ui_text_icon_width(uiLayout *layout, const char *name, int icon, bool compact)
 {
-	float f5 = 0.25f * UI_UNIT_X;
-	float f10 = 0.5f * UI_UNIT_X;
-	int variable = ui_layout_vary_direction(layout) == UI_ITEM_VARY_X;
+	bool variable;
 
 	if (icon && !name[0])
 		return UI_UNIT_X;  /* icon only */
-	else if (icon)
-		return (variable) ? UI_GetStringWidth(name) + (compact ? f5 : f10) + UI_UNIT_X : 10 * UI_UNIT_X;  /* icon + text */
-	else
-		return (variable) ? UI_GetStringWidth(name) + (compact ? f5 : f10) + UI_UNIT_X : 10 * UI_UNIT_X;  /* text only */
+
+	variable = (ui_layout_vary_direction(layout) == UI_ITEM_VARY_X);
+
+	if (variable) {
+		/* it may seem odd that the icon only adds (UI_UNIT_X / 4)
+		 * but taking margins into account its fine */
+		return (UI_GetStringWidth(name) +
+		        (UI_UNIT_X * ((compact ? 1.25f : 1.50f) +
+		                      (icon    ? 0.25f : 0.0f))));
+	}
+	else {
+		return UI_UNIT_X * 10;
+	}
 }
 
 static void ui_item_size(uiItem *item, int *r_w, int *r_h)
@@ -881,7 +888,7 @@ void uiItemsFullEnumO(uiLayout *layout, const char *opname, const char *propname
 		EnumPropertyItem *item, *item_array = NULL;
 		bool free;
 		uiLayout *split = uiLayoutSplit(layout, 0.0f, false);
-		uiLayout *column = uiLayoutColumn(split, false);
+		uiLayout *column = uiLayoutColumn(split, layout->align);
 
 		RNA_property_enum_items_gettexted(block->evil_C, &ptr, prop, &item_array, NULL, &free);
 		for (item = item_array; item->identifier; item++) {
@@ -905,7 +912,7 @@ void uiItemsFullEnumO(uiLayout *layout, const char *opname, const char *propname
 				if (item->name) {
 					uiBut *but;
 					if (item != item_array) {
-						column = uiLayoutColumn(split, false);
+						column = uiLayoutColumn(split, layout->align);
 						/* inconsistent, but menus with labels do not look good flipped */
 						block->flag |= UI_BLOCK_NO_FLIP;
 					}
@@ -1104,7 +1111,7 @@ static void ui_item_rna_size(uiLayout *layout, const char *name, int icon, Point
 			RNA_property_enum_items_gettexted(layout->root->block->evil_C, ptr, prop, &item_array, NULL, &free);
 			for (item = item_array; item->identifier; item++) {
 				if (item->identifier[0]) {
-					w = max_ii(w, ui_text_icon_width(layout, item->name, icon, 0));
+					w = max_ii(w, ui_text_icon_width(layout, item->name, item->icon, 0));
 				}
 			}
 			if (free) {
@@ -1171,12 +1178,18 @@ void uiItemFullR(uiLayout *layout, PointerRNA *ptr, PropertyRNA *prop, int index
 	if (icon == ICON_NONE)
 		icon = RNA_property_ui_icon(prop);
 	
-	if (ELEM4(type, PROP_INT, PROP_FLOAT, PROP_STRING, PROP_POINTER))
+	if (flag & UI_ITEM_R_ICON_ONLY) {
+		/* pass */
+	}
+	else if (ELEM4(type, PROP_INT, PROP_FLOAT, PROP_STRING, PROP_POINTER)) {
 		name = ui_item_name_add_colon(name, namestr);
-	else if (type == PROP_BOOLEAN && is_array && index == RNA_NO_INDEX)
+	}
+	else if (type == PROP_BOOLEAN && is_array && index == RNA_NO_INDEX) {
 		name = ui_item_name_add_colon(name, namestr);
-	else if (type == PROP_ENUM && index != RNA_ENUM_VALUE)
+	}
+	else if (type == PROP_ENUM && index != RNA_ENUM_VALUE) {
 		name = ui_item_name_add_colon(name, namestr);
+	}
 
 	if (layout->root->type == UI_LAYOUT_MENU) {
 		if (type == PROP_BOOLEAN && ((is_array == false) || (index != RNA_NO_INDEX))) {
@@ -1250,6 +1263,12 @@ void uiItemFullR(uiLayout *layout, PointerRNA *ptr, PropertyRNA *prop, int index
 
 	if (no_bg)
 		uiBlockSetEmboss(block, UI_EMBOSS);
+
+	/* ensure text isn't added to icon_only buttons */
+	if (but && icon_only) {
+		BLI_assert(but->str[0] == '\0');
+	}
+
 }
 
 void uiItemR(uiLayout *layout, PointerRNA *ptr, const char *propname, int flag, const char *name, int icon)
