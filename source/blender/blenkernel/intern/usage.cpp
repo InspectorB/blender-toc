@@ -603,6 +603,7 @@ namespace usage {
 			if (U.flag & USER_USAGE_SEND_SCREENSHOTS
 				&& !(op->type->flag & OPTYPE_NOSCREENSHOT)
 				&& !(op->type->flag & OPTYPE_LAST_SCREENSHOT)
+				&& !(op->type->flag & OPTYPE_INTERNAL)
 				&& CTX_wm_window(C))
 			{
 				takeScreenshotP = true;
