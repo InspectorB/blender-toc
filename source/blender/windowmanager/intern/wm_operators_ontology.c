@@ -33,27 +33,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-//#include <float.h>
-
-//#include <stddef.h>
-//#include <assert.h>
-
-//#include "GHOST_C-api.h"
 
 #include "MEM_guardedalloc.h"
 
 #include "DNA_listBase.h"
 #include "DNA_windowmanager_types.h"
-//#include "DNA_ID.h"
-//#include "DNA_object_types.h"
-//#include "DNA_screen_types.h"
-//#include "DNA_scene_types.h"
-//#include "DNA_userdef_types.h"
-//#include "DNA_mesh_types.h" /* only for USE_BMESH_SAVE_AS_COMPAT */
-
-//#include "BLF_translation.h"
-
-//#include "PIL_time.h"
 
 #include "BLI_blenlib.h"
 #include "BLI_dynstr.h" /*for WM_operator_pystring */
@@ -61,52 +45,21 @@
 #include "BLI_utildefines.h"
 #include "BLI_ghash.h"
 
-//#include "BKE_autoexec.h"
-//#include "BKE_blender.h"
-//#include "BKE_brush.h"
-//#include "BKE_context.h"
-//#include "BKE_depsgraph.h"
-//#include "BKE_idprop.h"
-//#include "BKE_image.h"
-//#include "BKE_library.h"
-//#include "BKE_global.h"
-//#include "BKE_main.h"
-//#include "BKE_material.h"
-//#include "BKE_report.h"
-//#include "BKE_scene.h"
-//#include "BKE_screen.h" /* BKE_ST_MAXNAME */
-//#include "BKE_utildefines.h"
-//
-//#include "BKE_idcode.h"
-
-//#include "ED_screen.h"
-//#include "ED_util.h"
-//#include "ED_object.h"
-//#include "ED_view3d.h"
-
 #include "RNA_access.h"
 #include "RNA_define.h"
 #include "RNA_enum_types.h"
 
-//#include "UI_interface.h"
-//#include "UI_resources.h"
-
 #include "WM_api.h"
 #include "WM_types.h"
-
-//#include "wm.h"
-//#include "wm_draw.h"
-//#include "wm_event_system.h"
-//#include "wm_event_types.h"
-//#include "wm_files.h"
-//#include "wm_subwindow.h"
-//#include "wm_window.h"
-
 
 #include <redland.h>
 #include <raptor2.h>
 
 #define URI(_name, _uri) static const unsigned char *_name = (const unsigned char *)_uri;
+
+URI(BASE_URI, "http://rdf.inspectorb.com/operators/")
+URI(THIS_DOC, "http://static.inspectorb.com/ontologies/blender_ontology_operators.ttl")
+URI(VERSION, "http://static.inspectorb.com/ontologies/blender_ontology_operators.ttl?version=1")
 
 URI(XSD_TRUE, "true")
 URI(XSD_FALSE, "false")
@@ -114,12 +67,21 @@ URI(XSD_BOOLEAN, "http://www.w3.org/2001/XMLSchema#boolean")
 
 URI(RDF_TYPE, "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 URI(RDF_PROP, "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property")
+URI(RDF_LIST, "http://www.w3.org/1999/02/22-rdf-syntax-ns#List")
+URI(RDF_FIRST, "http://www.w3.org/1999/02/22-rdf-syntax-ns#first")
+URI(RDF_REST, "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest")
+URI(RDF_NIL, "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil")
+
 URI(RDFS_LABEL, "http://www.w3.org/2000/01/rdf-schema#label")
 URI(RDFS_SUBCLASS, "http://www.w3.org/2000/01/rdf-schema#subClassOf")
 
 URI(OWL_CLASS, "http://www.w3.org/2002/07/owl#Class")
 URI(OWL_DTPROP, "http://www.w3.org/2002/07/owl#DatatypeProperty")
 URI(OWL_OPROP, "http://www.w3.org/2002/07/owl#ObjectProperty")
+URI(OWL_ONTOLOGY, "http://www.w3.org/2002/07/owl#Ontology")
+URI(OWL_VERSION, "http://www.w3.org/2002/07/owl#versionIRI")
+URI(OWL_ALL_DIFFERENT, "http://www.w3.org/2002/07/owl#AllDifferent")
+URI(OWL_DISTINCT_MEMBERS, "http://www.w3.org/2002/07/owl#distinctMembers")
 
 // OPERATOR
 URI(IB_Operator,	"http://rdf.inspectorb.com/operators/Operator")
@@ -139,19 +101,29 @@ URI(IB_description,	"http://rdf.inspectorb.com/operators/fields/description")
 
 URI(IB_hasProperty,	"http://rdf.inspectorb.com/operators/fields/hasProperty")
 
-// PROPERTIES
-URI(IB_prop_identifier,		"http://rdf.inspectorb.com/properties/fields/identifier")
-URI(IB_prop_name,			"http://rdf.inspectorb.com/properties/fields/name")
-URI(IB_prop_description,	"http://rdf.inspectorb.com/properties/fields/description")
+URI(IB_flag_register,		"http://rdf.inspectorb.com/operators/flags/register")
+URI(IB_flag_undo,			"http://rdf.inspectorb.com/operators/flags/undo")
+URI(IB_flag_blocking,		"http://rdf.inspectorb.com/operators/flags/blocking")
+URI(IB_flag_macro,			"http://rdf.inspectorb.com/operators/flags/macro")
+URI(IB_flag_grab_pointer,	"http://rdf.inspectorb.com/operators/flags/grab_pointer")
+URI(IB_flag_preset,			"http://rdf.inspectorb.com/operators/flags/preset")
+URI(IB_flag_internal,		"http://rdf.inspectorb.com/operators/flags/internal")
+URI(IB_flag_lock_bypass,	"http://rdf.inspectorb.com/operators/flags/lock_bypass")
+URI(IB_flag_no_screenshot,	"http://rdf.inspectorb.com/operators/flags/no_screenshot")
 
-URI(IB_Property,			"http://rdf.inspectorb.com/properties/Property");
-URI(IB_BooleanProperty,		"http://rdf.inspectorb.com/properties/BooleanProperty");
-URI(IB_IntProperty,			"http://rdf.inspectorb.com/properties/IntProperty");
-URI(IB_FloatProperty,		"http://rdf.inspectorb.com/properties/FloatProperty");
-URI(IB_StringProperty,		"http://rdf.inspectorb.com/properties/StringProperty");
-URI(IB_EnumProperty,		"http://rdf.inspectorb.com/properties/EnumProperty");
-URI(IB_PointerProperty,		"http://rdf.inspectorb.com/properties/PointerProperty");
-URI(IB_CollectionProperty,	"http://rdf.inspectorb.com/properties/CollectionProperty");
+// PROPERTIES
+URI(IB_prop_identifier,		"http://rdf.inspectorb.com/operators/properties/fields/identifier")
+URI(IB_prop_name,			"http://rdf.inspectorb.com/operators/properties/fields/name")
+URI(IB_prop_description,	"http://rdf.inspectorb.com/operators/properties/fields/description")
+
+URI(IB_Property,			"http://rdf.inspectorb.com/operators/properties/Property");
+URI(IB_BooleanProperty,		"http://rdf.inspectorb.com/operators/properties/BooleanProperty");
+URI(IB_IntProperty,			"http://rdf.inspectorb.com/operators/properties/IntProperty");
+URI(IB_FloatProperty,		"http://rdf.inspectorb.com/operators/properties/FloatProperty");
+URI(IB_StringProperty,		"http://rdf.inspectorb.com/operators/properties/StringProperty");
+URI(IB_EnumProperty,		"http://rdf.inspectorb.com/operators/properties/EnumProperty");
+URI(IB_PointerProperty,		"http://rdf.inspectorb.com/operators/properties/PointerProperty");
+URI(IB_CollectionProperty,	"http://rdf.inspectorb.com/operators/properties/CollectionProperty");
 
 
 static char *ontology_output = NULL;
@@ -173,6 +145,8 @@ void WM_operatortypes_ontology_export()
 	raptor_world *raptor_world_ptr = NULL;
 	librdf_uri *base_uri;
 	librdf_serializer *serializer;
+	librdf_node *alldiff_node;
+	librdf_node *alldiff_list;
 	GHashIterator *op_iter;
 	
 	FILE *fp;
@@ -184,37 +158,83 @@ void WM_operatortypes_ontology_export()
 	storage = librdf_new_storage(world, "memory", "operators", NULL);
 	model = librdf_new_model(world, storage, NULL);
 	
-	base_uri = librdf_new_uri(world, (const unsigned char*)"http://rdf.inspectorb.com/");
+	base_uri = librdf_new_uri(world, BASE_URI);
+	
+	statement = librdf_new_statement(world);
+
+	// mark base as an ontology
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, THIS_DOC));
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_TYPE));
+	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, OWL_ONTOLOGY));
+	librdf_model_add_statement(model, statement);
+	
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, OWL_VERSION));
+	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, VERSION));
+	librdf_model_add_statement(model, statement);
 	
 	// mark properties as data or object properties
-	statement = librdf_new_statement(world);
-	
 	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_TYPE));
 	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, OWL_DTPROP));
+
+		// properties
+	const unsigned char* operator_props[] = { IB_hasCancel, IB_hasCheck, IB_hasExec, IB_hasInvoke, IB_hasModal,
+		IB_hasPoll, IB_hasUi, NULL };
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasCancel));
+	for(const unsigned char** prop=operator_props; *prop; prop++) {
+		librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, *prop));
+		librdf_model_add_statement(model, statement);
+	}
+
+		// flags
+	const unsigned char* operator_flags[] = { IB_flag_register, IB_flag_undo, IB_flag_blocking, IB_flag_macro,
+		IB_flag_grab_pointer, IB_flag_preset, IB_flag_internal, IB_flag_lock_bypass, IB_flag_no_screenshot, NULL };
+
+	for(const unsigned char** flag=operator_flags; *flag; flag++) {
+		librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, *flag));
+		librdf_model_add_statement(model, statement);
+	}
+	
+	
+	// mark operator properties as such
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDFS_SUBCLASS));
+	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, IB_Property));
+	
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_BooleanProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasCheck));
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_IntProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasExec));
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_FloatProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasInvoke));
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_StringProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasModal));
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_EnumProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasPoll));
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_PointerProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_hasUi));
+	librdf_statement_set_subject(statement, librdf_new_node_from_uri_string(world, IB_CollectionProperty));
 	librdf_model_add_statement(model, statement);
 	
-	librdf_free_statement(statement);
+	// initialise blank distinct nodes: _:x40 rdf:type owl:AllDifferent
+	alldiff_node = librdf_new_node(world);
+	alldiff_list = librdf_new_node(world);
 	
+	librdf_statement_set_subject(statement, alldiff_node);
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_TYPE));
+	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, OWL_ALL_DIFFERENT));
+	librdf_model_add_statement(model, statement);
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, OWL_DISTINCT_MEMBERS));
+	librdf_statement_set_object(statement, alldiff_list);
+	librdf_model_add_statement(model, statement);
+	librdf_statement_set_subject(statement, alldiff_list);
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_TYPE));
+	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, RDF_LIST));
+	librdf_model_add_statement(model, statement);
 	
 	// describe operators
 	op_iter = WM_operatortype_iter();
@@ -223,10 +243,24 @@ void WM_operatortypes_ontology_export()
 		wmOperatorType *ot = BLI_ghashIterator_getValue(op_iter);
 		librdf_uri *xsdbool = librdf_new_uri(world, XSD_BOOLEAN);
 		
-		char *ot_node_name = BLI_sprintfN("operators/%s", ot->idname);
+		char *ot_node_name = BLI_sprintfN(/**operators**/"%s", ot->idname);
 		librdf_node *ot_node = librdf_new_node_from_uri_local_name(world, base_uri, (const unsigned char*)ot_node_name);
+				
+		// make part of the distinct list
+		librdf_statement_set_subject(statement, alldiff_list);
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_FIRST));
+		librdf_statement_set_object(statement, ot_node);
+		librdf_model_add_statement(model, statement);
 		
-		statement = librdf_new_statement(world);
+		librdf_node* new_list = librdf_new_node(world);
+		
+		librdf_statement_set_subject(statement, alldiff_list);
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_REST));
+		librdf_statement_set_object(statement, new_list);
+		librdf_model_add_statement(model, statement);
+		
+		alldiff_list = new_list;
+		
 		
 		// mark as an operator
 		librdf_statement_set_subject(statement, ot_node);
@@ -327,6 +361,43 @@ void WM_operatortypes_ontology_export()
 		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->ui == NULL ? XSD_FALSE : XSD_TRUE, NULL, xsdbool));
 		librdf_model_add_statement(model, statement);
 		
+		// FLAGS
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_register));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_REGISTER ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_undo));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_UNDO ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_blocking));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_BLOCKING ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_macro));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_MACRO ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_grab_pointer));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_GRAB_POINTER ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_preset));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_PRESET ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_internal));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_INTERNAL ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_lock_bypass));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_LOCK_BYPASS ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
+		librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, IB_flag_no_screenshot));
+		librdf_statement_set_object(statement, librdf_new_node_from_typed_literal(world, ot->flag & OPTYPE_NOSCREENSHOT ? XSD_TRUE : XSD_FALSE, NULL, xsdbool));
+		librdf_model_add_statement(model, statement);
+		
 		// properties
 		if (ot->srna) {
 			for(Link *link = (Link*)RNA_struct_type_properties(ot->srna)->first;
@@ -335,7 +406,7 @@ void WM_operatortypes_ontology_export()
 
 				PropertyRNA *prop = (PropertyRNA*)link;
 				
-				printf("%s\n", RNA_property_identifier(prop));
+				//printf("%s\n", RNA_property_identifier(prop));
 				
 				librdf_statement *pstat = librdf_new_statement(world);
 				
@@ -404,12 +475,15 @@ void WM_operatortypes_ontology_export()
 			}
 		}
 		
-		// TODO: flags
-		
 		// clean up
 		MEM_freeN(ot_node_name);
-		librdf_free_statement(statement);
 	}
+	
+	// finish list
+	librdf_statement_set_subject(statement, alldiff_list);
+	librdf_statement_set_predicate(statement, librdf_new_node_from_uri_string(world, RDF_REST));
+	librdf_statement_set_object(statement, librdf_new_node_from_uri_string(world, RDF_NIL));
+	librdf_model_add_statement(model, statement);
 	
 	// write to file
 	fp = fopen(ontology_output, "w");
@@ -418,6 +492,8 @@ void WM_operatortypes_ontology_export()
 	fclose(fp);
 	
 	// clean up
+	librdf_free_statement(statement);
+	librdf_free_node(alldiff_node);
 	librdf_free_serializer(serializer);
 	librdf_free_uri(base_uri);
 
