@@ -207,43 +207,41 @@ void ui_block_translate(uiBlock *block, int x, int y)
 static void ui_text_bounds_block(uiBlock *block, float offset)
 {
 	uiStyle *style = UI_GetStyle();
-	uiBut *bt;
-	int i = 0, j, x1addval = offset, nextcol;
-	int lastcol = 0, col = 0;
-	
+	uiBut *bt, *init_col_bt, *col_bt;
+	int i = 0, j, x1addval = offset;
+
 	uiStyleFontSet(&style->widget);
-	
-	for (bt = block->buttons.first; bt; bt = bt->next) {
+
+	for (init_col_bt = bt = block->buttons.first; bt; bt = bt->next) {
 		if (!ELEM(bt->type, SEPR, SEPRLINE)) {
 			j = BLF_width(style->widget.uifont_id, bt->drawstr, sizeof(bt->drawstr));
 
-			if (j > i) i = j;
+			if (j > i)
+				i = j;
 		}
 
-		if (bt->next && bt->rect.xmin < bt->next->rect.xmin)
-			lastcol++;
+		if (bt->next && bt->rect.xmin < bt->next->rect.xmin) {
+			/* End of this column, and it’s not the last one. */
+			for (col_bt = init_col_bt; col_bt->prev != bt; col_bt = col_bt->next) {
+				col_bt->rect.xmin = x1addval;
+				col_bt->rect.xmax = x1addval + i + block->bounds;
+
+				ui_check_but(col_bt);  /* clips text again */
+			}
+
+			/* And we prepare next column. */
+			x1addval += i + block->bounds;
+			i = 0;
+			init_col_bt = col_bt;
+		}
 	}
 
-	/* cope with multi collumns */
-	bt = block->buttons.first;
-	while (bt) {
-		nextcol = (bt->next && bt->rect.xmin < bt->next->rect.xmin);
-		
-		bt->rect.xmin = x1addval;
-		bt->rect.xmax = bt->rect.xmin + i + block->bounds;
-		
-		if (col == lastcol) {
-			bt->rect.xmax = max_ff(bt->rect.xmax, offset + block->minbounds);
-		}
+	/* Last column. */
+	for (col_bt = init_col_bt; col_bt; col_bt = col_bt->next) {
+		col_bt->rect.xmin = x1addval;
+		col_bt->rect.xmax = max_ff(x1addval + i + block->bounds, offset + block->minbounds);
 
-		ui_check_but(bt);  /* clips text again */
-		
-		if (nextcol) {
-			x1addval += i + block->bounds;
-			col++;
-		}
-		
-		bt = bt->next;
+		ui_check_but(col_bt);  /* clips text again */
 	}
 }
 
@@ -1264,7 +1262,7 @@ void uiDrawBlock(const bContext *C, uiBlock *block)
  */
 int ui_is_but_push_ex(uiBut *but, double *value)
 {
-	int is_push = false;
+	int is_push = 0;
 
 	if (but->bit) {
 		const bool state = ELEM3(but->type, TOGN, ICONTOGN, OPTIONN) ? false : true;
@@ -1862,7 +1860,7 @@ void ui_convert_to_unit_alt_name(uiBut *but, char *str, size_t maxlen)
 static void ui_get_but_string_unit(uiBut *but, char *str, int len_max, double value, bool pad, int float_precision)
 {
 	UnitSettings *unit = but->block->unit;
-	int do_split = (unit->flag & USER_UNIT_OPT_SPLIT) != 0;
+	const bool do_split = (unit->flag & USER_UNIT_OPT_SPLIT) != 0;
 	int unit_type = uiButGetUnitType(but);
 	int precision;
 
@@ -2430,8 +2428,8 @@ uiBlock *uiBeginBlock(const bContext *C, ARegion *region, const char *name, shor
 
 	/* window matrix and aspect */
 	if (region && region->swinid) {
-		wm_subwindow_getmatrix(window, region->swinid, block->winmat);
-		wm_subwindow_getsize(window, region->swinid, &getsizex, &getsizey);
+		wm_subwindow_matrix_get(window, region->swinid, block->winmat);
+		wm_subwindow_size_get(window, region->swinid, &getsizex, &getsizey);
 
 		block->aspect = 2.0f / fabsf(getsizex * block->winmat[0][0]);
 	}
@@ -2439,8 +2437,8 @@ uiBlock *uiBeginBlock(const bContext *C, ARegion *region, const char *name, shor
 		/* no subwindow created yet, for menus for example, so we
 		 * use the main window instead, since buttons are created
 		 * there anyway */
-		wm_subwindow_getmatrix(window, window->screen->mainwin, block->winmat);
-		wm_subwindow_getsize(window, window->screen->mainwin, &getsizex, &getsizey);
+		wm_subwindow_matrix_get(window, window->screen->mainwin, block->winmat);
+		wm_subwindow_size_get(window, window->screen->mainwin, &getsizex, &getsizey);
 
 		block->aspect = 2.0f / fabsf(getsizex * block->winmat[0][0]);
 		block->auto_open = true;
@@ -2994,7 +2992,7 @@ static uiBut *ui_def_but(uiBlock *block, int type, int retval, const char *str,
 	}
 
 	/* keep track of UI_interface.h */
-	if      (ELEM10(but->type, BLOCK, BUT, LABEL, PULLDOWN, ROUNDBOX, LISTBOX, BUTM, SCROLL, SEPR, SEPRLINE)) {}
+	if      (ELEM11(but->type, BLOCK, BUT, LABEL, PULLDOWN, ROUNDBOX, LISTBOX, BUTM, SCROLL, SEPR, SEPRLINE, GRIP)) {}
 	else if (but->type >= SEARCH_MENU) {}
 	else but->flag |= UI_BUT_UNDO;
 
