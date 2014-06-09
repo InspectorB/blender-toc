@@ -1499,6 +1499,120 @@ class WmEv {
 
 void swap(WmEv &a, WmEv &b);
 
+typedef struct _MouseMove__isset {
+  _MouseMove__isset() : timestamp(false), x(false), y(false) {}
+  bool timestamp;
+  bool x;
+  bool y;
+} _MouseMove__isset;
+
+class MouseMove {
+ public:
+
+  static const char* ascii_fingerprint; // = "F3EC1AAD5E41E893A90AB05F9C342CF8";
+  static const uint8_t binary_fingerprint[16]; // = {0xF3,0xEC,0x1A,0xAD,0x5E,0x41,0xE8,0x93,0xA9,0x0A,0xB0,0x5F,0x9C,0x34,0x2C,0xF8};
+
+  MouseMove() : timestamp(0), x(0), y(0) {
+  }
+
+  virtual ~MouseMove() throw() {}
+
+  int64_t timestamp;
+  int32_t x;
+  int32_t y;
+
+  _MouseMove__isset __isset;
+
+  void __set_timestamp(const int64_t val) {
+    timestamp = val;
+    __isset.timestamp = true;
+  }
+
+  void __set_x(const int32_t val) {
+    x = val;
+    __isset.x = true;
+  }
+
+  void __set_y(const int32_t val) {
+    y = val;
+    __isset.y = true;
+  }
+
+  bool operator == (const MouseMove & rhs) const
+  {
+    if (__isset.timestamp != rhs.__isset.timestamp)
+      return false;
+    else if (__isset.timestamp && !(timestamp == rhs.timestamp))
+      return false;
+    if (__isset.x != rhs.__isset.x)
+      return false;
+    else if (__isset.x && !(x == rhs.x))
+      return false;
+    if (__isset.y != rhs.__isset.y)
+      return false;
+    else if (__isset.y && !(y == rhs.y))
+      return false;
+    return true;
+  }
+  bool operator != (const MouseMove &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const MouseMove & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(MouseMove &a, MouseMove &b);
+
+typedef struct _WmEvMouseMoves__isset {
+  _WmEvMouseMoves__isset() : moves(false) {}
+  bool moves;
+} _WmEvMouseMoves__isset;
+
+class WmEvMouseMoves {
+ public:
+
+  static const char* ascii_fingerprint; // = "E32886D5E8FDBAC367B2B1C476401E2E";
+  static const uint8_t binary_fingerprint[16]; // = {0xE3,0x28,0x86,0xD5,0xE8,0xFD,0xBA,0xC3,0x67,0xB2,0xB1,0xC4,0x76,0x40,0x1E,0x2E};
+
+  WmEvMouseMoves() {
+  }
+
+  virtual ~WmEvMouseMoves() throw() {}
+
+  std::vector<MouseMove>  moves;
+
+  _WmEvMouseMoves__isset __isset;
+
+  void __set_moves(const std::vector<MouseMove> & val) {
+    moves = val;
+    __isset.moves = true;
+  }
+
+  bool operator == (const WmEvMouseMoves & rhs) const
+  {
+    if (__isset.moves != rhs.__isset.moves)
+      return false;
+    else if (__isset.moves && !(moves == rhs.moves))
+      return false;
+    return true;
+  }
+  bool operator != (const WmEvMouseMoves &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const WmEvMouseMoves & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(WmEvMouseMoves &a, WmEvMouseMoves &b);
+
 
 class ButPress {
  public:
@@ -1587,7 +1701,7 @@ class Assignment {
 void swap(Assignment &a, Assignment &b);
 
 typedef struct _Data__isset {
-  _Data__isset() : noData(false), sessionStart(false), wmOp(false), wmEv(false), butPress(false), assignment(false), sessionEnd(false) {}
+  _Data__isset() : noData(false), sessionStart(false), wmOp(false), wmEv(false), butPress(false), assignment(false), sessionEnd(false), wmEvMouseMoves(false) {}
   bool noData;
   bool sessionStart;
   bool wmOp;
@@ -1595,13 +1709,14 @@ typedef struct _Data__isset {
   bool butPress;
   bool assignment;
   bool sessionEnd;
+  bool wmEvMouseMoves;
 } _Data__isset;
 
 class Data {
  public:
 
-  static const char* ascii_fingerprint; // = "15EFC87A88FA714BE1146C9FC269A3B3";
-  static const uint8_t binary_fingerprint[16]; // = {0x15,0xEF,0xC8,0x7A,0x88,0xFA,0x71,0x4B,0xE1,0x14,0x6C,0x9F,0xC2,0x69,0xA3,0xB3};
+  static const char* ascii_fingerprint; // = "A7BE730C3E9052B57F3387ACF4D5A14B";
+  static const uint8_t binary_fingerprint[16]; // = {0xA7,0xBE,0x73,0x0C,0x3E,0x90,0x52,0xB5,0x7F,0x33,0x87,0xAC,0xF4,0xD5,0xA1,0x4B};
 
   Data() {
   }
@@ -1615,6 +1730,7 @@ class Data {
   ButPress butPress;
   Assignment assignment;
   SessionEnd sessionEnd;
+  WmEvMouseMoves wmEvMouseMoves;
 
   _Data__isset __isset;
 
@@ -1660,6 +1776,12 @@ class Data {
     __isset.sessionEnd = true;
   }
 
+  void __set_wmEvMouseMoves(const WmEvMouseMoves& val) {
+    wmEvMouseMoves = val;
+    __isset = _Data__isset();
+    __isset.wmEvMouseMoves = true;
+  }
+
   bool operator == (const Data & rhs) const
   {
     if (__isset.noData != rhs.__isset.noData)
@@ -1689,6 +1811,10 @@ class Data {
     if (__isset.sessionEnd != rhs.__isset.sessionEnd)
       return false;
     else if (__isset.sessionEnd && !(sessionEnd == rhs.sessionEnd))
+      return false;
+    if (__isset.wmEvMouseMoves != rhs.__isset.wmEvMouseMoves)
+      return false;
+    else if (__isset.wmEvMouseMoves && !(wmEvMouseMoves == rhs.wmEvMouseMoves))
       return false;
     return true;
   }

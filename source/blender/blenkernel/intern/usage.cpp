@@ -144,6 +144,8 @@ namespace usage {
 		
 		sessionKey = generateUUID();
 		
+		mouseMoves = NULL;
+		
 		messageQueue.start();
 		screenshotQueue.start();
 	}
@@ -666,50 +668,81 @@ namespace usage {
 	
 	void Usage::queueEvent(bContext *C, const wmEvent *event)
 	{
-		// TODO: might want to filter out simple mouse movements
 		if (enabledP) {
 		
-			wire::Message *msg = getNewMessage();
-			wire::data::WmEv ev;
-			
-			ev.__set_type(event->type);
-			ev.__set_value(event->val);
-			ev.__set_x(event->x);
-			ev.__set_y(event->y);
-			ev.__set_mval1(event->mval[0]);
-			ev.__set_mval2(event->mval[1]);
-
-
-			char str[BLI_UTF8_MAX + 1];
-			size_t len;
-			if (event->utf8_buf[0]) {
-				len = BLI_str_utf8_size_safe(event->utf8_buf);
-				memcpy(str, event->utf8_buf, len);
-			} else str[0] = event->ascii;
-			ev.__set_character(str);
-			
-			ev.__set_prevtype(event->prevtype);
-			ev.__set_prevval(event->prevval);
-			ev.__set_prevx(event->prevx);
-			ev.__set_prevy(event->prevy);
-			ev.__set_prevclicktime(event->prevclicktime);
-			ev.__set_prevclickx(event->prevclickx);
-			ev.__set_prevclicky(event->prevclicky);
-			ev.__set_shift(event->shift);
-			ev.__set_ctrl(event->ctrl);
-			ev.__set_alt(event->alt);
-			ev.__set_oskey(event->oskey);
-			ev.__set_keymodifier(event->keymodifier);
-			ev.__set_check_click(event->check_click);
-			if (event->keymap_idname) ev.__set_keymap_idname(event->keymap_idname);
-			
-			// TODO: set tablet data
-			
-			wire::data::Data data;
-			data.__set_wmEv(ev);
-			msg->__set_data(data);
-			
-			messageQueue.push(msg);
+			if (event->type == MOUSEMOVE) {
+				// accumulate mouse movements
+				
+				if (mouseMoves == NULL) {
+					mouseMoves = new wire::data::WmEvMouseMoves();
+				}
+				
+				wire::data::MouseMove mm;
+				mm.__set_timestamp(getTimestamp());
+				mm.__set_x(event->x);
+				mm.__set_y(event->y);
+				mouseMoves->moves.push_back(mm);
+			}
+			else {
+				// send accumulated mouse movements if there are any
+				if (mouseMoves != NULL) {
+					wire::Message *msg = getNewMessage();
+					wire::data::Data data;
+					
+					// reset the vector, otherwise it won't go across the wire
+					mouseMoves->__set_moves(mouseMoves->moves);
+					data.__set_wmEvMouseMoves(*mouseMoves);
+					msg->__set_data(data);
+					
+					messageQueue.push(msg);
+					
+					delete mouseMoves;
+					mouseMoves = NULL;
+				}
+				
+				
+				// send non-mouse movement event
+				wire::Message *msg = getNewMessage();
+				wire::data::WmEv ev;
+				
+				ev.__set_type(event->type);
+				ev.__set_value(event->val);
+				ev.__set_x(event->x);
+				ev.__set_y(event->y);
+				ev.__set_mval1(event->mval[0]);
+				ev.__set_mval2(event->mval[1]);
+				
+				char str[BLI_UTF8_MAX + 1];
+				size_t len;
+				if (event->utf8_buf[0]) {
+					len = BLI_str_utf8_size_safe(event->utf8_buf);
+					memcpy(str, event->utf8_buf, len);
+				} else str[0] = event->ascii;
+				ev.__set_character(str);
+				
+				ev.__set_prevtype(event->prevtype);
+				ev.__set_prevval(event->prevval);
+				ev.__set_prevx(event->prevx);
+				ev.__set_prevy(event->prevy);
+				ev.__set_prevclicktime(event->prevclicktime);
+				ev.__set_prevclickx(event->prevclickx);
+				ev.__set_prevclicky(event->prevclicky);
+				ev.__set_shift(event->shift);
+				ev.__set_ctrl(event->ctrl);
+				ev.__set_alt(event->alt);
+				ev.__set_oskey(event->oskey);
+				ev.__set_keymodifier(event->keymodifier);
+				ev.__set_check_click(event->check_click);
+				if (event->keymap_idname) ev.__set_keymap_idname(event->keymap_idname);
+				
+				// TODO: set tablet data
+				
+				wire::data::Data data;
+				data.__set_wmEv(ev);
+				msg->__set_data(data);
+				
+				messageQueue.push(msg);
+			}
 		}
 	}
 	

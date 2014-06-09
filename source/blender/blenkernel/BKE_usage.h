@@ -146,6 +146,8 @@ namespace usage {
 		MessageQueue messageQueue;
 		ScreenshotQueue screenshotQueue;
 		
+		wire::data::WmEvMouseMoves* mouseMoves;
+		
 		Usage();
 		~Usage();
 		Usage(Usage const&);

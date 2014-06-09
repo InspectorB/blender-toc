@@ -2163,6 +2163,180 @@ void swap(WmEv &a, WmEv &b) {
   swap(a.__isset, b.__isset);
 }
 
+const char* MouseMove::ascii_fingerprint = "F3EC1AAD5E41E893A90AB05F9C342CF8";
+const uint8_t MouseMove::binary_fingerprint[16] = {0xF3,0xEC,0x1A,0xAD,0x5E,0x41,0xE8,0x93,0xA9,0x0A,0xB0,0x5F,0x9C,0x34,0x2C,0xF8};
+
+uint32_t MouseMove::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I64) {
+          xfer += iprot->readI64(this->timestamp);
+          this->__isset.timestamp = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->x);
+          this->__isset.x = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->y);
+          this->__isset.y = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t MouseMove::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("MouseMove");
+
+  if (this->__isset.timestamp) {
+    xfer += oprot->writeFieldBegin("timestamp", ::apache::thrift::protocol::T_I64, 1);
+    xfer += oprot->writeI64(this->timestamp);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.x) {
+    xfer += oprot->writeFieldBegin("x", ::apache::thrift::protocol::T_I32, 2);
+    xfer += oprot->writeI32(this->x);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.y) {
+    xfer += oprot->writeFieldBegin("y", ::apache::thrift::protocol::T_I32, 3);
+    xfer += oprot->writeI32(this->y);
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(MouseMove &a, MouseMove &b) {
+  using ::std::swap;
+  swap(a.timestamp, b.timestamp);
+  swap(a.x, b.x);
+  swap(a.y, b.y);
+  swap(a.__isset, b.__isset);
+}
+
+const char* WmEvMouseMoves::ascii_fingerprint = "E32886D5E8FDBAC367B2B1C476401E2E";
+const uint8_t WmEvMouseMoves::binary_fingerprint[16] = {0xE3,0x28,0x86,0xD5,0xE8,0xFD,0xBA,0xC3,0x67,0xB2,0xB1,0xC4,0x76,0x40,0x1E,0x2E};
+
+uint32_t WmEvMouseMoves::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->moves.clear();
+            uint32_t _size69;
+            ::apache::thrift::protocol::TType _etype72;
+            xfer += iprot->readListBegin(_etype72, _size69);
+            this->moves.resize(_size69);
+            uint32_t _i73;
+            for (_i73 = 0; _i73 < _size69; ++_i73)
+            {
+              xfer += this->moves[_i73].read(iprot);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.moves = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t WmEvMouseMoves::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("WmEvMouseMoves");
+
+  if (this->__isset.moves) {
+    xfer += oprot->writeFieldBegin("moves", ::apache::thrift::protocol::T_LIST, 1);
+    {
+      xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->moves.size()));
+      std::vector<MouseMove> ::const_iterator _iter74;
+      for (_iter74 = this->moves.begin(); _iter74 != this->moves.end(); ++_iter74)
+      {
+        xfer += (*_iter74).write(oprot);
+      }
+      xfer += oprot->writeListEnd();
+    }
+    xfer += oprot->writeFieldEnd();
+  }
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(WmEvMouseMoves &a, WmEvMouseMoves &b) {
+  using ::std::swap;
+  swap(a.moves, b.moves);
+  swap(a.__isset, b.__isset);
+}
+
 const char* ButPress::ascii_fingerprint = "99914B932BD37A50B983C5E7C90AE93B";
 const uint8_t ButPress::binary_fingerprint[16] = {0x99,0x91,0x4B,0x93,0x2B,0xD3,0x7A,0x50,0xB9,0x83,0xC5,0xE7,0xC9,0x0A,0xE9,0x3B};
 
@@ -2285,8 +2459,8 @@ void swap(Assignment &a, Assignment &b) {
   swap(a.__isset, b.__isset);
 }
 
-const char* Data::ascii_fingerprint = "15EFC87A88FA714BE1146C9FC269A3B3";
-const uint8_t Data::binary_fingerprint[16] = {0x15,0xEF,0xC8,0x7A,0x88,0xFA,0x71,0x4B,0xE1,0x14,0x6C,0x9F,0xC2,0x69,0xA3,0xB3};
+const char* Data::ascii_fingerprint = "A7BE730C3E9052B57F3387ACF4D5A14B";
+const uint8_t Data::binary_fingerprint[16] = {0xA7,0xBE,0x73,0x0C,0x3E,0x90,0x52,0xB5,0x7F,0x33,0x87,0xAC,0xF4,0xD5,0xA1,0x4B};
 
 uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -2364,6 +2538,14 @@ uint32_t Data::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 8:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->wmEvMouseMoves.read(iprot);
+          this->__isset.wmEvMouseMoves = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -2415,6 +2597,11 @@ uint32_t Data::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += this->sessionEnd.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.wmEvMouseMoves) {
+    xfer += oprot->writeFieldBegin("wmEvMouseMoves", ::apache::thrift::protocol::T_STRUCT, 8);
+    xfer += this->wmEvMouseMoves.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -2429,6 +2616,7 @@ void swap(Data &a, Data &b) {
   swap(a.butPress, b.butPress);
   swap(a.assignment, b.assignment);
   swap(a.sessionEnd, b.sessionEnd);
+  swap(a.wmEvMouseMoves, b.wmEvMouseMoves);
   swap(a.__isset, b.__isset);
 }
 
