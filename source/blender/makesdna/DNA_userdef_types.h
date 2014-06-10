@@ -531,10 +531,9 @@ typedef struct UserDef {
 
 	char usage_service_host[64];
 	char usage_service_token[44];
-	short usage_service_port;
-	short usage_screenshot_subdivisions;
+	int usage_service_port;
+	int usage_screenshot_subdivisions;
 
-	//short pad2[2];
 } UserDef;
 
 extern UserDef U; /* from blenkernel blender.c */

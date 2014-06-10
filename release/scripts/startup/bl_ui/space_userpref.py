@@ -502,7 +502,7 @@ class USERPREF_PT_system(Panel):
         if bpy.app.build_options.usage:
             column.separator()
             row = column.row()
-            row.label("Inspector Blender:")
+            row.label("Inspector B telemetry:")
             row.prop(system, "usage_service_enabled", text="Enable")
             sub = column.column()
             sub.active = system.usage_service_enabled

@@ -3697,7 +3697,7 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	static EnumPropertyItem usage_screenshot_subdivisions_items[] = {
 		{USAGE_SCREENSHOT_SUBDIV_HALF, "HALF", 0, "50%", ""},
 		{USAGE_SCREENSHOT_SUBDIV_QUARTER, "QUARTER", 0, "25%", ""},
-		{USAGE_SCREENSHOT_SUBDIV_EIGHTH, "EIGTH", 0, "12.5%", ""},
+		{USAGE_SCREENSHOT_SUBDIV_EIGHTH, "EIGHTH", 0, "12.5%", ""},
 		{0, NULL, 0, NULL, NULL}
 	};
 #endif
@@ -4000,6 +4000,7 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	RNA_def_property_update(prop, 0, "rna_userdef_usage_update");
 	
 	prop = RNA_def_property(srna, "usage_screenshot_subdivisions", PROP_ENUM, PROP_NONE);
+	RNA_def_property_flag(prop, PROP_ENUM_NO_CONTEXT);
 	RNA_def_property_enum_sdna(prop, NULL, "usage_screenshot_subdivisions");
 	RNA_def_property_enum_items(prop, usage_screenshot_subdivisions_items);
 	RNA_def_property_enum_default(prop, USAGE_SCREENSHOT_SUBDIV_HALF);

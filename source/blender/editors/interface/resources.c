@@ -2425,14 +2425,16 @@ void init_userdef_do_versions(void)
 		}
 	}
 	
-	if (U.versionfile < 272) {
+	if (U.versionfile < 271) {
 		if (U.usage_service_host[0] == 0) {
 			BLI_strncpy(U.usage_service_host, "inspectorb.com", 64);
 		}
 		if (U.usage_service_port == 0) {
 			U.usage_service_port = 9090;
 		}
-		if (U.usage_screenshot_subdivisions < USAGE_SCREENSHOT_SUBDIV_EIGHTH || U.usage_screenshot_subdivisions > USAGE_SCREENSHOT_SUBDIV_HALF) {
+		if (U.usage_screenshot_subdivisions < USAGE_SCREENSHOT_SUBDIV_HALF ||
+			U.usage_screenshot_subdivisions > USAGE_SCREENSHOT_SUBDIV_EIGHTH)
+		{
 			U.usage_screenshot_subdivisions = USAGE_SCREENSHOT_SUBDIV_HALF;
 		}
 	}
