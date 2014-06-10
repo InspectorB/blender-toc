@@ -168,6 +168,7 @@ namespace usage {
 	
 	void Usage::free()
 	{
+		if (mouseMoves != NULL) delete mouseMoves;
 		messageQueue.shutdown(60);
 		screenshotQueue.shutdown(60);
 	}
@@ -968,7 +969,11 @@ namespace usage {
 	void Queue::shutdown(long gracePeriodSeconds)
 	{
 		// Give the queue some time to send last messages
-		if (Usage::getInstance().isEnabled() && !empty() && transport->isOpen()) {
+		if (Usage::getInstance().isEnabled()
+			&& !empty()
+			&& transport != NULL	
+			&& transport->isOpen())
+		{
 			long startTS = Usage::getTimestamp();
 			long currentTS = startTS;
 			while (currentTS - startTS < (gracePeriodSeconds * 1000) && !empty()) {
