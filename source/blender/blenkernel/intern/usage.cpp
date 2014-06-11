@@ -146,6 +146,9 @@ namespace usage {
 		
 		mouseMoves = NULL;
 		
+		takeScreenshotP = false;
+		lastScreenshotTimestamp = 0;
+		
 		messageQueue.start();
 		screenshotQueue.start();
 	}
@@ -600,15 +603,27 @@ namespace usage {
 			std::vector<wire::data::RNAProperty> thriftOpProperties;
 			
 			/* For now let's not send screenshots on OPTYPE_LAST_SCREENSHOT
-			 * This should be changed to sending a screenshot only on the last execution, but
-			 * this requires deferring sending till the next (different) operator execution.
+			 * This should be changed to sending a screenshot only on the last execution of 
+			 * the corresponding operator, but this requires deferring sending till 
+			 * the next (different) operator execution.
+			 *
+			 * N.B. only take a screenshot if the last one has been taken and sent already.
+			 * This shouldn't be a problem because this all happens in the same thread, but
+			 * let's be a bit defensive.
 			 */
+			long currentTimestamp = getTimestamp();
+			std::cout << (currentTimestamp - lastScreenshotTimestamp) << std::endl;
+			
 			if (U.flag & USER_USAGE_SEND_SCREENSHOTS
+				&& op->type
 				&& !(op->type->flag & OPTYPE_NOSCREENSHOT)
 				&& !(op->type->flag & OPTYPE_LAST_SCREENSHOT)
 				&& !(op->type->flag & OPTYPE_INTERNAL)
-				&& CTX_wm_window(C))
+				&& CTX_wm_window(C)
+				&& !takeScreenshotP
+				&& (currentTimestamp - lastScreenshotTimestamp) > ONE_SCREENSHOT_PER_MS)
 			{
+				lastScreenshotTimestamp = currentTimestamp;
 				takeScreenshotP = true;
 				frameWin = CTX_wm_window(C);
 				frameWin->screen->do_draw = TRUE;

@@ -52,6 +52,12 @@ extern "C" {
 
 #include "intern/usage/TocService.h"
 
+
+/*
+ * only take a screenshot once per second
+ */
+#define ONE_SCREENSHOT_PER_MS 1000
+
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
@@ -136,6 +142,7 @@ namespace usage {
 		bool enabledP;
 		bool updateSettingsP;
 		bool takeScreenshotP;
+		long lastScreenshotTimestamp;
 		
 		std::string sessionKey;
 		std::string frameUUID;
