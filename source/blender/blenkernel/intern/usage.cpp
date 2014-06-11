@@ -590,10 +590,16 @@ namespace usage {
 		return boost::lexical_cast<std::string>(uuid);
 	}
 	
+	bool Usage::shouldQueue()
+	{
+		return enabledP // only if usage is enabled
+			&& messageQueue.size() < MAX_MESSAGES_IN_QUEUE; // only if the queue isn't full
+	}
+	
 	void Usage::queueOperator(bContext *C, wmOperator *op, int retval, int repeat)
 	{
 		// TODO: perhaps filter out timer operations
-		if (enabledP) {
+		if (shouldQueue()) {
 			
 			wire::Message *msg = getNewMessage();
 			wire::data::WmOp thriftOp;
@@ -610,9 +616,16 @@ namespace usage {
 			 * N.B. only take a screenshot if the last one has been taken and sent already.
 			 * This shouldn't be a problem because this all happens in the same thread, but
 			 * let's be a bit defensive.
+			 *
+			 * Also, only keep about 200mb of screenshots in the queue and stop queueing
+			 * screenshots if we have reached this limit. Instead of measuring the memory
+			 * occupied by the queue let's estimate it.
+			 * 200mb / (1680px * 1050px * (1/4) * 4bytes/px * 1/1.000.000mb/byte) 
+			 *	 = 113 screenshots
+			 * Let's round to 100, see MAX_SCREENSHOTS_IN_QUEUE
+			 * (1/4 is the scaling for 1 subdivision)
 			 */
 			long currentTimestamp = getTimestamp();
-			std::cout << (currentTimestamp - lastScreenshotTimestamp) << std::endl;
 			
 			if (U.flag & USER_USAGE_SEND_SCREENSHOTS
 				&& op->type
@@ -620,6 +633,7 @@ namespace usage {
 				&& !(op->type->flag & OPTYPE_LAST_SCREENSHOT)
 				&& !(op->type->flag & OPTYPE_INTERNAL)
 				&& CTX_wm_window(C)
+				&& screenshotQueue.size() < MAX_SCREENSHOTS_IN_QUEUE
 				&& !takeScreenshotP
 				&& (currentTimestamp - lastScreenshotTimestamp) > ONE_SCREENSHOT_PER_MS)
 			{
@@ -684,7 +698,7 @@ namespace usage {
 	
 	void Usage::queueEvent(bContext *C, const wmEvent *event)
 	{
-		if (enabledP) {
+		if (shouldQueue()) {
 		
 			if (event->type == MOUSEMOVE) {
 				// accumulate mouse movements
@@ -764,7 +778,7 @@ namespace usage {
 	
 	void Usage::queueButtonPress(bContext *C, uiBut *but)
 	{
-		if (enabledP) {
+		if (shouldQueue()) {
 			// just send an empty ButtonPress
 			wire::Message *msg = getNewMessage();
 			wire::data::ButPress bp;
@@ -779,7 +793,7 @@ namespace usage {
 	
 	void Usage::queueAssignment(bContext *C, PointerRNA *ptr, PropertyRNA *prop, int index)
 	{
-		if (enabledP) {
+		if (shouldQueue()) {
 			wire::Message *msg = getNewMessage();
 			wire::data::Assignment as;
 			
@@ -807,7 +821,7 @@ namespace usage {
 	
 	void Usage::queueStart()
 	{
-		if (enabledP) {
+		if (shouldQueue()) {
 			wire::Message *msg = getNewMessage();
 			wire::data::SessionStart ss;
 			
@@ -900,7 +914,7 @@ namespace usage {
 	
 	void Usage::queueEnd()
 	{
-		if (enabledP) {
+		if (shouldQueue()) {
 			wire::Message *msg = getNewMessage();
 			wire::data::SessionEnd se;
 			
@@ -924,6 +938,7 @@ namespace usage {
 		client = NULL;
 		queue = NULL;
 		resetConnectionP = true;
+		_size = 0;
 	}
 	
 	Queue::~Queue()
@@ -976,9 +991,30 @@ namespace usage {
 		return BLI_thread_queue_size(queue) == 0;
 	}
 	
+	long Queue::size() {
+		// walks through the whole list, so O(size):
+		//return BLI_thread_queue_size(queue);
+		return _size; // O(1)
+	}
+	
 	void Queue::push(void *obj)
 	{
+		_size++; // thread safety not that important, just need to know the approximate size
 		BLI_thread_queue_push(queue, obj);
+	}
+	
+	void* Queue::pop()
+	{
+		void *result = BLI_thread_queue_pop(queue);
+		if (result != NULL) _size--;
+		return result;
+	}
+	
+	void* Queue::pop_timeout()
+	{
+		void *result = BLI_thread_queue_pop_timeout(queue, 10);
+		if (result != NULL) _size--;
+		return result;
 	}
 	
 	void Queue::shutdown(long gracePeriodSeconds)
@@ -1001,6 +1037,10 @@ namespace usage {
 		shutdownP = true;
 		thread.join();
 		
+		/* we won't use the wrapper functions, just to make sure there 
+		 * hasn't been a counting error and we leave a struct linger
+		 * by mistake
+		 */
 		while (BLI_thread_queue_size(queue) > 0) {
 			clearQueueItem(BLI_thread_queue_pop(queue));
 		}
@@ -1079,8 +1119,7 @@ namespace usage {
 		
 		// Try and handle last message, or try and send the new message
 		if (sendingObj == NULL) {
-			sendingObj = BLI_thread_queue_pop_timeout(queue, 10);
-//			sendingObj = BLI_thread_queue_pop(queue);
+			sendingObj = pop_timeout();
 		}
 		
 		msg = (wire::Message*)sendingObj;
@@ -1129,8 +1168,7 @@ namespace usage {
 		std::string token = U.usage_service_token;
 		
 		if (sendingObj == NULL) {
-			sendingObj = BLI_thread_queue_pop_timeout(queue, 10);
-//			sendingObj = BLI_thread_queue_pop(queue);
+			sendingObj = pop_timeout();
 		}
 		
 		sqi = (ScreenshotQueueItem*)sendingObj;

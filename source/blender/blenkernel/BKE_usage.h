@@ -58,6 +58,13 @@ extern "C" {
  */
 #define ONE_SCREENSHOT_PER_MS 1000
 
+/*
+ * define maximum queue sizes so that things don't spin out of control when the
+ * internet connection goes down
+ */
+#define MAX_SCREENSHOTS_IN_QUEUE 100
+#define MAX_MESSAGES_IN_QUEUE 100000 // max size that can be reported, not the max size of the queue
+
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
@@ -84,6 +91,8 @@ namespace usage {
 		ThreadQueue* queue;
 		boost::thread thread;
 		
+		long _size;
+		
 		boost::shared_ptr<TSocket> socket;
 		boost::shared_ptr<TTransport> transport;
 		boost::shared_ptr<TProtocol> protocol;
@@ -106,7 +115,10 @@ namespace usage {
 		void start();
 		void shutdown(long gracePeriodSeconds);
 		void push(void *obj);
+		void* pop();
+		void* pop_timeout();
 		bool empty();
+		long size();
 	};
 	
 	/****************************/
@@ -170,6 +182,8 @@ namespace usage {
 		wire::data::Context *getNewContext(const struct bContext *C);
 		void setProperty(wire::data::RNAProperty *thriftProp, bContext *C, PointerRNA* ptr, PropertyRNA* prop);
 		std::string generateUUID();
+		
+		bool shouldQueue();
 		
 	public:
 		static Usage& getInstance();
