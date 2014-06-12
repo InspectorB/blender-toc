@@ -596,7 +596,7 @@ void INFO_OT_reports_display_update(wmOperatorType *ot)
 	ot->invoke = update_reports_display_invoke;
 	
 	/* flags */
-	ot->flag = 0;
+	ot->flag = OPTYPE_INTERNAL;
 	
 	/* properties */
 }
