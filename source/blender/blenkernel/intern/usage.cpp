@@ -1249,6 +1249,9 @@ extern "C" {
 	
 	void BKE_usage_queue_event(bContext *C, const wmEvent *ev)
 	{
+		// don't register timer events
+		if (ISTIMER(ev->type))
+			return;
 		usage::Usage::getInstance().queueEvent(C, ev);
 	}
 	
