@@ -331,6 +331,319 @@ class IncorrectlyFormattedMessage : public ::apache::thrift::TException {
 
 void swap(IncorrectlyFormattedMessage &a, IncorrectlyFormattedMessage &b);
 
+typedef struct _ScreenshotHashNotUnique__isset {
+  _ScreenshotHashNotUnique__isset() : message(false) {}
+  bool message;
+} _ScreenshotHashNotUnique__isset;
+
+class ScreenshotHashNotUnique : public ::apache::thrift::TException {
+ public:
+
+  static const char* ascii_fingerprint; // = "EFB929595D312AC8F305D5A794CFEDA1";
+  static const uint8_t binary_fingerprint[16]; // = {0xEF,0xB9,0x29,0x59,0x5D,0x31,0x2A,0xC8,0xF3,0x05,0xD5,0xA7,0x94,0xCF,0xED,0xA1};
+
+  ScreenshotHashNotUnique() : message() {
+  }
+
+  virtual ~ScreenshotHashNotUnique() throw() {}
+
+  std::string message;
+
+  _ScreenshotHashNotUnique__isset __isset;
+
+  void __set_message(const std::string& val) {
+    message = val;
+    __isset.message = true;
+  }
+
+  bool operator == (const ScreenshotHashNotUnique & rhs) const
+  {
+    if (!(message == rhs.message))
+      return false;
+    return true;
+  }
+  bool operator != (const ScreenshotHashNotUnique &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ScreenshotHashNotUnique & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(ScreenshotHashNotUnique &a, ScreenshotHashNotUnique &b);
+
+typedef struct _Header__isset {
+  _Header__isset() : timestampServer(false), timestampClient(false), user(false) {}
+  bool timestampServer;
+  bool timestampClient;
+  bool user;
+} _Header__isset;
+
+class Header {
+ public:
+
+  static const char* ascii_fingerprint; // = "6952BA042A8F8C3F826B0B8BA3E58440";
+  static const uint8_t binary_fingerprint[16]; // = {0x69,0x52,0xBA,0x04,0x2A,0x8F,0x8C,0x3F,0x82,0x6B,0x0B,0x8B,0xA3,0xE5,0x84,0x40};
+
+  Header() : timestampServer(0), timestampClient(0), user(0) {
+  }
+
+  virtual ~Header() throw() {}
+
+  int64_t timestampServer;
+  int64_t timestampClient;
+  int64_t user;
+
+  _Header__isset __isset;
+
+  void __set_timestampServer(const int64_t val) {
+    timestampServer = val;
+    __isset.timestampServer = true;
+  }
+
+  void __set_timestampClient(const int64_t val) {
+    timestampClient = val;
+    __isset.timestampClient = true;
+  }
+
+  void __set_user(const int64_t val) {
+    user = val;
+    __isset.user = true;
+  }
+
+  bool operator == (const Header & rhs) const
+  {
+    if (__isset.timestampServer != rhs.__isset.timestampServer)
+      return false;
+    else if (__isset.timestampServer && !(timestampServer == rhs.timestampServer))
+      return false;
+    if (__isset.timestampClient != rhs.__isset.timestampClient)
+      return false;
+    else if (__isset.timestampClient && !(timestampClient == rhs.timestampClient))
+      return false;
+    if (__isset.user != rhs.__isset.user)
+      return false;
+    else if (__isset.user && !(user == rhs.user))
+      return false;
+    return true;
+  }
+  bool operator != (const Header &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Header & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Header &a, Header &b);
+
+typedef struct _File__isset {
+  _File__isset() : name(false), lastModified(false), relativePath(false) {}
+  bool name;
+  bool lastModified;
+  bool relativePath;
+} _File__isset;
+
+class File {
+ public:
+
+  static const char* ascii_fingerprint; // = "5EA4ECD30CE8B7CE72112C7A7FA85C6F";
+  static const uint8_t binary_fingerprint[16]; // = {0x5E,0xA4,0xEC,0xD3,0x0C,0xE8,0xB7,0xCE,0x72,0x11,0x2C,0x7A,0x7F,0xA8,0x5C,0x6F};
+
+  File() : name(), lastModified(0), relativePath() {
+  }
+
+  virtual ~File() throw() {}
+
+  std::string name;
+  int64_t lastModified;
+  std::string relativePath;
+
+  _File__isset __isset;
+
+  void __set_name(const std::string& val) {
+    name = val;
+    __isset.name = true;
+  }
+
+  void __set_lastModified(const int64_t val) {
+    lastModified = val;
+    __isset.lastModified = true;
+  }
+
+  void __set_relativePath(const std::string& val) {
+    relativePath = val;
+    __isset.relativePath = true;
+  }
+
+  bool operator == (const File & rhs) const
+  {
+    if (__isset.name != rhs.__isset.name)
+      return false;
+    else if (__isset.name && !(name == rhs.name))
+      return false;
+    if (__isset.lastModified != rhs.__isset.lastModified)
+      return false;
+    else if (__isset.lastModified && !(lastModified == rhs.lastModified))
+      return false;
+    if (__isset.relativePath != rhs.__isset.relativePath)
+      return false;
+    else if (__isset.relativePath && !(relativePath == rhs.relativePath))
+      return false;
+    return true;
+  }
+  bool operator != (const File &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const File & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(File &a, File &b);
+
+typedef struct _Files__isset {
+  _Files__isset() : files(false) {}
+  bool files;
+} _Files__isset;
+
+class Files {
+ public:
+
+  static const char* ascii_fingerprint; // = "D9918F996B837C1DA7A9415E92AFD174";
+  static const uint8_t binary_fingerprint[16]; // = {0xD9,0x91,0x8F,0x99,0x6B,0x83,0x7C,0x1D,0xA7,0xA9,0x41,0x5E,0x92,0xAF,0xD1,0x74};
+
+  Files() {
+  }
+
+  virtual ~Files() throw() {}
+
+  std::vector<File>  files;
+
+  _Files__isset __isset;
+
+  void __set_files(const std::vector<File> & val) {
+    files = val;
+    __isset.files = true;
+  }
+
+  bool operator == (const Files & rhs) const
+  {
+    if (__isset.files != rhs.__isset.files)
+      return false;
+    else if (__isset.files && !(files == rhs.files))
+      return false;
+    return true;
+  }
+  bool operator != (const Files &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Files & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Files &a, Files &b);
+
+typedef struct _HeaderAndMessage__isset {
+  _HeaderAndMessage__isset() : header(false), message(false) {}
+  bool header;
+  bool message;
+} _HeaderAndMessage__isset;
+
+class HeaderAndMessage {
+ public:
+
+  static const char* ascii_fingerprint; // = "21B71D753E3A23F2B603B67D23386C1A";
+  static const uint8_t binary_fingerprint[16]; // = {0x21,0xB7,0x1D,0x75,0x3E,0x3A,0x23,0xF2,0xB6,0x03,0xB6,0x7D,0x23,0x38,0x6C,0x1A};
+
+  HeaderAndMessage() {
+  }
+
+  virtual ~HeaderAndMessage() throw() {}
+
+  Header header;
+  Message message;
+
+  _HeaderAndMessage__isset __isset;
+
+  void __set_header(const Header& val) {
+    header = val;
+    __isset.header = true;
+  }
+
+  void __set_message(const Message& val) {
+    message = val;
+    __isset.message = true;
+  }
+
+  bool operator == (const HeaderAndMessage & rhs) const
+  {
+    if (__isset.header != rhs.__isset.header)
+      return false;
+    else if (__isset.header && !(header == rhs.header))
+      return false;
+    if (__isset.message != rhs.__isset.message)
+      return false;
+    else if (__isset.message && !(message == rhs.message))
+      return false;
+    return true;
+  }
+  bool operator != (const HeaderAndMessage &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const HeaderAndMessage & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(HeaderAndMessage &a, HeaderAndMessage &b);
+
+
+class NoMoreMessages : public ::apache::thrift::TException {
+ public:
+
+  static const char* ascii_fingerprint; // = "99914B932BD37A50B983C5E7C90AE93B";
+  static const uint8_t binary_fingerprint[16]; // = {0x99,0x91,0x4B,0x93,0x2B,0xD3,0x7A,0x50,0xB9,0x83,0xC5,0xE7,0xC9,0x0A,0xE9,0x3B};
+
+  NoMoreMessages() {
+  }
+
+  virtual ~NoMoreMessages() throw() {}
+
+
+  bool operator == (const NoMoreMessages & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const NoMoreMessages &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NoMoreMessages & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(NoMoreMessages &a, NoMoreMessages &b);
+
 } // namespace
 
 #endif

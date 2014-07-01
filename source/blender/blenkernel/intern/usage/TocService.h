@@ -261,17 +261,18 @@ class TocService_sendScreenshot_pargs {
 };
 
 typedef struct _TocService_sendScreenshot_result__isset {
-  _TocService_sendScreenshot_result__isset() : unavailable(false), unknownToken(false), incorrectlyFormattedMessage(false) {}
+  _TocService_sendScreenshot_result__isset() : unavailable(false), unknownToken(false), incorrectlyFormattedMessage(false), screenshotHashNotUnique(false) {}
   bool unavailable;
   bool unknownToken;
   bool incorrectlyFormattedMessage;
+  bool screenshotHashNotUnique;
 } _TocService_sendScreenshot_result__isset;
 
 class TocService_sendScreenshot_result {
  public:
 
-  static const char* ascii_fingerprint; // = "2E72786EE0F17DA00FC5BDED362FE255";
-  static const uint8_t binary_fingerprint[16]; // = {0x2E,0x72,0x78,0x6E,0xE0,0xF1,0x7D,0xA0,0x0F,0xC5,0xBD,0xED,0x36,0x2F,0xE2,0x55};
+  static const char* ascii_fingerprint; // = "F9EF8E19A6AC2C4E08D282524B9828EB";
+  static const uint8_t binary_fingerprint[16]; // = {0xF9,0xEF,0x8E,0x19,0xA6,0xAC,0x2C,0x4E,0x08,0xD2,0x82,0x52,0x4B,0x98,0x28,0xEB};
 
   TocService_sendScreenshot_result() {
   }
@@ -281,6 +282,7 @@ class TocService_sendScreenshot_result {
   Unavailable unavailable;
   UnknownToken unknownToken;
   IncorrectlyFormattedMessage incorrectlyFormattedMessage;
+  ScreenshotHashNotUnique screenshotHashNotUnique;
 
   _TocService_sendScreenshot_result__isset __isset;
 
@@ -299,6 +301,11 @@ class TocService_sendScreenshot_result {
     __isset.incorrectlyFormattedMessage = true;
   }
 
+  void __set_screenshotHashNotUnique(const ScreenshotHashNotUnique& val) {
+    screenshotHashNotUnique = val;
+    __isset.screenshotHashNotUnique = true;
+  }
+
   bool operator == (const TocService_sendScreenshot_result & rhs) const
   {
     if (!(unavailable == rhs.unavailable))
@@ -306,6 +313,8 @@ class TocService_sendScreenshot_result {
     if (!(unknownToken == rhs.unknownToken))
       return false;
     if (!(incorrectlyFormattedMessage == rhs.incorrectlyFormattedMessage))
+      return false;
+    if (!(screenshotHashNotUnique == rhs.screenshotHashNotUnique))
       return false;
     return true;
   }
@@ -321,17 +330,18 @@ class TocService_sendScreenshot_result {
 };
 
 typedef struct _TocService_sendScreenshot_presult__isset {
-  _TocService_sendScreenshot_presult__isset() : unavailable(false), unknownToken(false), incorrectlyFormattedMessage(false) {}
+  _TocService_sendScreenshot_presult__isset() : unavailable(false), unknownToken(false), incorrectlyFormattedMessage(false), screenshotHashNotUnique(false) {}
   bool unavailable;
   bool unknownToken;
   bool incorrectlyFormattedMessage;
+  bool screenshotHashNotUnique;
 } _TocService_sendScreenshot_presult__isset;
 
 class TocService_sendScreenshot_presult {
  public:
 
-  static const char* ascii_fingerprint; // = "2E72786EE0F17DA00FC5BDED362FE255";
-  static const uint8_t binary_fingerprint[16]; // = {0x2E,0x72,0x78,0x6E,0xE0,0xF1,0x7D,0xA0,0x0F,0xC5,0xBD,0xED,0x36,0x2F,0xE2,0x55};
+  static const char* ascii_fingerprint; // = "F9EF8E19A6AC2C4E08D282524B9828EB";
+  static const uint8_t binary_fingerprint[16]; // = {0xF9,0xEF,0x8E,0x19,0xA6,0xAC,0x2C,0x4E,0x08,0xD2,0x82,0x52,0x4B,0x98,0x28,0xEB};
 
 
   virtual ~TocService_sendScreenshot_presult() throw() {}
@@ -339,6 +349,7 @@ class TocService_sendScreenshot_presult {
   Unavailable unavailable;
   UnknownToken unknownToken;
   IncorrectlyFormattedMessage incorrectlyFormattedMessage;
+  ScreenshotHashNotUnique screenshotHashNotUnique;
 
   _TocService_sendScreenshot_presult__isset __isset;
 

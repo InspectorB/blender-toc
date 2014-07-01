@@ -320,6 +320,14 @@ uint32_t TocService_sendScreenshot_result::read(::apache::thrift::protocol::TPro
           xfer += iprot->skip(ftype);
         }
         break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->screenshotHashNotUnique.read(iprot);
+          this->__isset.screenshotHashNotUnique = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -349,6 +357,10 @@ uint32_t TocService_sendScreenshot_result::write(::apache::thrift::protocol::TPr
   } else if (this->__isset.incorrectlyFormattedMessage) {
     xfer += oprot->writeFieldBegin("incorrectlyFormattedMessage", ::apache::thrift::protocol::T_STRUCT, 3);
     xfer += this->incorrectlyFormattedMessage.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  } else if (this->__isset.screenshotHashNotUnique) {
+    xfer += oprot->writeFieldBegin("screenshotHashNotUnique", ::apache::thrift::protocol::T_STRUCT, 4);
+    xfer += this->screenshotHashNotUnique.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
   xfer += oprot->writeFieldStop();
@@ -396,6 +408,14 @@ uint32_t TocService_sendScreenshot_presult::read(::apache::thrift::protocol::TPr
         if (ftype == ::apache::thrift::protocol::T_STRUCT) {
           xfer += this->incorrectlyFormattedMessage.read(iprot);
           this->__isset.incorrectlyFormattedMessage = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->screenshotHashNotUnique.read(iprot);
+          this->__isset.screenshotHashNotUnique = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -674,6 +694,9 @@ void TocServiceClient::recv_sendScreenshot()
   if (result.__isset.incorrectlyFormattedMessage) {
     throw result.incorrectlyFormattedMessage;
   }
+  if (result.__isset.screenshotHashNotUnique) {
+    throw result.screenshotHashNotUnique;
+  }
   return;
 }
 
@@ -846,6 +869,9 @@ void TocServiceProcessor::process_sendScreenshot(int32_t seqid, ::apache::thrift
   } catch (IncorrectlyFormattedMessage &incorrectlyFormattedMessage) {
     result.incorrectlyFormattedMessage = incorrectlyFormattedMessage;
     result.__isset.incorrectlyFormattedMessage = true;
+  } catch (ScreenshotHashNotUnique &screenshotHashNotUnique) {
+    result.screenshotHashNotUnique = screenshotHashNotUnique;
+    result.__isset.screenshotHashNotUnique = true;
   } catch (const std::exception& e) {
     if (this->eventHandler_.get() != NULL) {
       this->eventHandler_->handlerError(ctx, "TocService.sendScreenshot");
