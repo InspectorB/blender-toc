@@ -356,6 +356,16 @@ void *BLI_edgehash_lookup(EdgeHash *eh, unsigned int v0, unsigned int v1)
 }
 
 /**
+ * A version of #BLI_edgehash_lookup which accepts a fallback argument.
+ */
+void *BLI_edgehash_lookup_default(EdgeHash *eh, unsigned int v0, unsigned int v1, void *val_default)
+{
+	EdgeEntry *e = edgehash_lookup_entry(eh, v0, v1);
+	IS_EDGEHASH_ASSERT(eh);
+	return e ? e->val : val_default;
+}
+
+/**
  * Return boolean true/false if edge (v0,v1) in hash.
  */
 bool BLI_edgehash_haskey(EdgeHash *eh, unsigned int v0, unsigned int v1)
@@ -452,11 +462,33 @@ void BLI_edgehashIterator_init(EdgeHashIterator *ehi, EdgeHash *eh)
 	ehi->eh = eh;
 	ehi->curEntry = NULL;
 	ehi->curBucket = UINT_MAX;  /* wraps to zero */
-	while (!ehi->curEntry) {
-		ehi->curBucket++;
-		if (ehi->curBucket == ehi->eh->nbuckets)
-			break;
-		ehi->curEntry = ehi->eh->buckets[ehi->curBucket];
+	if (eh->nentries) {
+		while (!ehi->curEntry) {
+			ehi->curBucket++;
+			if (UNLIKELY(ehi->curBucket == ehi->eh->nbuckets)) {
+				break;
+			}
+
+			ehi->curEntry = ehi->eh->buckets[ehi->curBucket];
+		}
+	}
+}
+
+/**
+ * Steps the iterator to the next index.
+ */
+void BLI_edgehashIterator_step(EdgeHashIterator *ehi)
+{
+	if (ehi->curEntry) {
+		ehi->curEntry = ehi->curEntry->next;
+		while (!ehi->curEntry) {
+			ehi->curBucket++;
+			if (UNLIKELY(ehi->curBucket == ehi->eh->nbuckets)) {
+				break;
+			}
+
+			ehi->curEntry = ehi->eh->buckets[ehi->curBucket];
+		}
 	}
 }
 
@@ -512,24 +544,6 @@ bool BLI_edgehashIterator_isDone(EdgeHashIterator *ehi)
 }
 #endif
 
-/**
- * Steps the iterator to the next index.
- */
-void BLI_edgehashIterator_step(EdgeHashIterator *ehi)
-{
-	if (ehi->curEntry) {
-		ehi->curEntry = ehi->curEntry->next;
-		while (!ehi->curEntry) {
-			ehi->curBucket++;
-			if (ehi->curBucket == ehi->eh->nbuckets) {
-				break;
-			}
-
-			ehi->curEntry = ehi->eh->buckets[ehi->curBucket];
-		}
-	}
-}
-
 /** \} */
 
 /* -------------------------------------------------------------------- */
@@ -574,9 +588,12 @@ void BLI_edgeset_insert(EdgeSet *es, unsigned int v0, unsigned int v1)
 }
 
 /**
- * Assign a new value to a key that may already be in edgehash.
+ * A version of BLI_edgeset_insert which checks first if the key is in the set.
+ * \returns true if a new key has been added.
+ *
+ * \note EdgeHash has no equivalent to this because typically the value would be different.
  */
-bool BLI_edgeset_reinsert(EdgeSet *es, unsigned int v0, unsigned int v1)
+bool BLI_edgeset_add(EdgeSet *es, unsigned int v0, unsigned int v1)
 {
 	unsigned int hash;
 	EdgeEntry *e;

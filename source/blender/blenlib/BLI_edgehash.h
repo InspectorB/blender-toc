@@ -53,6 +53,7 @@ void            BLI_edgehash_free(EdgeHash *eh, EdgeHashFreeFP valfreefp);
 void            BLI_edgehash_insert(EdgeHash *eh, unsigned int v0, unsigned int v1, void *val);
 bool            BLI_edgehash_reinsert(EdgeHash *eh, unsigned int v0, unsigned int v1, void *val);
 void           *BLI_edgehash_lookup(EdgeHash *eh, unsigned int v0, unsigned int v1) ATTR_WARN_UNUSED_RESULT;
+void           *BLI_edgehash_lookup_default(EdgeHash *eh, unsigned int v0, unsigned int v1, void *val_default) ATTR_WARN_UNUSED_RESULT;
 void          **BLI_edgehash_lookup_p(EdgeHash *eh, unsigned int v0, unsigned int v1) ATTR_WARN_UNUSED_RESULT;
 bool            BLI_edgehash_haskey(EdgeHash *eh, unsigned int v0, unsigned int v1) ATTR_WARN_UNUSED_RESULT;
 int             BLI_edgehash_size(EdgeHash *eh) ATTR_WARN_UNUSED_RESULT;
@@ -101,7 +102,7 @@ EdgeSet *BLI_edgeset_new_ex(const char *info,
                             const unsigned int nentries_reserve) ATTR_MALLOC ATTR_WARN_UNUSED_RESULT;
 EdgeSet *BLI_edgeset_new(const char *info) ATTR_MALLOC ATTR_WARN_UNUSED_RESULT;
 int      BLI_edgeset_size(EdgeSet *es) ATTR_WARN_UNUSED_RESULT;
-bool     BLI_edgeset_reinsert(EdgeSet *es, unsigned int v0, unsigned int v1);
+bool     BLI_edgeset_add(EdgeSet *es, unsigned int v0, unsigned int v1);
 void     BLI_edgeset_insert(EdgeSet *es, unsigned int v0, unsigned int v1);
 bool     BLI_edgeset_haskey(EdgeSet *eh, unsigned int v0, unsigned int v1) ATTR_WARN_UNUSED_RESULT;
 void     BLI_edgeset_free(EdgeSet *es);

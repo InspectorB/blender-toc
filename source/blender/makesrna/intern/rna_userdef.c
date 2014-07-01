@@ -389,7 +389,7 @@ static void rna_userdef_pathcompare_remove(ReportList *reports, PointerRNA *path
 
 static void rna_userdef_temp_update(Main *UNUSED(bmain), Scene *UNUSED(scene), PointerRNA *UNUSED(ptr))
 {
-	BLI_init_temporary_dir(U.tempdir);
+	BLI_temp_dir_init(U.tempdir);
 }
 
 static void rna_userdef_text_update(Main *UNUSED(bmain), Scene *UNUSED(scene), PointerRNA *UNUSED(ptr))
@@ -2262,6 +2262,12 @@ static void rna_def_userdef_theme_space_image(BlenderRNA *brna)
 	RNA_def_property_ui_text(prop, "Other Object UVs", "");
 	RNA_def_property_update(prop, 0, "rna_userdef_update");
 
+	prop = RNA_def_property(srna, "frame_current", PROP_FLOAT, PROP_COLOR_GAMMA);
+	RNA_def_property_float_sdna(prop, NULL, "cframe");
+	RNA_def_property_array(prop, 3);
+	RNA_def_property_ui_text(prop, "Current Frame", "");
+	RNA_def_property_update(prop, 0, "rna_userdef_update");
+
 	rna_def_userdef_theme_spaces_curves(srna, false, false, false);
 }
 
@@ -3720,7 +3726,12 @@ static void rna_def_userdef_system(BlenderRNA *brna)
 	RNA_def_property_range(prop, 48, 144);
 	RNA_def_property_ui_text(prop, "DPI", "Font size and resolution for display");
 	RNA_def_property_update(prop, 0, "rna_userdef_dpi_update");
-	
+
+	prop = RNA_def_property(srna, "font_path_ui", PROP_STRING, PROP_FILEPATH);
+	RNA_def_property_string_sdna(prop, NULL, "font_path_ui");
+	RNA_def_property_ui_text(prop, "Interface Font", "Path to interface font");
+	RNA_def_property_update(prop, NC_WINDOW, "rna_userdef_language_update");
+
 	prop = RNA_def_property(srna, "scrollback", PROP_INT, PROP_UNSIGNED);
 	RNA_def_property_int_sdna(prop, NULL, "scrollback");
 	RNA_def_property_range(prop, 32, 32768);
@@ -4118,11 +4129,11 @@ static void rna_def_userdef_input(BlenderRNA *brna)
 	/* 3D mouse settings */
 	/* global options */
 	prop = RNA_def_property(srna, "ndof_sensitivity", PROP_FLOAT, PROP_NONE);
-	RNA_def_property_range(prop, 0.25f, 40.0f);
+	RNA_def_property_range(prop, 0.01f, 40.0f);
 	RNA_def_property_ui_text(prop, "Sensitivity", "Overall sensitivity of the 3D Mouse for panning");
 	
 	prop = RNA_def_property(srna, "ndof_orbit_sensitivity", PROP_FLOAT, PROP_NONE);
-	RNA_def_property_range(prop, 0.25f, 40.0f);
+	RNA_def_property_range(prop, 0.01f, 40.0f);
 	RNA_def_property_ui_text(prop, "Orbit Sensitivity", "Overall sensitivity of the 3D Mouse for orbiting");
 
 	prop = RNA_def_property(srna, "ndof_pan_yz_swap_axis", PROP_BOOLEAN, PROP_NONE);

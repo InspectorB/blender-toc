@@ -52,12 +52,12 @@
 #include "DNA_key_types.h"
 #include "DNA_lamp_types.h"
 #include "DNA_lattice_types.h"
+#include "DNA_linestyle_types.h"
 #include "DNA_material_types.h"
 #include "DNA_mesh_types.h"
 #include "DNA_meta_types.h"
 #include "DNA_movieclip_types.h"
 #include "DNA_mask_types.h"
-#include "DNA_nla_types.h"
 #include "DNA_node_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_screen_types.h"
@@ -69,7 +69,6 @@
 #include "DNA_world_types.h"
 
 #include "BLI_blenlib.h"
-#include "BLI_dynstr.h"
 #include "BLI_utildefines.h"
 
 #include "BLF_translation.h"
@@ -89,7 +88,6 @@
 #include "BKE_group.h"
 #include "BKE_gpencil.h"
 #include "BKE_idprop.h"
-#include "BKE_icons.h"
 #include "BKE_image.h"
 #include "BKE_ipo.h"
 #include "BKE_key.h"
@@ -134,7 +132,7 @@
  * also note that the id _must_ have a library - campbell */
 void BKE_id_lib_local_paths(Main *bmain, Library *lib, ID *id)
 {
-	char *bpath_user_data[2] = {bmain->name, lib->filepath};
+	const char *bpath_user_data[2] = {bmain->name, lib->filepath};
 
 	BKE_bpath_traverse_id(bmain, id,
 	                      BKE_bpath_relocate_visitor,
@@ -283,7 +281,7 @@ bool id_make_local(ID *id, bool test)
 		case ID_GD:
 			return false; /* not implemented */
 		case ID_LS:
-			return 0; /* not implemented */
+			return false; /* not implemented */
 	}
 
 	return false;
@@ -384,7 +382,7 @@ bool id_copy(ID *id, ID **newid, bool test)
 			return true;
 		case ID_LS:
 			if (!test) *newid = (ID *)BKE_copy_linestyle((FreestyleLineStyle *)id);
-			return 1;
+			return true;
 	}
 	
 	return false;
@@ -749,12 +747,14 @@ void *BKE_libblock_alloc(Main *bmain, short type, const char *name)
 	
 	id = alloc_libblock_notest(type);
 	if (id) {
+		BLI_spin_lock(&bmain->lock);
 		BLI_addtail(lb, id);
 		id->us = 1;
 		id->icon_id = 0;
 		*( (short *)id->name) = type;
 		new_id(lb, id, name);
 		/* alphabetic insertion: is in new_id */
+		BLI_spin_unlock(&bmain->lock);
 	}
 	DAG_id_type_tag(bmain, type);
 	return id;
@@ -808,7 +808,7 @@ void *BKE_libblock_copy_ex(Main *bmain, ID *id)
 	return idn;
 }
 
-void *BKE_libblock_copy_nolib(ID *id)
+void *BKE_libblock_copy_nolib(ID *id, const bool do_action)
 {
 	ID *idn;
 	size_t idn_len;
@@ -829,7 +829,7 @@ void *BKE_libblock_copy_nolib(ID *id)
 	id->newid = idn;
 	idn->flag |= LIB_NEW;
 
-	BKE_libblock_copy_data(idn, id, false);
+	BKE_libblock_copy_data(idn, id, do_action);
 
 	return idn;
 }
@@ -883,10 +883,8 @@ static void animdata_dtar_clear_cb(ID *UNUSED(id), AnimData *adt, void *userdata
 	}
 }
 
-void BKE_libblock_free_data(ID *id)
+void BKE_libblock_free_data(Main *bmain, ID *id)
 {
-	Main *bmain = G.main;  /* should eventually be an arg */
-	
 	if (id->properties) {
 		IDP_FreeProperty(id->properties);
 		MEM_freeN(id->properties);
@@ -1010,12 +1008,15 @@ void BKE_libblock_free_ex(Main *bmain, void *idv, bool do_id_user)
 	}
 
 	/* avoid notifying on removed data */
+	BLI_spin_lock(&bmain->lock);
+
 	if (free_notifier_reference_cb)
 		free_notifier_reference_cb(id);
 
 	BLI_remlink(lb, id);
 
-	BKE_libblock_free_data(id);
+	BKE_libblock_free_data(bmain, id);
+	BLI_spin_unlock(&bmain->lock);
 
 	MEM_freeN(id);
 }
@@ -1045,7 +1046,9 @@ void BKE_libblock_free_us(Main *bmain, void *idv)      /* test users */
 Main *BKE_main_new(void)
 {
 	Main *bmain = MEM_callocN(sizeof(Main), "new main");
-	bmain->eval_ctx = MEM_callocN(sizeof(EvaluationContext), "EvaluationContext");
+	bmain->eval_ctx = MEM_callocN(sizeof(EvaluationContext),
+	                              "EvaluationContext");
+	BLI_spin_init(&bmain->lock);
 	return bmain;
 }
 
@@ -1108,6 +1111,7 @@ void BKE_main_free(Main *mainvar)
 		}
 	}
 
+	BLI_spin_end(&mainvar->lock);
 	MEM_freeN(mainvar->eval_ctx);
 	MEM_freeN(mainvar);
 }
@@ -1349,6 +1353,11 @@ void id_clear_lib_data(Main *bmain, ID *id)
 
 	BKE_id_lib_local_paths(bmain, id->lib, id);
 
+	if (id->flag & LIB_FAKEUSER) {
+		id->us--;
+		id->flag &= ~LIB_FAKEUSER;
+	}
+
 	id->lib = NULL;
 	id->flag = LIB_LOCAL;
 	new_id(which_libbase(bmain, GS(id->name)), id, NULL);
@@ -1362,6 +1371,7 @@ void id_clear_lib_data(Main *bmain, ID *id)
 		case ID_LA:		ntree = ((Lamp *)id)->nodetree;			break;
 		case ID_WO:		ntree = ((World *)id)->nodetree;		break;
 		case ID_TE:		ntree = ((Tex *)id)->nodetree;			break;
+		case ID_LS:		ntree = ((FreestyleLineStyle *)id)->nodetree; break;
 	}
 	if (ntree)
 		ntree->id.lib = NULL;

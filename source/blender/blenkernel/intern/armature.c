@@ -47,7 +47,6 @@
 #include "DNA_mesh_types.h"
 #include "DNA_lattice_types.h"
 #include "DNA_meshdata_types.h"
-#include "DNA_nla_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_object_types.h"
 
@@ -594,7 +593,6 @@ static void pchan_b_bone_defmats(bPoseChannel *pchan, bPoseChanDeform *pdef_info
 	Mat4 b_bone[MAX_BBONE_SUBDIV], b_bone_rest[MAX_BBONE_SUBDIV];
 	Mat4 *b_bone_mats;
 	DualQuat *b_bone_dual_quats = NULL;
-	float tmat[4][4] = MAT4_UNITY;
 	int a;
 
 	b_bone_spline_setup(pchan, 0, b_bone);
@@ -620,6 +618,8 @@ static void pchan_b_bone_defmats(bPoseChannel *pchan, bPoseChanDeform *pdef_info
 	 * - transform back into global space */
 
 	for (a = 0; a < bone->segments; a++) {
+		float tmat[4][4];
+
 		invert_m4_m4(tmat, b_bone_rest[a].mat);
 
 		mul_serie_m4(b_bone_mats[a + 1].mat, pchan->chan_mat, bone->arm_mat, b_bone[a].mat, tmat, b_bone_mats[0].mat,
@@ -1108,10 +1108,11 @@ void BKE_armature_mat_world_to_pose(Object *ob, float inmat[4][4], float outmat[
  *       pose-channel into its local space (i.e. 'visual'-keyframing) */
 void BKE_armature_loc_world_to_pose(Object *ob, const float inloc[3], float outloc[3])
 {
-	float xLocMat[4][4] = MAT4_UNITY;
+	float xLocMat[4][4];
 	float nLocMat[4][4];
 
 	/* build matrix for location */
+	unit_m4(xLocMat);
 	copy_v3_v3(xLocMat[3], inloc);
 
 	/* get bone-space cursor matrix and extract location */
@@ -1277,10 +1278,11 @@ void BKE_armature_mat_bone_to_pose(bPoseChannel *pchan, float inmat[4][4], float
  *       pose-channel into its local space (i.e. 'visual'-keyframing) */
 void BKE_armature_loc_pose_to_bone(bPoseChannel *pchan, const float inloc[3], float outloc[3])
 {
-	float xLocMat[4][4] = MAT4_UNITY;
+	float xLocMat[4][4];
 	float nLocMat[4][4];
 
 	/* build matrix for location */
+	unit_m4(xLocMat);
 	copy_v3_v3(xLocMat[3], inloc);
 
 	/* get bone-space cursor matrix and extract location */
@@ -1480,23 +1482,26 @@ void mat3_to_vec_roll(float mat[3][3], float r_vec[3], float *r_roll)
  * M* = 1 / (x^2 + z^2) * │                         │
  *                        └ -2 * x * z,   x^2 - z^2 ┘
  */
-void vec_roll_to_mat3(const float vec[3], const float roll, float mat[3][3])
+void vec_roll_to_mat3_normalized(const float nor[3], const float roll, float mat[3][3])
 {
-	float nor[3];
+#define THETA_THRESHOLD_NEGY 1.0e-9f
+#define THETA_THRESHOLD_NEGY_CLOSE 1.0e-5f
+
 	float theta;
 	float rMatrix[3][3], bMatrix[3][3];
 
-	normalize_v3_v3(nor, vec);
-
-	theta = 1 + nor[1];
+	theta = 1.0f + nor[1];
 
 	/* With old algo, 1.0e-13f caused T23954 and T31333, 1.0e-6f caused T27675 and T30438,
 	 * so using 1.0e-9f as best compromise.
 	 *
 	 * New algo is supposed much more precise, since less complex computations are performed,
 	 * but it uses two different threshold values...
+	 *
+	 * Note: When theta is close to zero, we have to check we do have non-null X/Z components as well
+	 *       (due to float precision errors, we can have nor = (0.0, 0.99999994, 0.0)...).
 	 */
-	if (theta > 1.0e-9f) {
+	if (theta > THETA_THRESHOLD_NEGY_CLOSE || ((nor[0] || nor[2]) && theta > THETA_THRESHOLD_NEGY)) {
 		/* nor is *not* -Y.
 		 * We got these values for free... so be happy with it... ;)
 		 */
@@ -1505,7 +1510,7 @@ void vec_roll_to_mat3(const float vec[3], const float roll, float mat[3][3])
 		bMatrix[1][1] = nor[1];
 		bMatrix[1][2] = nor[2];
 		bMatrix[2][1] = -nor[2];
-		if (theta > 1.0e-5f) {
+		if (theta > THETA_THRESHOLD_NEGY_CLOSE) {
 			/* If nor is far enough from -Y, apply the general case. */
 			bMatrix[0][0] = 1 - nor[0] * nor[0] / theta;
 			bMatrix[2][2] = 1 - nor[2] * nor[2] / theta;
@@ -1514,7 +1519,7 @@ void vec_roll_to_mat3(const float vec[3], const float roll, float mat[3][3])
 		else {
 			/* If nor is too close to -Y, apply the special case. */
 			theta = nor[0] * nor[0] + nor[2] * nor[2];
-			bMatrix[0][0] = (nor[0] + nor[2]) * (nor[0] - nor[2]) / theta;
+			bMatrix[0][0] = (nor[0] + nor[2]) * (nor[0] - nor[2]) / -theta;
 			bMatrix[2][2] = -bMatrix[0][0];
 			bMatrix[2][0] = bMatrix[0][2] = 2.0f * nor[0] * nor[2] / theta;
 		}
@@ -1530,8 +1535,18 @@ void vec_roll_to_mat3(const float vec[3], const float roll, float mat[3][3])
 
 	/* Combine and output result */
 	mul_m3_m3m3(mat, rMatrix, bMatrix);
+
+#undef THETA_THRESHOLD_NEGY
+#undef THETA_THRESHOLD_NEGY_CLOSE
 }
 
+void vec_roll_to_mat3(const float vec[3], const float roll, float mat[3][3])
+{
+	float nor[3];
+
+	normalize_v3_v3(nor, vec);
+	vec_roll_to_mat3_normalized(nor, roll, mat);
+}
 
 /* recursive part, calculates restposition of entire tree of children */
 /* used by exiting editmode too */

@@ -285,8 +285,7 @@ if env['OURPLATFORM']=='darwin':
     import subprocess
 
     command = ["%s"%env['CC'], "--version"]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=None, shell=False)
-    line = process.communicate()[0]
+    line = subprocess.check_output(command)
     ver = re.search(r'[0-9]+(\.[0-9]+[svn]+)+', line) or re.search(r'[0-9]+(\.[0-9]+)+', line) # read the "based on LLVM x.xsvn" version here, not the Apple version
     if ver:
         env['CCVERSION'] = ver.group(0).strip('svn')
@@ -505,8 +504,6 @@ else:
 env['CPPFLAGS'].append('-DWITH_AUDASPACE')
 env['CPPFLAGS'].append('-DWITH_AVI')
 env['CPPFLAGS'].append('-DWITH_OPENNL')
-if env['OURPLATFORM'] in ('win32-vc', 'win64-vc') and env['MSVC_VERSION'] == '11.0':
-    env['CPPFLAGS'].append('-D_ALLOW_KEYWORD_MACROS')
 
 if env['OURPLATFORM'] not in ('win32-vc', 'win64-vc'):
     env['CPPFLAGS'].append('-DHAVE_STDBOOL_H')
@@ -1100,10 +1097,7 @@ if env['OURPLATFORM'] in ('win32-vc', 'win32-mingw', 'win64-vc', 'linuxcross'):
 
     if env['WITH_BF_OPENAL']:
         dllsources.append('${LCGDIR}/openal/lib/OpenAL32.dll')
-        if env['OURPLATFORM'] in ('win32-vc', 'win64-vc') and env['MSVC_VERSION'] == '11.0':
-            pass
-        else:
-            dllsources.append('${LCGDIR}/openal/lib/wrap_oal.dll')
+        dllsources.append('${LCGDIR}/openal/lib/wrap_oal.dll')
 
     if env['WITH_BF_SNDFILE']:
         dllsources.append('${LCGDIR}/sndfile/lib/libsndfile-1.dll')

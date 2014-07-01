@@ -36,20 +36,17 @@
 #include "MEM_guardedalloc.h"
 
 #include "BLI_utildefines.h"
-#include "BLI_fileops.h"
 #include "BLI_listbase.h"
 #include "BLI_path_util.h"
 #include "BLI_rect.h"
 #include "BLI_string.h"
 #include "BLI_system.h"
-#include BLI_SYSTEM_PID_H
 #include "BLI_threads.h"
 
 #include "BKE_image.h"
 #include "BKE_global.h"
 #include "BKE_main.h"
 #include "BKE_report.h"
-#include "BKE_freestyle.h"
 
 #include "IMB_imbuf.h"
 #include "IMB_imbuf_types.h"
@@ -483,10 +480,14 @@ RenderResult *render_result_new(Render *re, rcti *partrct, int crop, int savebuf
 			if (strcmp(srl->name, layername) != 0)
 				continue;
 
-		if ((re->r.scemode & R_SINGLE_LAYER) && nr != re->r.actlay)
-			continue;
-		if (srl->layflag & SCE_LAY_DISABLE)
-			continue;
+		if (re->r.scemode & R_SINGLE_LAYER) {
+			if (nr != re->r.actlay)
+				continue;
+		}
+		else {
+			if (srl->layflag & SCE_LAY_DISABLE)
+				continue;
+		}
 		
 		rl = MEM_callocN(sizeof(RenderLayer), "new render layer");
 		BLI_addtail(&rr->layers, rl);
@@ -587,6 +588,8 @@ RenderResult *render_result_new(Render *re, rcti *partrct, int crop, int savebuf
 
 		/* duplicate code... */
 		if (rr->do_exr_tile) {
+			rl->display_buffer = MEM_mapallocN(rectx * recty * sizeof(unsigned int), "Combined display space rgba");
+
 			rl->exrhandle = IMB_exr_get_handle();
 
 			IMB_exr_add_channel(rl->exrhandle, rl->name, "Combined.R", 0, 0, NULL);
@@ -1026,14 +1029,13 @@ void render_result_exr_file_path(Scene *scene, const char *layname, int sample, 
 	
 	BLI_split_file_part(G.main->name, fi, sizeof(fi));
 	if (sample == 0) {
-		BLI_snprintf(name, sizeof(name), "%s_%s_%s_%d.exr", fi, scene->id.name + 2, layname, abs(getpid()));
+		BLI_snprintf(name, sizeof(name), "%s_%s_%s.exr", fi, scene->id.name + 2, layname);
 	}
 	else {
-		BLI_snprintf(name, sizeof(name), "%s_%s_%s%d_%d.exr", fi, scene->id.name + 2, layname, sample,
-		             abs(getpid()));
+		BLI_snprintf(name, sizeof(name), "%s_%s_%s%d.exr", fi, scene->id.name + 2, layname, sample);
 	}
 
-	BLI_make_file_string("/", filepath, BLI_temporary_dir(), name);
+	BLI_make_file_string("/", filepath, BLI_temp_dir_session(), name);
 }
 
 /* only for temp buffer files, makes exact copy of render result */

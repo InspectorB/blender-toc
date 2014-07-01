@@ -173,6 +173,8 @@ enum {
 	UI_BUT_COLOR_CUBIC   = (1 << 23),  /* cubic saturation for the color wheel */
 	UI_BUT_LIST_ITEM     = (1 << 24),  /* This but is "inside" a list item (currently used to change theme colors). */
 	UI_BUT_DRAG_MULTI    = (1 << 25),  /* edit this button as well as the active button (not just dragging) */
+	UI_BUT_SCA_LINK_GREY = (1 << 26),  /* used to flag if sca links shoud be grey out */
+	UI_BUT_HAS_SEP_CHAR  = (1 << 27),  /* but->str contains UI_SEP_CHAR, used for key shortcuts */
 };
 
 #define UI_PANEL_WIDTH          340
@@ -378,8 +380,10 @@ void uiPupBlockClose(struct bContext *C, uiBlock *block);
  * */
 
 uiBlock *uiBeginBlock(const struct bContext *C, struct ARegion *region, const char *name, short dt);
+void uiEndBlock_ex(const struct bContext *C, uiBlock *block, const int xy[2]);
 void uiEndBlock(const struct bContext *C, uiBlock *block);
 void uiDrawBlock(const struct bContext *C, struct uiBlock *block);
+void uiBlockUpdateFromOld(const struct bContext *C, struct uiBlock *block);
 
 uiBlock *uiGetBlock(const char *name, struct ARegion *ar);
 
@@ -432,7 +436,7 @@ void    uiButSetDragName(uiBut *but, const char *name);
 void    uiButSetDragValue(uiBut *but);
 void    uiButSetDragImage(uiBut *but, const char *path, int icon, struct ImBuf *ima, float scale);
 
-int     UI_but_active_drop_name(struct bContext *C);
+bool    UI_but_active_drop_name(struct bContext *C);
 
 void    uiButSetFlag(uiBut *but, int flag);
 void    uiButClearFlag(uiBut *but, int flag);

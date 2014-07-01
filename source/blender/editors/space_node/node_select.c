@@ -43,7 +43,6 @@
 
 #include "ED_node.h"  /* own include */
 #include "ED_screen.h"
-#include "ED_types.h"
 
 #include "RNA_access.h"
 #include "RNA_define.h"
@@ -445,15 +444,12 @@ static int node_borderselect_exec(bContext *C, wmOperator *op)
 	SpaceNode *snode = CTX_wm_space_node(C);
 	ARegion *ar = CTX_wm_region(C);
 	bNode *node;
-	rcti rect;
 	rctf rectf;
 	int gesture_mode = RNA_int_get(op->ptr, "gesture_mode");
 	const bool extend = RNA_boolean_get(op->ptr, "extend");
 	
-	WM_operator_properties_border_to_rcti(op, &rect);
-
-	UI_view2d_region_to_view(&ar->v2d, rect.xmin, rect.ymin, &rectf.xmin, &rectf.ymin);
-	UI_view2d_region_to_view(&ar->v2d, rect.xmax, rect.ymax, &rectf.xmax, &rectf.ymax);
+	WM_operator_properties_border_to_rctf(op, &rectf);
+	UI_view2d_region_to_view_rctf(&ar->v2d, &rectf, &rectf);
 	
 	for (node = snode->edittree->nodes.first; node; node = node->next) {
 		if (BLI_rctf_isect(&rectf, &node->totr, NULL)) {
@@ -567,7 +563,7 @@ void NODE_OT_select_circle(wmOperatorType *ot)
 	/* rna */
 	RNA_def_int(ot->srna, "x", 0, INT_MIN, INT_MAX, "X", "", INT_MIN, INT_MAX);
 	RNA_def_int(ot->srna, "y", 0, INT_MIN, INT_MAX, "Y", "", INT_MIN, INT_MAX);
-	RNA_def_int(ot->srna, "radius", 0, INT_MIN, INT_MAX, "Radius", "", INT_MIN, INT_MAX);
+	RNA_def_int(ot->srna, "radius", 1, 1, INT_MAX, "Radius", "", 1, INT_MAX);
 	RNA_def_int(ot->srna, "gesture_mode", 0, INT_MIN, INT_MAX, "Gesture Mode", "", INT_MIN, INT_MAX);
 }
 
@@ -593,11 +589,8 @@ static bool do_lasso_select_node(bContext *C, const int mcords[][2], short moves
 		                       BLI_rctf_cent_y(&node->totr)};
 
 		/* marker in screen coords */
-		UI_view2d_view_to_region(&ar->v2d,
-		                         cent[0], cent[1],
-		                         &screen_co[0], &screen_co[1]);
-
-		if (BLI_rcti_isect_pt(&rect, screen_co[0], screen_co[1]) &&
+		if (UI_view2d_view_to_region_clip(&ar->v2d, cent[0], cent[1], &screen_co[0], &screen_co[1]) &&
+		    BLI_rcti_isect_pt(&rect, screen_co[0], screen_co[1]) &&
 		    BLI_lasso_is_point_inside(mcords, moves, screen_co[0], screen_co[1], INT_MAX))
 		{
 			nodeSetSelected(node, select);
@@ -978,7 +971,6 @@ static uiBlock *node_find_menu(bContext *C, ARegion *ar, void *arg_op)
 	uiDefBut(block, LABEL, 0, "", 10, 10 - uiSearchBoxHeight(), uiSearchBoxWidth(), uiSearchBoxHeight(), NULL, 0, 0, 0, 0, NULL);
 	
 	uiPopupBoundsBlock(block, 6, 0, -UI_UNIT_Y); /* move it downwards, mouse over button */
-	uiEndBlock(C, block);
 	
 	//	uiButActiveOnly(C, ar, block, but); XXX using this here makes Blender hang - investigate
 	wm_event_init_from_window(win, &event);

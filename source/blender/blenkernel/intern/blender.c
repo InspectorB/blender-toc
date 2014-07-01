@@ -29,15 +29,15 @@
  *  \ingroup bke
  */
 
+#ifndef _GNU_SOURCE
+/* Needed for O_NOFOLLOW on some platforms. */
+#  define _GNU_SOURCE 1
+#endif
 
 #ifndef _WIN32 
 #  include <unistd.h> // for read close
 #else
 #  include <io.h> // for open close read
-#  define open _open
-#  define read _read
-#  define close _close
-#  define write _write
 #endif
 
 #include <stdlib.h>
@@ -52,12 +52,9 @@
 #include "DNA_userdef_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_screen_types.h"
-#include "DNA_sequence_types.h"
-#include "DNA_sound_types.h"
 #include "DNA_windowmanager_types.h"
 
 #include "BLI_blenlib.h"
-#include "BLI_dynstr.h"
 #include "BLI_utildefines.h"
 #include "BLI_callbacks.h"
 
@@ -69,7 +66,6 @@
 #include "BKE_brush.h"
 #include "BKE_context.h"
 #include "BKE_depsgraph.h"
-#include "BKE_displist.h"
 #include "BKE_global.h"
 #include "BKE_idprop.h"
 #include "BKE_image.h"
@@ -388,6 +384,7 @@ void BKE_userdef_free(void)
 	wmKeyMapItem *kmi;
 	wmKeyMapDiffItem *kmdi;
 	bAddon *addon, *addon_next;
+	uiFont *font;
 
 	for (km = U.user_keymaps.first; km; km = km->next) {
 		for (kmdi = km->diff_items.first; kmdi; kmdi = kmdi->next) {
@@ -416,6 +413,12 @@ void BKE_userdef_free(void)
 		}
 		MEM_freeN(addon);
 	}
+
+	for (font = U.uifonts.first; font; font = font->next) {
+		BLF_unload_id(font->blf_id);
+	}
+
+	BLF_default_set(-1);
 
 	BLI_freelistN(&U.autoexec_paths);
 
@@ -504,20 +507,22 @@ int BKE_read_file_from_memfile(bContext *C, MemFile *memfile, ReportList *report
 int BKE_read_file_userdef(const char *filepath, ReportList *reports)
 {
 	BlendFileData *bfd;
-	int retval = 0;
-	
+	int retval = BKE_READ_FILE_FAIL;
+
 	bfd = BLO_read_from_file(filepath, reports);
-	if (bfd->user) {
-		retval = BKE_READ_FILE_OK_USERPREFS;
-		
-		/* only here free userdef themes... */
-		BKE_userdef_free();
-		
-		U = *bfd->user;
-		MEM_freeN(bfd->user);
+	if (bfd) {
+		if (bfd->user) {
+			retval = BKE_READ_FILE_OK_USERPREFS;
+
+			/* only here free userdef themes... */
+			BKE_userdef_free();
+
+			U = *bfd->user;
+			MEM_freeN(bfd->user);
+		}
+		BKE_main_free(bfd->main);
+		MEM_freeN(bfd);
 	}
-	BKE_main_free(bfd->main);
-	MEM_freeN(bfd);
 	
 	return retval;
 }
@@ -663,7 +668,7 @@ void BKE_write_undo(bContext *C, const char *name)
 		counter = counter % U.undosteps;
 	
 		BLI_snprintf(numstr, sizeof(numstr), "%d.blend", counter);
-		BLI_make_file_string("/", filepath, BLI_temporary_dir(), numstr);
+		BLI_make_file_string("/", filepath, BLI_temp_dir_session(), numstr);
 	
 		/* success = */ /* UNUSED */ BLO_write_file(CTX_data_main(C), filepath, fileflags, NULL, NULL);
 		
@@ -798,13 +803,16 @@ const char *BKE_undo_get_name(int nr, int *active)
 	return NULL;
 }
 
-/* saves .blend using undo buffer, returns 1 == success */
-int BKE_undo_save_file(const char *filename)
+/**
+ * Saves .blend using undo buffer.
+ *
+ * \return success.
+ */
+bool BKE_undo_save_file(const char *filename)
 {
 	UndoElem *uel;
 	MemFileChunk *chunk;
-	const int flag = O_BINARY + O_WRONLY + O_CREAT + O_TRUNC + O_EXCL;
-	int file;
+	int file, oflags;
 
 	if ((U.uiflag & USER_GLOBALUNDO) == 0) {
 		return 0;
@@ -816,16 +824,21 @@ int BKE_undo_save_file(const char *filename)
 		return 0;
 	}
 
-	/* first try create the file, if it exists call without 'O_CREAT',
-	 * to avoid writing to a symlink - use 'O_EXCL' (CVE-2008-1103) */
-	errno = 0;
-	file = BLI_open(filename, flag, 0666);
-	if (file < 0) {
-		if (errno == EEXIST) {
-			errno = 0;
-			file = BLI_open(filename, flag & ~O_CREAT, 0666);
-		}
-	}
+	/* note: This is currently used for autosave and 'quit.blend', where _not_ following symlinks is OK,
+	 * however if this is ever executed explicitly by the user, we may want to allow writing to symlinks.
+	 */
+
+	oflags = O_BINARY | O_WRONLY | O_CREAT | O_TRUNC;
+#ifdef O_NOFOLLOW
+	/* use O_NOFOLLOW to avoid writing to a symlink - use 'O_EXCL' (CVE-2008-1103) */
+	oflags |= O_NOFOLLOW;
+#else
+	/* TODO(sergey): How to deal with symlinks on windows? */
+#  ifndef _MSC_VER
+#    warning "Symbolic links will be followed on undo save, possibly causing CVE-2008-1103"
+#  endif
+#endif
+	file = BLI_open(filename,  oflags, 0666);
 
 	if (file == -1) {
 		fprintf(stderr, "Unable to save '%s': %s\n",

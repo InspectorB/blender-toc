@@ -611,25 +611,25 @@ Render *FRS_do_stroke_rendering(Render *re, SceneRenderLayer *srl, int render)
 		if (G.debug & G_DEBUG_FREESTYLE) {
 			cout << "Break" << endl;
 		}
-		return NULL;
 	}
+	else {
+		// render and composite Freestyle result
+		if (controller->_ViewMap) {
+			// render strokes
+			re->i.infostr = "Freestyle: Stroke rendering";
+			re->stats_draw(re->sdh, &re->i);
+			re->i.infostr = NULL;
+			freestyle_scene = re->scene;
+			controller->DrawStrokes();
+			freestyle_render = controller->RenderStrokes(re, true);
+			controller->CloseFile();
+			freestyle_scene = NULL;
 
-	// render and composite Freestyle result
-	if (controller->_ViewMap) {
-		// render strokes
-		re->i.infostr = "Freestyle: Stroke rendering";
-		re->stats_draw(re->sdh, &re->i);
-		re->i.infostr = NULL;
-		freestyle_scene = re->scene;
-		controller->DrawStrokes();
-		freestyle_render = controller->RenderStrokes(re, true);
-		controller->CloseFile();
-		freestyle_scene = NULL;
-
-		// composite result
-		FRS_composite_result(re, srl, freestyle_render);
-		RE_FreeRenderResult(freestyle_render->result);
-		freestyle_render->result = NULL;
+			// composite result
+			FRS_composite_result(re, srl, freestyle_render);
+			RE_FreeRenderResult(freestyle_render->result);
+			freestyle_render->result = NULL;
+		}
 	}
 
 	// Free temp main (currently only text blocks are stored there)
@@ -711,15 +711,7 @@ void FRS_delete_active_lineset(FreestyleConfig *config)
 	FreestyleLineSet *lineset = BKE_freestyle_lineset_get_active(config);
 
 	if (lineset) {
-		if (lineset->group) {
-			lineset->group->id.us--;
-		}
-		if (lineset->linestyle) {
-			lineset->linestyle->id.us--;
-		}
-		BLI_remlink(&config->linesets, lineset);
-		MEM_freeN(lineset);
-		BKE_freestyle_lineset_set_active_index(config, 0);
+		BKE_freestyle_lineset_delete(config, lineset);
 	}
 }
 

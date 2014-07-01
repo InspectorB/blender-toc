@@ -52,7 +52,6 @@
 #include "DNA_screen_types.h"
 #include "DNA_sequence_types.h"
 #include "DNA_smoke_types.h"
-#include "DNA_sound_types.h"
 #include "DNA_space_types.h"
 #include "DNA_view3d_types.h"
 #include "DNA_world_types.h"
@@ -76,7 +75,6 @@
 #include "BKE_armature.h"
 #include "BKE_action.h"
 #include "BKE_bullet.h"
-#include "BKE_colortools.h"
 #include "BKE_deform.h"
 #include "BKE_depsgraph.h"
 #include "BKE_DerivedMesh.h"
@@ -88,7 +86,6 @@
 #include "BKE_effect.h"
 #include "BKE_fcurve.h"
 #include "BKE_group.h"
-#include "BKE_icons.h"
 #include "BKE_key.h"
 #include "BKE_lamp.h"
 #include "BKE_lattice.h"
@@ -98,7 +95,6 @@
 #include "BKE_editmesh.h"
 #include "BKE_mball.h"
 #include "BKE_modifier.h"
-#include "BKE_node.h"
 #include "BKE_object.h"
 #include "BKE_paint.h"
 #include "BKE_particle.h"
@@ -404,7 +400,7 @@ void BKE_object_free_ex(Object *ob, bool do_id_user)
 	if (ob->bsoft) bsbFree(ob->bsoft);
 	if (ob->gpulamp.first) GPU_lamp_free(ob);
 
-	free_sculptsession(ob);
+	BKE_free_sculptsession(ob);
 
 	if (ob->pc_ids.first) BLI_freelistN(&ob->pc_ids);
 
@@ -1006,8 +1002,6 @@ Object *BKE_object_add_only_object(Main *bmain, int type, const char *name)
 	ob->margin = 0.04f;
 	ob->init_state = 1;
 	ob->state = 1;
-	/* ob->pad3 == Contact Processing Threshold */
-	ob->m_contactProcessingThreshold = 1.0f;
 	ob->obstacleRad = 1.0f;
 	ob->step_height = 0.15f;
 	ob->jump_speed = 10.0f;
@@ -1370,10 +1364,6 @@ static void copy_object_pose(Object *obn, Object *ob)
 		
 		chan->flag &= ~(POSE_LOC | POSE_ROT | POSE_SIZE);
 		
-		if (chan->custom) {
-			id_us_plus(&chan->custom->id);
-		}
-		
 		for (con = chan->constraints.first; con; con = con->next) {
 			bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
 			ListBase targets = {NULL, NULL};
@@ -1489,7 +1479,7 @@ Object *BKE_object_copy_ex(Main *bmain, Object *ob, bool copy_caches)
 	defgroup_copy_list(&obn->defbase, &ob->defbase);
 	BKE_constraints_copy(&obn->constraints, &ob->constraints, true);
 
-	obn->mode = 0;
+	obn->mode = OB_MODE_OBJECT;
 	obn->sculpt = NULL;
 
 	/* increase user numbers */
@@ -2323,7 +2313,7 @@ void BKE_object_where_is_calc_time_ex(Scene *scene, Object *ob, float ctime,
 	
 	if (ob->parent) {
 		Object *par = ob->parent;
-		float slowmat[4][4] = MAT4_UNITY;
+		float slowmat[4][4];
 		
 		/* calculate parent matrix */
 		solve_parenting(scene, ob, par, ob->obmat, slowmat, r_originmat, true);
@@ -2369,9 +2359,10 @@ void BKE_object_where_is_calc_time(Scene *scene, Object *ob, float ctime)
  * used for bundles orientation in 3d space relative to parented blender camera */
 void BKE_object_where_is_calc_mat4(Scene *scene, Object *ob, float obmat[4][4])
 {
-	float slowmat[4][4] = MAT4_UNITY;
 
 	if (ob->parent) {
+		float slowmat[4][4];
+
 		Object *par = ob->parent;
 		
 		solve_parenting(scene, ob, par, obmat, slowmat, NULL, false);
@@ -2724,7 +2715,7 @@ void BKE_object_foreach_display_point(
 		DispList *dl;
 
 		for (dl = ob->curve_cache->disp.first; dl; dl = dl->next) {
-			float *v3 = dl->verts;
+			const float *v3 = dl->verts;
 			int totvert = dl->nr;
 			int i;
 
@@ -2916,6 +2907,12 @@ void BKE_object_handle_update_ex(EvaluationContext *eval_ctx,
 				{
 					BMEditMesh *em = (ob == scene->obedit) ? BKE_editmesh_from_object(ob) : NULL;
 					uint64_t data_mask = scene->customdata_mask | CD_MASK_BAREMESH;
+#ifdef WITH_FREESTYLE
+					/* make sure Freestyle edge/face marks appear in DM for render (see T40315) */
+					if (eval_ctx->for_render) {
+						data_mask |= CD_MASK_FREESTYLE_EDGE | CD_MASK_FREESTYLE_FACE;
+					}
+#endif
 					if (em) {
 						makeDerivedMesh(scene, ob, em,  data_mask, 0); /* was CD_MASK_BAREMESH */
 					}
@@ -2978,7 +2975,7 @@ void BKE_object_handle_update_ex(EvaluationContext *eval_ctx,
 				lamp_drivers_update(scene, ob->data, ctime);
 			
 			/* particles */
-			if (ob->particlesystem.first) {
+			if (ob != scene->obedit && ob->particlesystem.first) {
 				ParticleSystem *tpsys, *psys;
 				DerivedMesh *dm;
 				ob->transflag &= ~OB_DUPLIPARTS;
@@ -3069,7 +3066,7 @@ void BKE_object_sculpt_modifiers_changed(Object *ob)
 				ss->pbvh = NULL;
 			}
 
-			free_sculptsession_deformMats(ob->sculpt);
+			BKE_free_sculptsession_deformMats(ob->sculpt);
 		}
 		else {
 			PBVHNode **nodes;
@@ -3393,6 +3390,9 @@ int BKE_object_is_deform_modified(Scene *scene, Object *ob)
 	VirtualModifierData virtualModifierData;
 	int flag = 0;
 
+	if (BKE_key_from_object(ob))
+		flag |= eModifierMode_Realtime | eModifierMode_Render;
+
 	/* cloth */
 	for (md = modifiers_getVirtualModifierList(ob, &virtualModifierData);
 	     md && (flag != (eModifierMode_Render | eModifierMode_Realtime));
@@ -3656,7 +3656,7 @@ KDTree *BKE_object_as_kdtree(Object *ob, int *r_tot)
 			unsigned int i;
 
 			DerivedMesh *dm = ob->derivedDeform ? ob->derivedDeform : ob->derivedFinal;
-			int *index;
+			const int *index;
 
 			if (dm && (index = CustomData_get_layer(&dm->vertData, CD_ORIGINDEX))) {
 				MVert *mvert = dm->getVertArray(dm);

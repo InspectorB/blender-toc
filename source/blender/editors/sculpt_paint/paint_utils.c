@@ -146,7 +146,7 @@ void paint_calc_redraw_planes(float planes[4][4],
 	rect.ymax += 2;
 
 	ED_view3d_clipping_calc(&bb, planes, &mats, &rect);
-	mul_m4_fl(planes, -1.0f);
+	negate_m4(planes);
 }
 
 float paint_calc_object_space_radius(ViewContext *vc, const float center[3],
@@ -227,7 +227,7 @@ void paint_sample_color(const bContext *C, ARegion *ar, int x, int y)    /* fron
 {
 	Brush *br = BKE_paint_brush(BKE_paint_get_active_from_context(C));
 	unsigned int col;
-	char *cp;
+	const char *cp;
 
 	CLAMP(x, 0, ar->winx);
 	CLAMP(y, 0, ar->winy);

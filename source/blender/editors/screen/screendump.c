@@ -331,8 +331,8 @@ typedef struct ScreenshotJob {
 	wmWindowManager *wm;
 	unsigned int *dumprect;
 	int x, y, dumpsx, dumpsy;
-	short *stop;
-	short *do_update;
+	const short *stop;
+	const short *do_update;
 	ReportList reports;
 } ScreenshotJob;
 

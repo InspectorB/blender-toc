@@ -138,14 +138,16 @@ static PyObject *Freestyle_blendRamp(PyObject *self, PyObject *args)
 		PyErr_SetString(PyExc_TypeError, "argument 1 is an unknown ramp blend type");
 		return NULL;
 	}
-	if (!float_array_from_PyObject(obj1, a, 3)) {
-		PyErr_SetString(PyExc_TypeError,
-		                "argument 2 must be a 3D vector (either a tuple/list of 3 elements or Vector)");
+	if (mathutils_array_parse(a, 3, 3, obj1,
+	                          "argument 2 must be a 3D vector "
+	                          "(either a tuple/list of 3 elements or Vector)") == -1)
+	{
 		return NULL;
 	}
-	if (!float_array_from_PyObject(obj2, b, 3)) {
-		PyErr_SetString(PyExc_TypeError,
-		                "argument 4 must be a 3D vector (either a tuple/list of 3 elements or Vector)");
+	if (mathutils_array_parse(b, 3, 3, obj2,
+	                          "argument 4 must be a 3D vector "
+	                          "(either a tuple/list of 3 elements or Vector)") == -1)
+	{
 		return NULL;
 	}
 	ramp_blend(type, a, fac, b);
@@ -301,6 +303,7 @@ static char module_docstring[] =
 "\n"
 "  - :class:`BackboneStretcherShader`\n"
 "  - :class:`BezierCurveShader`\n"
+"  - :class:`BlenderTextureShader`\n"
 "  - :class:`CalligraphicShader`\n"
 "  - :class:`ColorNoiseShader`\n"
 "  - :class:`ColorVariationPatternShader`\n"
@@ -315,6 +318,7 @@ static char module_docstring[] =
 "  - :class:`SmoothingShader`\n"
 "  - :class:`SpatialNoiseShader`\n"
 "  - :class:`StrokeTextureShader`\n"
+"  - :class:`StrokeTextureStepShader`\n"
 "  - :class:`TextureAssignerShader`\n"
 "  - :class:`ThicknessNoiseShader`\n"
 "  - :class:`ThicknessVariationPatternShader`\n"

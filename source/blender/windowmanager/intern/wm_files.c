@@ -62,7 +62,6 @@
 
 #include "BLF_translation.h"
 
-#include "DNA_anim_types.h"
 #include "DNA_object_types.h"
 #include "DNA_space_types.h"
 #include "DNA_userdef_types.h"
@@ -75,18 +74,12 @@
 #include "BKE_blender.h"
 #include "BKE_context.h"
 #include "BKE_depsgraph.h"
-#include "BKE_DerivedMesh.h"
-#include "BKE_font.h"
 #include "BKE_global.h"
-#include "BKE_library.h"
 #include "BKE_main.h"
-#include "BKE_multires.h"
 #include "BKE_packedFile.h"
 #include "BKE_report.h"
 #include "BKE_sound.h"
 #include "BKE_screen.h"
-#include "BKE_texture.h"
-
 
 #include "BLO_readfile.h"
 #include "BLO_writefile.h"
@@ -99,9 +92,7 @@
 
 #include "ED_datafiles.h"
 #include "ED_fileselect.h"
-#include "ED_object.h"
 #include "ED_screen.h"
-#include "ED_sculpt.h"
 #include "ED_view3d.h"
 #include "ED_util.h"
 
@@ -308,7 +299,7 @@ static void wm_init_userdef(bContext *C, const bool from_memory)
 	}
 
 	/* update tempdir from user preferences */
-	BLI_init_temporary_dir(U.tempdir);
+	BLI_temp_dir_init(U.tempdir);
 
 	BKE_userdef_state();
 }
@@ -600,7 +591,7 @@ int wm_homefile_read(bContext *C, ReportList *reports, bool from_memory, const c
 		if (BLI_listbase_is_empty(&wmbase)) {
 			wm_clear_default_size(C);
 		}
-		BLI_init_temporary_dir(U.tempdir);
+		BLI_temp_dir_init(U.tempdir);
 
 #ifdef WITH_PYTHON_SECURITY
 		/* use alternative setting for security nuts
@@ -612,7 +603,7 @@ int wm_homefile_read(bContext *C, ReportList *reports, bool from_memory, const c
 	/* check new prefs only after startup.blend was finished */
 	if (!from_memory && BLI_exists(prefstr)) {
 		int done = BKE_read_file_userdef(prefstr, NULL);
-		if (done) {
+		if (done != BKE_READ_FILE_FAIL) {
 			read_userdef_from_memory = false;
 			printf("Read new prefs: %s\n", prefstr);
 		}
@@ -708,7 +699,7 @@ void wm_read_history(void)
 	char name[FILE_MAX];
 	LinkNode *l, *lines;
 	struct RecentFile *recent;
-	char *line;
+	const char *line;
 	int num;
 	const char * const cfgdir = BLI_get_folder(BLENDER_USER_CONFIG, NULL);
 
@@ -1067,14 +1058,14 @@ void wm_autosave_location(char *filepath)
 	 * BLI_make_file_string will create string that has it most likely on C:\
 	 * through get_default_root().
 	 * If there is no C:\tmp autosave fails. */
-	if (!BLI_exists(BLI_temporary_dir())) {
+	if (!BLI_exists(BLI_temp_dir_base())) {
 		savedir = BLI_get_folder_create(BLENDER_USER_AUTOSAVE, NULL);
 		BLI_make_file_string("/", filepath, savedir, pidstr);
 		return;
 	}
 #endif
 
-	BLI_make_file_string("/", filepath, BLI_temporary_dir(), pidstr);
+	BLI_make_file_string("/", filepath, BLI_temp_dir_base(), pidstr);
 }
 
 void WM_autosave_init(wmWindowManager *wm)
@@ -1138,7 +1129,7 @@ void wm_autosave_delete(void)
 
 	if (BLI_exists(filename)) {
 		char str[FILE_MAX];
-		BLI_make_file_string("/", str, BLI_temporary_dir(), BLENDER_QUIT_FILE);
+		BLI_make_file_string("/", str, BLI_temp_dir_base(), BLENDER_QUIT_FILE);
 
 		/* if global undo; remove tempsave, otherwise rename */
 		if (U.uiflag & USER_GLOBALUNDO) BLI_delete(filename, false, false);

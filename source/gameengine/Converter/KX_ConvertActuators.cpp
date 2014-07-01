@@ -514,15 +514,7 @@ void BL_ConvertActuators(const char* maggiename,
 					break;
 				case ACT_EDOB_REPLACE_MESH:
 					{
-						RAS_MeshObject *tmpmesh = NULL;
-						if (editobact->me)
-							tmpmesh = BL_ConvertMesh(
-							            editobact->me,
-							            blenderobject,
-							            scene,
-							            converter,
-							            false
-							            );
+						RAS_MeshObject *tmpmesh = converter->FindGameMesh(editobact->me);
 
 						KX_SCA_ReplaceMeshActuator* tmpreplaceact = new KX_SCA_ReplaceMeshActuator(
 						            gameobj,
@@ -1106,7 +1098,7 @@ void BL_ConvertActuators(const char* maggiename,
 			; /* generate some error */
 		}
 		
-		if (baseact)
+		if (baseact && !(bact->flag & ACT_DEACTIVATE))
 		{
 			baseact->SetExecutePriority(executePriority++);
 			uniquename += "#ACT#";
@@ -1122,6 +1114,8 @@ void BL_ConvertActuators(const char* maggiename,
 			// done with baseact, release it
 			baseact->Release();
 		}
+		else if (baseact)
+			baseact->Release();
 		
 		bact = bact->next;
 	}

@@ -134,25 +134,31 @@ void NodeGraph::add_bNode(const CompositorContext &context, bNodeTree *b_ntree, 
 	/* special node types */
 	if (b_node->type == NODE_GROUP) {
 		add_proxies_group(context, b_node, key);
-		return;
 	}
-	
-	Node *node = Converter::convert(b_node);
-	if (node)
-		add_node(node, b_ntree, key, is_active_group);
+	else if (b_node->type == NODE_REROUTE) {
+		add_proxies_reroute(b_ntree, b_node, key, is_active_group);
+	}
+	else {
+		/* regular nodes, handled in Converter */
+		Node *node = Converter::convert(b_node);
+		if (node)
+			add_node(node, b_ntree, key, is_active_group);
+	}
 }
 
-NodeInput *NodeGraph::find_input(const NodeRange &node_range, bNodeSocket *b_socket)
+NodeGraph::NodeInputs NodeGraph::find_inputs(const NodeRange &node_range, bNodeSocket *b_socket)
 {
+	NodeInputs result;
 	for (NodeGraph::NodeIterator it = node_range.first; it != node_range.second; ++it) {
 		Node *node = *it;
 		for (int index = 0; index < node->getNumberOfInputSockets(); index++) {
 			NodeInput *input = node->getInputSocket(index);
-			if (input->getbNodeSocket() == b_socket)
-				return input;
+			if (input->getbNodeSocket() == b_socket) {
+				result.push_back(input);
+			}
 		}
 	}
-	return NULL;
+	return result;
 }
 
 NodeOutput *NodeGraph::find_output(const NodeRange &node_range, bNodeSocket *b_socket)
@@ -161,8 +167,9 @@ NodeOutput *NodeGraph::find_output(const NodeRange &node_range, bNodeSocket *b_s
 		Node *node = *it;
 		for (int index = 0; index < node->getNumberOfOutputSockets(); index++) {
 			NodeOutput *output = node->getOutputSocket(index);
-			if (output->getbNodeSocket() == b_socket)
+			if (output->getbNodeSocket() == b_socket) {
 				return output;
+			}
 		}
 	}
 	return NULL;
@@ -173,15 +180,22 @@ void NodeGraph::add_bNodeLink(const NodeRange &node_range, bNodeLink *b_nodelink
 	/// @note: ignore invalid links
 	if (!(b_nodelink->flag & NODE_LINK_VALID))
 		return;
-
-	NodeInput *input = find_input(node_range, b_nodelink->tosock);
+	
+	/* Note: a DNA input socket can have multiple NodeInput in the compositor tree! (proxies)
+	 * The output then gets linked to each one of them.
+	 */
+	
 	NodeOutput *output = find_output(node_range, b_nodelink->fromsock);
-	if (!input || !output)
-		return;
-	if (input->isLinked())
+	if (!output)
 		return;
 	
-	add_link(output, input);
+	NodeInputs inputs = find_inputs(node_range, b_nodelink->tosock);
+	for (NodeInputs::const_iterator it = inputs.begin(); it != inputs.end(); ++it) {
+		NodeInput *input = *it;
+		if (input->isLinked())
+			continue;
+		add_link(output, input);
+	}
 }
 
 /* **** Special proxy node type conversions **** */
@@ -277,4 +291,10 @@ void NodeGraph::add_proxies_group(const CompositorContext &context, bNode *b_nod
 	}
 	
 	add_bNodeTree(context, nodes_start, b_group_tree, key);
+}
+
+void NodeGraph::add_proxies_reroute(bNodeTree *b_ntree, bNode *b_node, bNodeInstanceKey key, bool is_active_group)
+{
+	SocketProxyNode *proxy = new SocketProxyNode(b_node, (bNodeSocket *)b_node->inputs.first, (bNodeSocket *)b_node->outputs.first);
+	add_node(proxy, b_ntree, key, is_active_group);
 }

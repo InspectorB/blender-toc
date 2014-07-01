@@ -69,14 +69,14 @@
 	BLI_linklist_prepend_pool(&(var), ptr, _##var##_pool))
 #define BLI_LINKSTACK_POP(var) \
 	(var ? (typeof(_##var##_type))BLI_linklist_pop_pool(&(var), _##var##_pool) : NULL)
-#define BLI_LINKSTACK_POP_ELSE(var, r) \
+#define BLI_LINKSTACK_POP_DEFAULT(var, r) \
 	(var ? (typeof(_##var##_type))BLI_linklist_pop_pool(&(var), _##var##_pool) : r)
 #else  /* non gcc */
 #define BLI_LINKSTACK_PUSH(var, ptr)  ( \
 	BLI_linklist_prepend_pool(&(var), ptr, _##var##_pool))
 #define BLI_LINKSTACK_POP(var) \
 	(var ? BLI_linklist_pop_pool(&(var), _##var##_pool) : NULL)
-#define BLI_LINKSTACK_POP_ELSE(var, r) \
+#define BLI_LINKSTACK_POP_DEFAULT(var, r) \
 	(var ? BLI_linklist_pop_pool(&(var), _##var##_pool) : r)
 #endif  /* gcc check */
 
@@ -154,6 +154,13 @@
 #define BLI_SMALLSTACK_POP_EX(var_src, var_dst) \
 	(_BLI_SMALLSTACK_CAST(var_src) ((_##var_src##_stack) ? \
 	(_BLI_SMALLSTACK_DEL_EX(var_src, var_dst), (_##var_dst##_free->link)) : NULL))
+
+#define BLI_SMALLSTACK_LAST(var) \
+	(_BLI_SMALLSTACK_CAST(var) ((_##var##_stack) ? \
+	                             _##var##_stack->link : NULL))
+
+#define BLI_SMALLSTACK_IS_EMPTY(var) \
+	(_BLI_SMALLSTACK_CAST(var) (_##var##_stack != NULL))
 
 /* loop over stack members last-added-first */
 #define BLI_SMALLSTACK_ITER_BEGIN(var, item) \

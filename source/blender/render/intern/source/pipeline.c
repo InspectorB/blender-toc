@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#include "DNA_group_types.h"
 #include "DNA_image_types.h"
 #include "DNA_node_types.h"
 #include "DNA_object_types.h"
@@ -80,7 +79,6 @@
 #include "RE_pipeline.h"
 
 #ifdef WITH_FREESTYLE
-#  include "BKE_library.h"
 #  include "FRS_freestyle.h"
 #endif
 
@@ -144,6 +142,7 @@ static int thread_break(void *UNUSED(arg))
 /* default callbacks, set in each new render */
 static void result_nothing(void *UNUSED(arg), RenderResult *UNUSED(rr)) {}
 static void result_rcti_nothing(void *UNUSED(arg), RenderResult *UNUSED(rr), volatile struct rcti *UNUSED(rect)) {}
+static void current_scene_nothing(void *UNUSED(arg), Scene *UNUSED(scene)) {}
 static void stats_nothing(void *UNUSED(arg), RenderStats *UNUSED(rs)) {}
 static void float_nothing(void *UNUSED(arg), float UNUSED(val)) {}
 static int default_break(void *UNUSED(arg)) { return G.is_break == true; }
@@ -236,6 +235,17 @@ static int render_scene_needs_vector(Render *re)
 				return 1;
 
 	return 0;
+}
+
+static bool render_scene_has_layers_to_render(Scene *scene)
+{
+	SceneRenderLayer *srl;
+	for (srl = scene->r.layers.first; srl; srl = srl->next) {
+		if (!(srl->layflag & SCE_LAY_DISABLE)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /* *************************************************** */
@@ -395,6 +405,7 @@ void RE_InitRenderCB(Render *re)
 	re->display_init = result_nothing;
 	re->display_clear = result_nothing;
 	re->display_update = result_rcti_nothing;
+	re->current_scene_update = current_scene_nothing;
 	re->progress = float_nothing;
 	re->test_break = default_break;
 	if (G.background)
@@ -500,32 +511,9 @@ static int check_mode_full_sample(RenderData *rd)
 	return scemode;
 }
 
-/* what doesn't change during entire render sequence */
-/* disprect is optional, if NULL it assumes full window render */
-void RE_InitState(Render *re, Render *source, RenderData *rd, SceneRenderLayer *srl, int winx, int winy, rcti *disprect)
+static void re_init_resolution(Render *re, Render *source,
+                               int winx, int winy, rcti *disprect)
 {
-	bool had_freestyle = (re->r.mode & R_EDGE_FRS) != 0;
-
-	re->ok = true;   /* maybe flag */
-	
-	re->i.starttime = PIL_check_seconds_timer();
-
-	/* copy render data and render layers for thread safety */
-	BLI_freelistN(&re->r.layers);
-	re->r = *rd;
-	BLI_duplicatelist(&re->r.layers, &rd->layers);
-
-	if (source) {
-		/* reuse border flags from source renderer */
-		re->r.mode &= ~(R_BORDER | R_CROP);
-		re->r.mode |= source->r.mode & (R_BORDER | R_CROP);
-
-		/* dimensions shall be shared between all renderers */
-		re->r.xsch = source->r.xsch;
-		re->r.ysch = source->r.ysch;
-		re->r.size = source->r.size;
-	}
-
 	re->winx = winx;
 	re->winy = winy;
 	if (source && (source->r.mode & R_BORDER)) {
@@ -559,7 +547,41 @@ void RE_InitState(Render *re, Render *source, RenderData *rd, SceneRenderLayer *
 		re->rectx = winx;
 		re->recty = winy;
 	}
+
+	/* we clip faces with a minimum of 2 pixel boundary outside of image border. see zbuf.c */
+	re->clipcrop = 1.0f + 2.0f / (float)(re->winx > re->winy ? re->winy : re->winx);
+}
+
+/* what doesn't change during entire render sequence */
+/* disprect is optional, if NULL it assumes full window render */
+void RE_InitState(Render *re, Render *source, RenderData *rd,
+                  SceneRenderLayer *srl,
+                  int winx, int winy, rcti *disprect)
+{
+	bool had_freestyle = (re->r.mode & R_EDGE_FRS) != 0;
+
+	re->ok = true;   /* maybe flag */
 	
+	re->i.starttime = PIL_check_seconds_timer();
+
+	/* copy render data and render layers for thread safety */
+	BLI_freelistN(&re->r.layers);
+	re->r = *rd;
+	BLI_duplicatelist(&re->r.layers, &rd->layers);
+
+	if (source) {
+		/* reuse border flags from source renderer */
+		re->r.mode &= ~(R_BORDER | R_CROP);
+		re->r.mode |= source->r.mode & (R_BORDER | R_CROP);
+
+		/* dimensions shall be shared between all renderers */
+		re->r.xsch = source->r.xsch;
+		re->r.ysch = source->r.ysch;
+		re->r.size = source->r.size;
+	}
+
+	re_init_resolution(re, source, winx, winy, disprect);
+
 	if (re->rectx < 1 || re->recty < 1 || (BKE_imtype_is_movie(rd->im_format.imtype) &&
 	                                       (re->rectx < 16 || re->recty < 16) ))
 	{
@@ -643,17 +665,72 @@ void RE_InitState(Render *re, Render *source, RenderData *rd, SceneRenderLayer *
 
 	BLI_rw_mutex_unlock(&re->resultmutex);
 	
-	/* we clip faces with a minimum of 2 pixel boundary outside of image border. see zbuf.c */
-	re->clipcrop = 1.0f + 2.0f / (float)(re->winx > re->winy ? re->winy : re->winx);
-	
 	re->mblur_offs = re->field_offs = 0.f;
 	
 	RE_init_threadcount(re);
 }
 
+static void render_result_rescale(Render *re)
+{
+	RenderResult *result = re->result;
+	int x, y;
+	float scale_x, scale_y;
+	float *src_rectf;
+
+	src_rectf = result->rectf;
+	if (src_rectf == NULL) {
+		RenderLayer *rl = render_get_active_layer(re, re->result);
+		if (rl != NULL) {
+			src_rectf = rl->rectf;
+		}
+	}
+
+	if (src_rectf != NULL) {
+		float *dst_rectf = NULL;
+		re->result = render_result_new(re,
+		                               &re->disprect,
+		                               0,
+		                               RR_USE_MEM,
+		                               RR_ALL_LAYERS);
+
+		dst_rectf = re->result->rectf;
+		if (dst_rectf == NULL) {
+			RenderLayer *rl;
+			rl = render_get_active_layer(re, re->result);
+			if (rl != NULL) {
+				dst_rectf = rl->rectf;
+			}
+		}
+
+		scale_x = (float) result->rectx / re->result->rectx;
+		scale_y = (float) result->recty / re->result->recty;
+		for (x = 0; x < re->result->rectx; ++x) {
+			for (y = 0; y < re->result->recty; ++y) {
+				int src_x = x * scale_x,
+				    src_y = y * scale_y;
+				int dst_index = y * re->result->rectx + x,
+				    src_index = src_y * result->rectx + src_x;
+				copy_v4_v4(dst_rectf + dst_index * 4,
+				           src_rectf + src_index * 4);
+			}
+		}
+	}
+
+	render_result_free(result);
+}
+
+void RE_ChangeResolution(Render *re, int winx, int winy, rcti *disprect)
+{
+	re_init_resolution(re, NULL, winx, winy, disprect);
+
+	BLI_rw_mutex_lock(&re->resultmutex, THREAD_LOCK_WRITE);
+	render_result_rescale(re);
+	BLI_rw_mutex_unlock(&re->resultmutex);
+}
+
 /* update some variables that can be animated, and otherwise wouldn't be due to
  * RenderData getting copied once at the start of animation render */
-static void render_update_anim_renderdata(Render *re, RenderData *rd)
+void render_update_anim_renderdata(Render *re, RenderData *rd)
 {
 	/* filter */
 	re->r.gauss = rd->gauss;
@@ -665,6 +742,10 @@ static void render_update_anim_renderdata(Render *re, RenderData *rd)
 	/* freestyle */
 	re->r.line_thickness_mode = rd->line_thickness_mode;
 	re->r.unit_line_thickness = rd->unit_line_thickness;
+
+	/* render layers */
+	BLI_freelistN(&re->r.layers);
+	BLI_duplicatelist(&re->r.layers, &rd->layers);
 }
 
 void RE_SetWindow(Render *re, rctf *viewplane, float clipsta, float clipend)
@@ -734,6 +815,11 @@ void RE_display_update_cb(Render *re, void *handle, void (*f)(void *handle, Rend
 {
 	re->display_update = f;
 	re->duh = handle;
+}
+void RE_current_scene_update_cb(Render *re, void *handle, void (*f)(void *handle, Scene *scene))
+{
+	re->current_scene_update = f;
+	re->suh = handle;
 }
 void RE_stats_draw_cb(Render *re, void *handle, void (*f)(void *handle, RenderStats *rs))
 {
@@ -1186,6 +1272,8 @@ static void do_render_3d(Render *re)
 {
 	int cfra_backup;
 
+	re->current_scene_update(re->suh, re->scene);
+
 	/* try external */
 	if (RE_engine_render(re, 0))
 		return;
@@ -1591,6 +1679,8 @@ static void render_scene(Render *re, Scene *sce, int cfra)
 	resc->tbh = re->tbh;
 	resc->stats_draw = re->stats_draw;
 	resc->sdh = re->sdh;
+	resc->current_scene_update = re->current_scene_update;
+	resc->suh = re->suh;
 	
 	do_render_fields_blur_3d(resc);
 }
@@ -1762,11 +1852,14 @@ static void tag_scenes_for_render(Render *re)
 
 				if (node->id != (ID *)re->scene) {
 					if ((node->id->flag & LIB_DOIT) == 0) {
-						node->flag |= NODE_TEST;
-						node->id->flag |= LIB_DOIT;
+						Scene *scene = (Scene *) node->id;
+						if (render_scene_has_layers_to_render(scene)) {
+							node->flag |= NODE_TEST;
+							node->id->flag |= LIB_DOIT;
 #ifdef DEPSGRAPH_WORKAROUND_HACK
-						tag_dependend_objects_for_render((Scene *) node->id, renderlay);
+							tag_dependend_objects_for_render(scene, renderlay);
 #endif
+						}
 					}
 				}
 			}
@@ -1779,7 +1872,8 @@ static void ntree_render_scenes(Render *re)
 {
 	bNode *node;
 	int cfra = re->scene->r.cfra;
-	int restore_scene = 0;
+	Scene *restore_scene = re->scene;
+	bool scene_changed = false;
 	
 	if (re->scene->nodetree == NULL) return;
 	
@@ -1793,18 +1887,18 @@ static void ntree_render_scenes(Render *re)
 				if (node->flag & NODE_TEST) {
 					Scene *scene = (Scene *)node->id;
 
+					scene_changed |= scene != restore_scene;
 					render_scene(re, scene, cfra);
-					restore_scene = (scene != re->scene);
 					node->flag &= ~NODE_TEST;
 					
-					nodeUpdate(re->scene->nodetree, node);
+					nodeUpdate(restore_scene->nodetree, node);
 				}
 			}
 		}
 	}
 
 	/* restore scene if we rendered another last */
-	if (restore_scene)
+	if (scene_changed)
 		BKE_scene_set_background(re->main, re->scene);
 }
 
@@ -2291,6 +2385,8 @@ static void do_render_seq(Render *re)
 /* main loop: doing sequence + fields + blur + 3d render + compositing */
 static void do_render_all_options(Render *re)
 {
+	re->current_scene_update(re->suh, re->scene);
+
 	BKE_scene_camera_switch_update(re->scene);
 
 	re->i.starttime = PIL_check_seconds_timer();
@@ -2431,7 +2527,6 @@ static int check_composite_output(Scene *scene)
 
 bool RE_is_rendering_allowed(Scene *scene, Object *camera_override, ReportList *reports)
 {
-	SceneRenderLayer *srl;
 	int scemode = check_mode_full_sample(&scene->r);
 	
 	if (scene->r.mode & R_BORDER) {
@@ -2506,10 +2601,7 @@ bool RE_is_rendering_allowed(Scene *scene, Object *camera_override, ReportList *
 	}
 	
 	/* layer flag tests */
-	for (srl = scene->r.layers.first; srl; srl = srl->next)
-		if (!(srl->layflag & SCE_LAY_DISABLE))
-			break;
-	if (srl == NULL) {
+	if (!render_scene_has_layers_to_render(scene)) {
 		BKE_report(reports, RPT_ERROR, "All render layers are disabled");
 		return 0;
 	}
@@ -2550,7 +2642,8 @@ static void update_physics_cache(Render *re, Scene *scene, int UNUSED(anim_init)
 	BKE_ptcache_bake(&baker);
 }
 /* evaluating scene options for general Blender render */
-static int render_initialize_from_main(Render *re, Main *bmain, Scene *scene, SceneRenderLayer *srl, Object *camera_override, unsigned int lay_override, int anim, int anim_init)
+static int render_initialize_from_main(Render *re, RenderData *rd, Main *bmain, Scene *scene, SceneRenderLayer *srl,
+                                       Object *camera_override, unsigned int lay_override, int anim, int anim_init)
 {
 	int winx, winy;
 	rcti disprect;
@@ -2559,16 +2652,16 @@ static int render_initialize_from_main(Render *re, Main *bmain, Scene *scene, Sc
 	 * r.border is the clipping rect */
 	
 	/* calculate actual render result and display size */
-	winx = (scene->r.size * scene->r.xsch) / 100;
-	winy = (scene->r.size * scene->r.ysch) / 100;
+	winx = (rd->size * rd->xsch) / 100;
+	winy = (rd->size * rd->ysch) / 100;
 	
 	/* we always render smaller part, inserting it in larger image is compositor bizz, it uses disprect for it */
 	if (scene->r.mode & R_BORDER) {
-		disprect.xmin = scene->r.border.xmin * winx;
-		disprect.xmax = scene->r.border.xmax * winx;
+		disprect.xmin = rd->border.xmin * winx;
+		disprect.xmax = rd->border.xmax * winx;
 		
-		disprect.ymin = scene->r.border.ymin * winy;
-		disprect.ymax = scene->r.border.ymax * winy;
+		disprect.ymin = rd->border.ymin * winy;
+		disprect.ymax = rd->border.ymax * winy;
 	}
 	else {
 		disprect.xmin = disprect.ymin = 0;
@@ -2638,7 +2731,7 @@ void RE_BlenderFrame(Render *re, Main *bmain, Scene *scene, SceneRenderLayer *sr
 	
 	scene->r.cfra = frame;
 	
-	if (render_initialize_from_main(re, bmain, scene, srl, camera_override, lay_override, 0, 0)) {
+	if (render_initialize_from_main(re, &scene->r, bmain, scene, srl, camera_override, lay_override, 0, 0)) {
 		MEM_reset_peak_memory();
 
 		BLI_callback_exec(re->main, (ID *)scene, BLI_CB_EVT_RENDER_PRE);
@@ -2673,7 +2766,7 @@ void RE_BlenderFrame(Render *re, Main *bmain, Scene *scene, SceneRenderLayer *sr
 void RE_RenderFreestyleStrokes(Render *re, Main *bmain, Scene *scene, int render)
 {
 	re->result_ok= 0;
-	if (render_initialize_from_main(re, bmain, scene, NULL, NULL, scene->lay, 0, 0)) {
+	if (render_initialize_from_main(re, &scene->r, bmain, scene, NULL, NULL, scene->lay, 0, 0)) {
 		if (render)
 			do_render_fields_blur_3d(re);
 	}
@@ -2792,12 +2885,13 @@ static int do_write_image_or_movie(Render *re, Main *bmain, Scene *scene, bMovie
 void RE_BlenderAnim(Render *re, Main *bmain, Scene *scene, Object *camera_override,
                     unsigned int lay_override, int sfra, int efra, int tfra)
 {
+	RenderData rd = scene->r;
 	bMovieHandle *mh = BKE_movie_handle_get(scene->r.im_format.imtype);
 	int cfrao = scene->r.cfra;
 	int nfra, totrendered = 0, totskipped = 0;
 	
 	/* do not fully call for each frame, it initializes & pops output window */
-	if (!render_initialize_from_main(re, bmain, scene, NULL, camera_override, lay_override, 0, 1))
+	if (!render_initialize_from_main(re, &rd, bmain, scene, NULL, camera_override, lay_override, 0, 1))
 		return;
 	
 	/* ugly global still... is to prevent renderwin events and signal subsurfs etc to make full resol */
@@ -2859,7 +2953,7 @@ void RE_BlenderAnim(Render *re, Main *bmain, Scene *scene, Object *camera_overri
 			char name[FILE_MAX];
 			
 			/* only border now, todo: camera lens. (ton) */
-			render_initialize_from_main(re, bmain, scene, NULL, camera_override, lay_override, 1, 0);
+			render_initialize_from_main(re, &rd, bmain, scene, NULL, camera_override, lay_override, 1, 0);
 
 			if (nfra != scene->r.cfra) {
 				/*

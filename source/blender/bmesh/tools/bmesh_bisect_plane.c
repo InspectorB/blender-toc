@@ -38,6 +38,7 @@
 #include "MEM_guardedalloc.h"
 
 #include "BLI_utildefines.h"
+#include "BLI_stackdefines.h"
 #include "BLI_alloca.h"
 #include "BLI_linklist.h"
 #include "BLI_linklist_stack.h"
@@ -275,17 +276,17 @@ static void bm_face_bisect_verts(BMesh *bm, BMFace *f, const float plane[4], con
 		}
 	}
 
-finally:
-	STACK_FREE(vert_split_arr);
 
+finally:
+	(void)vert_split_arr;
 }
 
 /* -------------------------------------------------------------------- */
 /* Main logic */
 
 /**
+ * \param use_snap_center  Snap verts onto the plane.
  * \param use_tag  Only bisect tagged edges and faces.
- * \param use_snap  Snap verts onto the plane.
  * \param oflag_center  Operator flag, enabled for geometry on the axis (existing and created)
  */
 void BM_mesh_bisect_plane(BMesh *bm, float plane[4],

@@ -49,6 +49,7 @@
 //#include "SCA_RandomEventManager.h"
 //#include "KX_RayEventManager.h"
 #include "SCA_2DFilterActuator.h"
+#include "SCA_PythonController.h"
 #include "KX_TouchEventManager.h"
 #include "SCA_KeyboardManager.h"
 #include "SCA_MouseManager.h"
@@ -83,6 +84,7 @@
 #include "NG_NetworkScene.h"
 #include "PHY_IPhysicsEnvironment.h"
 #include "PHY_IGraphicController.h"
+#include "PHY_IPhysicsController.h"
 #include "KX_BlenderSceneConverter.h"
 #include "KX_MotionState.h"
 
@@ -93,9 +95,6 @@
 
 #ifdef WITH_BULLET
 #include "KX_SoftBodyDeformer.h"
-#include "KX_ConvertPhysicsObject.h"
-#include "CcdPhysicsEnvironment.h"
-#include "CcdPhysicsController.h"
 #endif
 
 #include "KX_Light.h"
@@ -564,7 +563,6 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(class SG_IObject* node, class CVal
 		newobj->SetGraphicController(newctrl);
 	}
 
-#ifdef WITH_BULLET
 	// replicate physics controller
 	if (orgobj->GetPhysicsController())
 	{
@@ -577,11 +575,7 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(class SG_IObject* node, class CVal
 		newctrl->SetNewClientInfo(newobj->getClientInfo());
 		newobj->SetPhysicsController(newctrl, newobj->IsDynamic());
 		newctrl->PostProcessReplica(motionstate, parentctrl);
-
-		if (parent)
-			parent->Release();
 	}
-#endif
 
 	return newobj;
 }
@@ -761,8 +755,6 @@ void KX_Scene::DupliGroupRecurse(CValue* obj, int level)
 		KX_GameObject *parent = gameobj->GetParent();
 		if (parent != NULL)
 		{
-			parent->Release(); // GetParent() increased the refcount
-
 			// this object is not a top parent. Either it is the child of another
 			// object in the group and it will be added automatically when the parent
 			// is added. Or it is the child of an object outside the group and the group
@@ -1174,8 +1166,6 @@ void KX_Scene::ReplaceMesh(class CValue* obj,void* meshobj, bool use_gfx, bool u
 #ifdef WITH_BULLET
 			bool bHasSoftBody = (!parentobj && (blendobj->gameflag & OB_SOFT_BODY));
 #endif
-			bool releaseParent = true;
-
 			
 			if (oldblendobj==NULL) {
 				if (bHasModifier || bHasShapeKey || bHasDvert || bHasArmature) {
@@ -1195,9 +1185,8 @@ void KX_Scene::ReplaceMesh(class CValue* obj,void* meshobj, bool use_gfx, bool u
 						oldblendobj, blendobj,
 						mesh,
 						true,
-						static_cast<BL_ArmatureObject*>( parentobj )
+						static_cast<BL_ArmatureObject*>( parentobj->AddRef() )
 					);
-					releaseParent= false;
 					modifierDeformer->LoadShapeDrivers(parentobj);
 				}
 				else
@@ -1223,9 +1212,8 @@ void KX_Scene::ReplaceMesh(class CValue* obj,void* meshobj, bool use_gfx, bool u
 						mesh,
 						true,
 						true,
-						static_cast<BL_ArmatureObject*>( parentobj )
+						static_cast<BL_ArmatureObject*>( parentobj->AddRef() )
 					);
-					releaseParent= false;
 					shapeDeformer->LoadShapeDrivers(parentobj);
 				}
 				else
@@ -1249,9 +1237,8 @@ void KX_Scene::ReplaceMesh(class CValue* obj,void* meshobj, bool use_gfx, bool u
 					mesh,
 					true,
 					true,
-					static_cast<BL_ArmatureObject*>( parentobj )
+					static_cast<BL_ArmatureObject*>( parentobj->AddRef() )
 				);
-				releaseParent= false;
 				newobj->SetDeformer(skinDeformer);
 			}
 			else if (bHasDvert)
@@ -1268,21 +1255,16 @@ void KX_Scene::ReplaceMesh(class CValue* obj,void* meshobj, bool use_gfx, bool u
 				newobj->SetDeformer(softdeformer);
 			}
 #endif
-
-			// release parent reference if its not being used 
-			if ( releaseParent && parentobj)
-				parentobj->Release();
 		}
 	}
 
 	gameobj->AddMeshUser();
 	}
 
-#ifdef WITH_BULLET
 	if (use_phys) { /* update the new assigned mesh with the physics mesh */
-		KX_ReInstanceBulletShapeFromMesh(gameobj, NULL, use_gfx?NULL:mesh);
+		if (gameobj->GetPhysicsController())
+			gameobj->GetPhysicsController()->ReinstancePhysicsShape(NULL, use_gfx?NULL:mesh);
 	}
-#endif
 }
 
 /* Font Object routines */
@@ -1363,17 +1345,6 @@ void KX_Scene::SetCameraOnTop(KX_Camera* cam)
 	} else {
 		m_cameras.remove(cam);
 		m_cameras.push_back(cam);
-	}
-}
-
-
-void KX_Scene::UpdateMeshTransformations()
-{
-	// do this incrementally in the future
-	for (int i = 0; i < m_objectlist->GetCount(); i++)
-	{
-		KX_GameObject* gameobj = (KX_GameObject*)m_objectlist->GetValue(i);
-		gameobj->GetOpenGLMatrix();
 	}
 }
 
@@ -1645,6 +1616,9 @@ static void update_anim_thread_func(TaskPool *pool, void *taskdata, int UNUSED(t
 		gameobj->UpdateActionManager(curtime);
 		children = gameobj->GetChildren();
 
+		if (!gameobj->GetParent() && gameobj->GetDeformer())
+			gameobj->GetDeformer()->Update();
+
 		for (int j=0; j<children->GetCount(); ++j) {
 			child = (KX_GameObject*)children->GetValue(j);
 
@@ -1667,6 +1641,10 @@ void KX_Scene::UpdateAnimations(double curtime)
 
 	BLI_task_pool_work_and_wait(pool);
 	BLI_task_pool_free(pool);
+
+	for (int i=0; i<m_animatedlist->GetCount(); ++i) {
+		((KX_GameObject*)m_animatedlist->GetValue(i))->UpdateActionIPOs();
+	}
 }
 
 void KX_Scene::LogicUpdateFrame(double curtime, bool frame)
@@ -1746,7 +1724,7 @@ void KX_Scene::RenderFonts()
 {
 	list<KX_FontObject*>::iterator it = m_fonts.begin();
 	while (it != m_fonts.end()) {
-		(*it)->DrawText();
+		(*it)->DrawFontText();
 		++it;
 	}
 }
@@ -1873,7 +1851,7 @@ short KX_Scene::GetAnimationFPS()
 	return m_blenderScene->r.frs_sec;
 }
 
-static void MergeScene_LogicBrick(SCA_ILogicBrick* brick, KX_Scene *to)
+static void MergeScene_LogicBrick(SCA_ILogicBrick* brick, KX_Scene *from, KX_Scene *to)
 {
 	SCA_LogicManager *logicmgr= to->GetLogicManager();
 
@@ -1881,12 +1859,13 @@ static void MergeScene_LogicBrick(SCA_ILogicBrick* brick, KX_Scene *to)
 	brick->Replace_NetworkScene(to->GetNetworkScene());
 
 	/* near sensors have physics controllers */
-#ifdef WITH_BULLET
 	KX_TouchSensor *touch_sensor = dynamic_cast<class KX_TouchSensor *>(brick);
 	if (touch_sensor) {
+		KX_TouchEventManager *tmgr = (KX_TouchEventManager*)from->GetLogicManager()->FindEventManager(SCA_EventManager::TOUCH_EVENTMGR);
+		touch_sensor->UnregisterSumo(tmgr);
 		touch_sensor->GetPhysicsController()->SetPhysicsEnvironment(to->GetPhysicsEnvironment());
+		touch_sensor->RegisterSumo(tmgr);
 	}
-#endif
 
 	// If we end up replacing a KX_TouchEventManager, we need to make sure
 	// physics controllers are properly in place. In other words, do this
@@ -1900,11 +1879,20 @@ static void MergeScene_LogicBrick(SCA_ILogicBrick* brick, KX_Scene *to)
 	if (filter_actuator) {
 		filter_actuator->SetScene(to);
 	}
-}
 
-#ifdef WITH_BULLET
-#include "CcdGraphicController.h" // XXX  ctrl->SetPhysicsEnvironment(to->GetPhysicsEnvironment());
+#ifdef WITH_PYTHON
+	// Python must be called from the main thread unless we want to deal
+	// with GIL issues. So, this is delayed until here in case of async
+	// libload (originally in KX_ConvertControllers)
+	SCA_PythonController *pyctrl = dynamic_cast<SCA_PythonController*>(brick);
+	if (pyctrl) {
+		pyctrl->SetNamespace(KX_GetActiveEngine()->GetPyNamespace());
+
+		if (pyctrl->m_mode==SCA_PythonController::SCA_PYEXEC_SCRIPT)
+			pyctrl->Compile();
+	}
 #endif
+}
 
 static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene *from)
 {
@@ -1914,7 +1902,7 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 
 		for (ita = actuators.begin(); !(ita==actuators.end()); ++ita)
 		{
-			MergeScene_LogicBrick(*ita, to);
+			MergeScene_LogicBrick(*ita, from, to);
 		}
 	}
 
@@ -1925,7 +1913,7 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 
 		for (its = sensors.begin(); !(its==sensors.end()); ++its)
 		{
-			MergeScene_LogicBrick(*its, to);
+			MergeScene_LogicBrick(*its, from, to);
 		}
 	}
 
@@ -1936,17 +1924,17 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 		for (itc = controllers.begin(); !(itc==controllers.end()); ++itc)
 		{
 			SCA_IController *cont= *itc;
-			MergeScene_LogicBrick(cont, to);
+			MergeScene_LogicBrick(cont, from, to);
 
 			vector<SCA_ISensor*> linkedsensors = cont->GetLinkedSensors();
 			vector<SCA_IActuator*> linkedactuators = cont->GetLinkedActuators();
 
 			for (vector<SCA_IActuator*>::iterator ita = linkedactuators.begin();!(ita==linkedactuators.end());++ita) {
-				MergeScene_LogicBrick(*ita, to);
+				MergeScene_LogicBrick(*ita, from, to);
 			}
 
 			for (vector<SCA_ISensor*>::iterator its = linkedsensors.begin();!(its==linkedsensors.end());++its) {
-				MergeScene_LogicBrick(*its, to);
+				MergeScene_LogicBrick(*its, from, to);
 			}
 		}
 	}
@@ -1958,12 +1946,10 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 		ctrl->SetPhysicsEnvironment(to->GetPhysicsEnvironment());
 	}
 
-#ifdef WITH_BULLET
 	ctrl = gameobj->GetPhysicsController();
 	if (ctrl) {
 		ctrl->SetPhysicsEnvironment(to->GetPhysicsEnvironment());
 	}
-#endif
 
 	/* SG_Node can hold a scene reference */
 	SG_Node *sg= gameobj->GetSGNode();
@@ -1994,9 +1980,8 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 
 bool KX_Scene::MergeScene(KX_Scene *other)
 {
-#ifdef WITH_BULLET
-	CcdPhysicsEnvironment *env=			dynamic_cast<CcdPhysicsEnvironment *>(this->GetPhysicsEnvironment());
-	CcdPhysicsEnvironment *env_other=	dynamic_cast<CcdPhysicsEnvironment *>(other->GetPhysicsEnvironment());
+	PHY_IPhysicsEnvironment *env = this->GetPhysicsEnvironment();
+	PHY_IPhysicsEnvironment *env_other = other->GetPhysicsEnvironment();
 
 	if ((env==NULL) != (env_other==NULL)) /* TODO - even when both scenes have NONE physics, the other is loaded with bullet enabled, ??? */
 	{
@@ -2004,7 +1989,6 @@ bool KX_Scene::MergeScene(KX_Scene *other)
 		printf("\tsource %d, terget %d\n", (int)(env!=NULL), (int)(env_other!=NULL));
 		return false;
 	}
-#endif // WITH_BULLET
 
 	if (GetSceneConverter() != other->GetSceneConverter()) {
 		printf("KX_Scene::MergeScene: converters differ, aborting\n");
@@ -2046,10 +2030,8 @@ bool KX_Scene::MergeScene(KX_Scene *other)
 	GetLightList()->MergeList(other->GetLightList());
 	other->GetLightList()->ReleaseAndRemoveAll();
 
-#ifdef WITH_BULLET
-	if (env) /* bullet scene? - dummy scenes don't need touching */
+	if (env)
 		env->MergeEnvironment(env_other);
-#endif
 
 	/* move materials across, assume they both use the same scene-converters
 	 * Do this after lights are merged so materials can use the lights in shaders

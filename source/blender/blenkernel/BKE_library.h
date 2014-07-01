@@ -49,7 +49,7 @@ struct PropertyRNA;
 
 void *BKE_libblock_alloc(struct Main *bmain, short type, const char *name) ATTR_WARN_UNUSED_RESULT ATTR_NONNULL();
 void *BKE_libblock_copy_ex(struct Main *bmain, struct ID *id) ATTR_WARN_UNUSED_RESULT ATTR_NONNULL();
-void *BKE_libblock_copy_nolib(struct ID *id) ATTR_NONNULL();
+void *BKE_libblock_copy_nolib(struct ID *id, const bool do_action) ATTR_NONNULL();
 void *BKE_libblock_copy(struct ID *id) ATTR_WARN_UNUSED_RESULT ATTR_NONNULL();
 void  BKE_libblock_copy_data(struct ID *id, const struct ID *id_from, const bool do_action);
 
@@ -77,7 +77,7 @@ int set_listbasepointers(struct Main *main, struct ListBase **lb);
 void BKE_libblock_free(struct Main *bmain, void *idv);
 void BKE_libblock_free_ex(struct Main *bmain, void *idv, bool do_id_user);
 void BKE_libblock_free_us(struct Main *bmain, void *idv);
-void BKE_libblock_free_data(struct ID *id);
+void BKE_libblock_free_data(struct Main *bmain, struct ID *id);
 
 
 /* Main API */

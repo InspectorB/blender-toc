@@ -44,7 +44,6 @@
 #include "BKE_image.h"
 #include "BKE_main.h"
 #include "BKE_node.h"
-#include "BKE_scene.h"
 #include "BKE_tracking.h"
 
 #include "BLF_api.h"
@@ -52,8 +51,6 @@
 
 #include "BIF_gl.h"
 #include "BIF_glutil.h"
-
-#include "MEM_guardedalloc.h"
 
 #include "RNA_access.h"
 #include "RNA_define.h"
@@ -338,7 +335,7 @@ static void node_draw_frame_prepare(const bContext *UNUSED(C), bNodeTree *ntree,
 {
 	const float margin = 1.5f * U.widget_unit;
 	NodeFrame *data = (NodeFrame *)node->storage;
-	int bbinit;
+	bool bbinit;
 	bNode *tnode;
 	rctf rect, noderect;
 	float xmax, ymax;
@@ -933,6 +930,11 @@ static void node_shader_buts_glossy(uiLayout *layout, bContext *UNUSED(C), Point
 	uiItemR(layout, ptr, "distribution", 0, "", ICON_NONE);
 }
 
+static void node_shader_buts_anisotropic(uiLayout *layout, bContext *UNUSED(C), PointerRNA *ptr)
+{
+	uiItemR(layout, ptr, "distribution", 0, "", ICON_NONE);
+}
+
 static void node_shader_buts_subsurface(uiLayout *layout, bContext *C, PointerRNA *ptr)
 {
 	/* SSS does not work on GPU yet */
@@ -1098,6 +1100,9 @@ static void node_shader_set_butfunc(bNodeType *ntype)
 		case SH_NODE_BSDF_GLASS:
 		case SH_NODE_BSDF_REFRACTION:
 			ntype->draw_buttons = node_shader_buts_glossy;
+			break;
+		case SH_NODE_BSDF_ANISOTROPIC:
+			ntype->draw_buttons = node_shader_buts_anisotropic;
 			break;
 		case SH_NODE_SUBSURFACE_SCATTERING:
 			ntype->draw_buttons = node_shader_buts_subsurface;
@@ -3103,7 +3108,7 @@ void draw_nodespace_back_pix(const bContext *C, ARegion *ar, SpaceNode *snode, b
 				IMB_display_buffer_release(cache_handle);
 		}
 		
-		/** @note draw selected info on backdrop */
+		/** \note draw selected info on backdrop */
 		if (snode->edittree) {
 			bNode *node = snode->edittree->nodes.first;
 			rctf *viewer_border = &snode->nodetree->viewer_border;
