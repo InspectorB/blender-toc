@@ -1764,7 +1764,7 @@ static int wm_handler_fileselect_do(bContext *C, ListBase *handlers, wmEventHand
 				}
 
 				/* for WM_operator_pystring only, custom report handling is done above */
-				wm_operator_reports(C, handler->op, retval, true);
+				wm_operator_reports(C, handler->op, retval, true, false);
 
 				if (retval & OPERATOR_FINISHED) {
 					WM_operator_last_properties_store(handler->op);
