@@ -1177,7 +1177,7 @@ namespace usage {
 			char filename[41];
 			char filepath[128];
 			BLI_snprintf(filename, sizeof(filename), "%s.png", sqi->hash.c_str());
-			BLI_make_file_string("/", filepath, BLI_temporary_dir(), filename);
+			BLI_make_file_string("/", filepath, BLI_temp_dir_base(), filename);
 			
 			// half the image and write to disk
 			int subdivs = pow(2, sqi->subdivisions);
