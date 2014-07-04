@@ -87,8 +87,9 @@ extern "C" {
 
 #include "PIL_time.h"
 	
-#include "BKE_usage.h"
 }
+
+#include "BKE_usage.h"
 
 #include <string>
 #include <sstream>

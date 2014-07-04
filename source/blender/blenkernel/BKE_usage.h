@@ -43,6 +43,7 @@ extern "C" {
 #endif //__cplusplus
 
 #ifdef __cplusplus
+
 #include <queue>
 
 #include <thrift/transport/TSocket.h>
