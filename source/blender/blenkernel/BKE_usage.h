@@ -31,14 +31,18 @@
 #ifdef WITH_USAGE
 
 #ifdef __cplusplus
-
 extern "C" {
-#include "BLI_threads.h" 
-
+#endif //__cplusplus
+	
+#include "BLI_threads.h"
 #include "DNA_windowmanager_types.h"
 #include "UI_interface.h"
+	
+#ifdef __cplusplus
 }
+#endif //__cplusplus
 
+#ifdef __cplusplus
 #include <queue>
 
 #include <thrift/transport/TSocket.h>
@@ -208,18 +212,13 @@ namespace usage {
 	};
 	
 } /* namespace */
+#endif //__cplusplus
 
 
-
-
+#ifdef __cplusplus
 extern "C" {
-#else /* __cplusplus */
-	
-#include "BLI_threads.h"
-	
-#include "DNA_windowmanager_types.h"
-#include "UI_interface.h"
-	
+#endif //__cplusplus
+		
 /* C interface */
 	
 struct wmOperator;
@@ -241,7 +240,6 @@ void BKE_usage_queue_start(void);
 void BKE_usage_update_settings(void);
 void BKE_usage_shutdown(void);
 	
-#endif /* __cplusplus */
 #ifdef __cplusplus
 }
 #endif

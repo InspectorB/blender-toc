@@ -86,9 +86,9 @@ extern "C" {
 #include "wm_window.h"
 
 #include "PIL_time.h"
-}
-
+	
 #include "BKE_usage.h"
+}
 
 #include <string>
 #include <sstream>
@@ -640,7 +640,7 @@ namespace usage {
 				lastScreenshotTimestamp = currentTimestamp;
 				takeScreenshotP = true;
 				frameWin = CTX_wm_window(C);
-				frameWin->screen->do_draw = TRUE;
+				frameWin->screen->do_draw = true;
 				thriftOp.__set_screenshotHash(frameUUID);
 			}
 			
@@ -1189,7 +1189,7 @@ namespace usage {
 			// load jpeg file into screenshot struct
 			std::string content;
 			readEntireFile(filepath, content);
-			BLI_delete(filepath, FALSE, FALSE);
+			BLI_delete(filepath, false, false);
 			
 			std::string token = U.usage_service_token;
 			wire::Screenshot sshot;
