@@ -2437,7 +2437,7 @@ void init_userdef_do_versions(void)
 		}
 	}
 	
-	if (U.versionfile < 271) {
+	if (U.versionfile < 272) {
 		if (U.usage_service_host[0] == 0) {
 			BLI_strncpy(U.usage_service_host, "inspectorb.com", 64);
 		}
