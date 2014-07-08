@@ -959,7 +959,7 @@ namespace usage {
 			// set up new connection
 			int port = U.usage_service_port <= 0 ? 9090 : U.usage_service_port;
 			const char *host = (U.usage_service_host == NULL || BLI_strlen_utf8(U.usage_service_host) < 5) ? "inspectorb.com" : U.usage_service_host;
-			std::cout << host << ":" << port << std::endl;
+			printf("Connecting to host %s at port %i\n", host, port);
 			boost::shared_ptr<TSocket> newSocket(new TSocket(host, port));
 			boost::shared_ptr<TTransport> newTransport(new TFramedTransport(newSocket));
 			boost::shared_ptr<TProtocol> newProtocol(new TBinaryProtocol(newTransport));
